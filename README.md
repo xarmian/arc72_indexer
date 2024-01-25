@@ -10,10 +10,6 @@ and write the applicable data to a SQLite3 database
 * API Documentation (Swagger) - https://arc72-idx.voirewards.com/api-docs
 * ARC72 NFT Stats (for testing) - https://arc72-idx.voirewards.com/stats
 
-### Account page
-A /account route (i.e. https://arc72-idx.voirewards.com/account) is
-exposed to demonstrate using the API to 
-
 ### Self Deployment Instructions
 To operate the block-follower and populate the SQLite database:
 ```
