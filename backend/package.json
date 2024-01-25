@@ -1,0 +1,16 @@
+{
+  "name": "arc72_indexer_backend",
+  "description": "ARC-72 Indexer - Backend Client",
+  "main": "index.js",
+  "scripts": {
+    "run": "node ./index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "type": "module",
+  "author": "David Runion",
+  "license": "ISC",
+  "dependencies": {
+    "sqlite3": "^5.1.7",
+    "ulujs": "^0.0.11"
+  }
+}

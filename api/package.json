@@ -1,0 +1,18 @@
+{
+  "name": "arc72_indexer_api",
+  "description": "ARC-72 Indexer - API Server",
+  "main": "index.js",
+  "scripts": {
+    "run": "node ./index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "type": "module",
+  "author": "David Runion",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "sqlite3": "^5.1.7",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.0"
+  }
+}
