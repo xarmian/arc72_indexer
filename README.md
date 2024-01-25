@@ -1,5 +1,12 @@
 ## ARC-72 Indexer Prototype for the AVM (Algorand Virtual Machine)
 
+### NOTICE
+This application is provided without guarantee or warranty.
+This is an ALPHA prototype of an ARC-72 Indexer for AVM based networks
+based on the ARC-74 specification found here:
+
+https://arc.algorand.foundation/ARCs/arc-0074
+
 ### Includes:
 * Block follower to extract token information and transfers from the blockchain
 and write the applicable data to a SQLite3 database
