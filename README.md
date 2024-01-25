@@ -1,8 +1,8 @@
-## ARC-72 Indexer Prototype for the AVM (Algorand Virtual Machine)
+## ARC-72 NFT Indexer Prototype for the AVM (Algorand Virtual Machine)
 
 ### NOTICE
 This application is provided without guarantee or warranty.
-This is an ALPHA prototype of an ARC-72 Indexer for AVM based networks
+This is an ALPHA prototype of an ARC-72 NFT Indexer for AVM based networks
 based on the ARC-74 specification found here:
 
 https://arc.algorand.foundation/ARCs/arc-0074
@@ -14,6 +14,14 @@ and write the applicable data to a SQLite3 database
 * API Documentation using SwaggerUI
 
 ### Production Links
+Production services below are deployed for the VoiNet network.
+This includes a block follower and indexer API.
+
+API Endpoints:
+* Token Endpoint: https://arc72-idx.voirewards.com/nft-indexer/v1/tokens
+* Transfers Endpoint: https://arc72-idx.voirewards.com/nft-indexer/v1/transfers
+
+Additional Links:
 * API Documentation (Swagger) - https://arc72-idx.voirewards.com/api-docs
 * ARC72 NFT Stats (for testing) - https://arc72-idx.voirewards.com/stats
 
