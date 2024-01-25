@@ -38,52 +38,11 @@ while(true) {
 
     // get all application transactions from block
     if (blk.block.txns) {
-      const mintTxns = blk.block.txns.filter((txn) => typeof txn.apid !== 'undefined');
-
-      // for each mint transaction, record the collection in the database if it doesn't exist yet
-      for (const txn of mintTxns) {
-        const contractId = txn.apid;
-        const ctc = new Contract(contractId, algodClient, indexerClient);
-        const isArc72 = await isARC72(ctc);
-        
-        if (isArc72) {
-          output(`\nFound ARC72 contract at ${contractId}, in block ${rnd}`);
-
-          // check if collection is in collections table, import if not
-          const collectionExists = await db.collectionExists(contractId);
-          if (!collectionExists) { // collection not in DB yet, pull latest data from contract
-            output(`\nCollection ${contractId} not in database, importing...`);
-            
-            const totalSupply = (await ctc.arc72_totalSupply()).returnValue;
-
-            for(let i = 0; i < totalSupply; i++) {
-              try {
-                const tokenId = (await ctc.arc72_tokenByIndex(i)).returnValue;
-                const owner = (await ctc.arc72_ownerOf(tokenId)).returnValue;
-                const metadataURI = (await ctc.arc72_tokenURI(tokenId)).returnValue;
-                const metadata = JSON.stringify(await fetch(metadataURI).then((res) => res.json()));
-
-                await db.insertOrUpdateToken({contractId, tokenId, tokenIndex: i, owner, metadataURI, metadata});
-              }
-              catch(err) {
-                console.log(err);
-                continue;
-              }
-            }
-            
-            // add collection to collections table
-            await db.insertCollection({contractId, totalSupply, createRound: rnd, lastSyncRound: rnd});
-          }
-        }
-      }
-      
-      const appCallTxns = blk.block.txns.filter((txn) => typeof txn.txn?.apid !== 'undefined');
+      const appTxns = blk.block.txns.filter((txn) => typeof txn.apid !== 'undefined' || typeof txn.txn?.apid !== 'undefined');
 
       // for each txn in txns
-      for (const txn of appCallTxns) {
-        const contractId = txn.txn.apid;
-        const exists = await db.collectionExists(contractId);
-        if (!exists) continue; // collection not in DB, skip
+      for (const txn of appTxns) {
+        const contractId = txn.apid ?? txn.txn.apid;
 
         const ctc = new Contract(contractId, algodClient, indexerClient);
         const isArc72 = await isARC72(ctc);
@@ -94,9 +53,9 @@ while(true) {
           let lastSyncRound = await db.getCollectionLastSync(contractId);
           if (rnd < lastSyncRound) lastSyncRound = rnd;
 
-          // update tokenSupply in collections table if it has changed
           const totalSupply = (await ctc.arc72_totalSupply()).returnValue;
-          await db.updateCollectionTotalSupply(contractId, totalSupply);
+
+          await db.insertOrUpdateCollection({contractId, totalSupply, createRound: rnd, lastSyncRound: rnd});
 
           // update tokens table for all tokens from index 0 to totalSupply
           output(`\nUpdating collection ${contractId} tokens from index 0 to ${totalSupply}...`);

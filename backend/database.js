@@ -27,7 +27,8 @@ export default class Database {
                     console.log(err);
                     reject(err);
                 } else {
-                    resolve({ id: this.lastID });
+                    resolve(this);
+                    //resolve({ id: this.lastID });
                 }
             });
         });
@@ -118,14 +119,26 @@ export default class Database {
 
         return result;
     }
-    
-    async insertCollection({contractId, totalSupply, createRound, lastSyncRound}) {
-        return await this.run(
+
+    async insertOrUpdateCollection({contractId, totalSupply, createRound, lastSyncRound}) {
+        const result = await this.run(
             `
-            INSERT OR IGNORE INTO collections (contractId, totalSupply, createRound, lastSyncRound) VALUES (?, ?, ?, ?)
+            UPDATE collections 
+            SET totalSupply = ?, lastSyncRound = ?
+            WHERE contractId = ?
             `,
-            [contractId, Number(totalSupply), createRound, lastSyncRound]
+            [Number(totalSupply), lastSyncRound, contractId]
         );
+
+        if (result.changes === 0) {
+            return await this.run(
+                `
+                INSERT INTO collections (contractId, totalSupply, createRound, lastSyncRound) VALUES (?, ?, ?, ?)
+                `,
+                [contractId, Number(totalSupply), createRound, lastSyncRound]
+            );
+        }
+        return result;
     }
 
     async collectionExists(contractId) {
