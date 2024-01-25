@@ -167,8 +167,9 @@ export default class Database {
         return await this.run("INSERT OR IGNORE INTO transfers (transactionId, contractId, tokenId, round, fromAddr, toAddr, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?)", [transactionId, contractId, String(tokenId), round, fromAddr, toAddr, timestamp]);
     }
 
+    // NOTE: only update mintRound if null
     async updateTokenMintRound(contractId, tokenId, mintRound) {
-        return await this.run("UPDATE tokens SET mintRound = ? WHERE contractId = ? AND tokenId = ?", [mintRound, contractId, String(tokenId)]);
+        return await this.run("UPDATE tokens SET mintRound = ? WHERE contractId = ? AND tokenId = ? AND mintRound IS NULL", [mintRound, contractId, String(tokenId)]);
     }
 
     async updateTokenOwner(contractId, tokenId, owner) {
