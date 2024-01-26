@@ -71,6 +71,23 @@ export const swaggerOptions = {
                   description: 'Timestamp of the transaction.'
                 },
               }
+            },
+            Collection: {
+              type: 'object',
+              properties: {
+                contractId: {
+                  type: 'string',
+                  description: 'The ID of the ARC-72 contract that defines the NFT collection.'
+                },
+                totalSupply: {
+                  type: 'integer',
+                  description: 'The total number of tokens minted by the contract.'
+                },
+                mintRound: {
+                  type: 'integer',
+                  description: 'The round at which the NFT collection contract was created.'
+                },
+              }
             }
           }
       }
@@ -224,4 +241,58 @@ export const swaggerOptions = {
  *         description: Bad request
  *       500:
  *         description: Server error
+ */
+
+/**
+ * @swagger
+ * /nft-indexer/v1/collections:
+ *  get:
+ *   summary: Retrieves collection data
+ *   description: Fetch collection details based on query parameters (this is a NON-STANDARD endpoint)
+ *   parameters:
+ *     - in: query
+ *       name: contractId
+ *       schema:
+ *         type: integer
+ *         description: Limit to only the collection with the given contractId
+ *     - in: query
+ *       name: min-mint-round
+ *       schema:
+ *         type: integer
+ *         description: Include results to collections minted on or after the given round.
+ *     - in: query
+ *       name: max-mint-round
+ *       schema:
+ *         type: integer
+ *         description: Include results to collections minted on or before the given round.
+ *     - in: query
+ *       name: next
+ *       schema:
+ *         type: string
+ *         description: Token for the next page of results. Use the next-token provided by the previous page of results.
+ *     - in: query
+ *       name: limit
+ *       schema:
+ *         type: integer
+ *         description: Maximum number of results to return. There could be additional pages even if the limit is not reached.
+ *   responses:
+ *     200:
+ *       description: A successful response
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               collection:
+ *                 type: array
+ *                 items:
+ *                   $ref: '#/components/schemas/Collection'
+ *               current-round:
+ *                 type: integer
+ *               next-token:
+ *                 type: string
+ *     400:
+ *       description: Bad request
+ *     500:
+ *       description: Server error
  */

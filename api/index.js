@@ -234,6 +234,92 @@ app.get('/nft-indexer/v1/transfers', (req, res) => {
     });
 });
 
+app.get('/nft-indexer/v1/collections', (req, res) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Response-Type', 'application/json');
+
+    // Extract query parameters
+    const contractId = req.query.contractId;
+    const mintRound = req.query['mint-round'];
+    const minTotalSupply = req.query['min-total-supply'];
+    const maxTotalSupply = req.query['max-total-supply'];
+    const next = req.query.next??0;
+    const limit = req.query.limit;
+
+    // Construct SQL query
+    let query = `SELECT * FROM collections`;
+    let conditions = [];
+    let params = {};
+
+    if (contractId) {
+        conditions.push(`contractId = $contractId`);
+        params.$contractId = contractId;
+    }
+
+    if (mintRound) {
+        conditions.push(`mintRound = $mintRound`);
+        params.$mintRound = mintRound;
+    }
+
+    if (minTotalSupply) {
+        conditions.push(`totalSupply >= $minTotalSupply`);
+        params.$minTotalSupply = minTotalSupply;
+    }
+
+    if (maxTotalSupply) {
+        conditions.push(`totalSupply <= $maxTotalSupply`);
+        params.$maxTotalSupply = maxTotalSupply;
+    }
+
+    if (next) {
+        conditions.push(`createRound >= $next`);
+        params.$next = next;
+    }
+
+    if (conditions.length > 0) {
+        query += ` WHERE ` + conditions.join(' AND ');
+    }
+
+    if (limit) {
+        query += ` LIMIT $limit`;
+        params.$limit = limit;
+    }
+
+    // Execute query
+    db.all(query, params, (err, rows) => {
+        if (err) {
+            res.status(500).json({ message: 'Error querying the database' });
+            return;
+        }
+
+        // for all rows, change remove tokenIndex and change mintRound to mint-round
+        rows.forEach((row) => {
+            row.contractId = Number(row.contractId);
+            row.totalSupply = Number(row.totalSupply);
+            row.mintRound = Number(row.createRound);
+            delete row.lastSyncRound;
+        });
+
+        // get round of last row
+        let maxRound = 0;
+        if (rows.length > 0) {
+            maxRound = rows[rows.length-1].mintRound;
+        }
+        
+        // Format and send response
+        const response = {
+            collections: rows,
+        };
+        response['next-token'] = maxRound+1;
+        res.status(200).json(response);
+
+        // Log date/time, ip address, query
+        const date = new Date();
+        const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+        console.log(`${date.toISOString()}: ${ip} ${query} ${JSON.stringify(params)}`);
+    });
+});
+
 app.get('/stats', (req, res) => {
     db.all(`SELECT 
             c.contractId, 
