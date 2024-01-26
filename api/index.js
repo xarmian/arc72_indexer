@@ -304,6 +304,7 @@ app.get('/nft-indexer/v1/collections', (req, res) => {
             row.totalSupply = Number(row.totalSupply);
             row.mintRound = Number(row.createRound);
             delete row.lastSyncRound;
+            delete row.createRound;
         });
 
         // get round of last row
