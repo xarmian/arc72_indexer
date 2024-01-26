@@ -29,6 +29,7 @@ const db = new sqlite3.Database('../backend/db.sqlite', sqlite3.OPEN_READONLY, (
 
 app.get('/nft-indexer/v1/tokens', (req, res) => {
     res.header('Access-Control-Allow-Origin', '*');
+    res.header('Response-Type', 'application/json');
     
     let response = {};
 
@@ -131,6 +132,7 @@ app.get('/nft-indexer/v1/tokens', (req, res) => {
 
 app.get('/nft-indexer/v1/transfers', (req, res) => {
     res.header('Access-Control-Allow-Origin', '*');
+    res.header('Response-Type', 'application/json');
 
     // Extract query parameters
     const round = req.query.round;
