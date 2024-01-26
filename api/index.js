@@ -91,6 +91,8 @@ app.get('/nft-indexer/v1/tokens', (req, res) => {
         query += ` WHERE ` + conditions.join(' AND ');
     }
 
+    query += ` ORDER BY mintRound ASC`;
+
     if (limit) {
         query += ` LIMIT $limit`;
         params.$limit = limit;
@@ -194,6 +196,8 @@ app.get('/nft-indexer/v1/transfers', (req, res) => {
         query += ' WHERE ' + conditions.join(' AND ');
     }
 
+    query += ' ORDER BY round ASC';
+
     // Add limit and pagination logic (if applicable)
     if (limit) {
         query += ' LIMIT $limit';
@@ -279,6 +283,8 @@ app.get('/nft-indexer/v1/collections', (req, res) => {
     if (conditions.length > 0) {
         query += ` WHERE ` + conditions.join(' AND ');
     }
+
+    query += ` ORDER BY createRound ASC`;
 
     if (limit) {
         query += ` LIMIT $limit`;
