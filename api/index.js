@@ -112,6 +112,12 @@ app.get('/nft-indexer/v1/tokens', (req, res) => {
             row.tokenId = Number(row.tokenId);
             row['mint-round'] = row.mintRound;
             delete row.mintRound;
+
+            /*try {
+                row.metadata = JSON.parse(row.metadata);
+            } catch (err) {
+                // leave metadata as a string
+            }*/
         });
 
         // get round of last row
@@ -212,7 +218,6 @@ app.get('/nft-indexer/v1/transfers', (req, res) => {
             rows.forEach((row) => {
                 row.contractId = Number(row.contractId);
                 row.tokenId = Number(row.tokenId);
-                delete row.timestamp;
             }); 
 
             // get round of last row
@@ -312,18 +317,45 @@ app.get('/nft-indexer/v1/collections', (req, res) => {
         if (rows.length > 0) {
             maxRound = rows[rows.length-1].mintRound;
         }
-        
-        // Format and send response
-        const response = {
-            collections: rows,
-        };
-        response['next-token'] = maxRound+1;
-        res.status(200).json(response);
 
-        // Log date/time, ip address, query
-        const date = new Date();
-        const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
-        console.log(`${date.toISOString()}: ${ip} ${query} ${JSON.stringify(params)}`);
+        // get the first token from the collection with tokenIndex = 0
+        rows.forEach((row) => {
+            db.get(`SELECT * FROM tokens WHERE contractId = ? AND tokenIndex = 0`, [row.contractId], (err, token) => {
+                if (err) {
+                    res.status(500).json({ message: 'Error querying the database' });
+                    return;
+                }
+
+                // if token exists, add it to the row
+                if (token) {
+                    row.firstToken = {
+                        contractId: Number(token.contractId),
+                        tokenId: Number(token.tokenId),
+                        owner: token.owner,
+                        metadataURI: token.metadataURI,
+                        metadata: token.metadata,
+                    };
+                }
+                else {
+                    row.firstToken = null;
+                }
+
+                // if this is the last row, send the response
+                if (row === rows[rows.length-1]) {
+                    // Format and send response
+                    const response = {
+                        collections: rows,
+                    };
+                    response['next-token'] = maxRound+1;
+                    res.status(200).json(response);
+
+                    // Log date/time, ip address, query
+                    const date = new Date();
+                    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+                    console.log(`${date.toISOString()}: ${ip} ${query} ${JSON.stringify(params)}`);
+                }
+            });
+        });
     });
 });
 
