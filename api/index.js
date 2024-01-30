@@ -75,8 +75,18 @@ app.get('/nft-indexer/v1/tokens', (req, res) => {
         params.$tokenId = tokenId;
     }
     if (owner) {
-        conditions.push(`owner = $owner`);
-        params.$owner = owner;
+        if (Array.isArray(owner)) {
+            // If owner is an array, use the IN operator
+            const placeholders = owner.map((_, i) => `$owner${i}`);
+            conditions.push(`owner IN (${placeholders.join(', ')})`);
+            owner.forEach((addr, i) => {
+                params[`$owner${i}`] = addr;
+            });
+        } else {
+            // If owner is a single value, use the = operator
+            conditions.push(`owner = $owner`);
+            params.$owner = owner;
+        }
     }
     if (mintMinRound > 0) {
         conditions.push(`mintRound >= $mintMinRound`);
