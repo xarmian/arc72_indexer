@@ -98,22 +98,22 @@ export default class Database {
         return await this.all("SELECT * FROM collections");
     }
 
-    async insertOrUpdateToken({contractId, tokenId, tokenIndex, owner, metadataURI, metadata}) {
+    async insertOrUpdateToken({contractId, tokenId, tokenIndex, owner, metadataURI, metadata, approved}) {
         const result = await this.run(
             `
             UPDATE tokens 
-            SET tokenIndex = ?, owner = ?, metadataURI = ?, metadata = ?
+            SET tokenIndex = ?, owner = ?, metadataURI = ?, metadata = ?, approved = ?
             WHERE contractId = ? AND tokenId = ?
             `,
-            [tokenIndex, owner, metadataURI, metadata, contractId, String(tokenId)]
+            [tokenIndex, owner, metadataURI, metadata, String(approved), contractId, String(tokenId)]
         );
 
         if (result.changes === 0) {
             return await this.run(
                 `
-                INSERT INTO tokens (contractId, tokenId, tokenIndex, owner, metadataURI, metadata) VALUES (?, ?, ?, ?, ?, ?)
+                INSERT INTO tokens (contractId, tokenId, tokenIndex, owner, metadataURI, metadata, approved) VALUES (?, ?, ?, ?, ?, ?, ?)
                 `,
-                [contractId, String(tokenId), tokenIndex, owner, metadataURI, metadata]
+                [contractId, String(tokenId), tokenIndex, owner, metadataURI, metadata, approved]
             );
         }
 
@@ -196,6 +196,7 @@ export default class Database {
                 tokenId TEXT,
                 tokenIndex INTEGER,
                 owner TEXT,
+                approved TEXT,
                 metadataURI TEXT,
                 mintRound INTEGER,
                 metadata BLOB,
@@ -209,6 +210,7 @@ export default class Database {
                 round INTEGER,
                 fromAddr TEXT,
                 toAddr TEXT,
+                amount TEXT,
                 timestamp INTEGER,
                 FOREIGN KEY (contractId, tokenId) REFERENCES tokens (contractId, tokenId),
                 FOREIGN KEY (contractId) REFERENCES collections (contractId)

@@ -63,10 +63,11 @@ while(true) {
             try {
               const tokenId = (await ctc.arc72_tokenByIndex(i)).returnValue;
               const owner = (await ctc.arc72_ownerOf(tokenId)).returnValue;
+              const approved = (await ctc.arc72_getApproved(tokenId)).returnValue;
               const metadataURI = (await ctc.arc72_tokenURI(tokenId)).returnValue;
               const metadata = JSON.stringify(await fetch(metadataURI).then((res) => res.json()));
 
-              await db.insertOrUpdateToken({contractId, tokenId, tokenIndex: i, owner, metadataURI, metadata});
+              await db.insertOrUpdateToken({contractId, tokenId, tokenIndex: i, owner, metadataURI, metadata, approved});
             }
             catch(err) {
               console.log(err);

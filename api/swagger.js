@@ -20,6 +20,10 @@ export const swaggerOptions = {
                   type: 'string',
                   description: 'The current owner of the NFT.'
                 },
+                approved: {
+                  type: 'string',
+                  description: 'The address that is approved to transfer the NFT.'
+                },
                 contractId: {
                   type: 'integer',
                   description: 'The ID of the ARC-72 contract that defines the NFT.'
@@ -132,6 +136,11 @@ export const swaggerOptions = {
  *         schema:
  *           type: string
  *         description: Limit results to NFTs owned by the given owner.
+ *       - in: query
+ *         name: approved
+ *         schema:
+ *           type: string
+ *         description: The address of the user that is approved to transfer the NFT.
  *       - in: query
  *         name: mint-min-round
  *         schema:

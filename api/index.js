@@ -51,6 +51,7 @@ app.get('/nft-indexer/v1/tokens', (req, res) => {
     const limit = req.query.limit;
     const contractId = req.query.contractId;
     const tokenId = req.query.tokenId;
+    const approved = req.query.approved;
     const owner = req.query.owner;
     let mintMinRound = req.query['mint-min-round']??0;
     const mintMaxRound = req.query['mint-max-round'];
@@ -87,6 +88,10 @@ app.get('/nft-indexer/v1/tokens', (req, res) => {
             conditions.push(`owner = $owner`);
             params.$owner = owner;
         }
+    }
+    if (approved) {
+        conditions.push(`approved = $approved`);
+        params.$approved = approved;
     }
     if (mintMinRound > 0) {
         conditions.push(`mintRound >= $mintMinRound`);
@@ -344,6 +349,7 @@ app.get('/nft-indexer/v1/collections', (req, res) => {
                         owner: token.owner,
                         metadataURI: token.metadataURI,
                         metadata: token.metadata,
+                        approved: token.approved,
                     };
                 }
                 else {
