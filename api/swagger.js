@@ -3,7 +3,13 @@ export const swaggerOptions = {
       openapi: '3.0.0',
       info: {
         title: 'ARC-72 NFT Indexer API',
-        description: 'API for accessing ARC-72 NFT data based on ARC-74 indexer specification at https://arc.algorand.foundation/ARCs/arc-0074',
+        description: `<p>This is an API for accessing ARC-72 NFT data based on the ARC-74 indexer specification at 
+                      <a href="https://arc.algorand.foundation/ARCs/arc-0074" target="_blank">https://arc.algorand.foundation/ARCs/arc-0074</a>.
+                      The endpoints described below are under active development and may change without notice.
+                      Data is provided for informational purposes only and may not be accurate or complete. Use at your own risk.</p>
+                      <p>Note: The current prototype server points to the VOI TestNet Network.</p>
+                      <p>The full source and additional links are available at 
+                      <a href="https://github.com/xarmian/arc72_indexer" target="_blank">https://github.com/xarmian/arc72_indexer</a></p>`,
       },
       servers: [
         {
