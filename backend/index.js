@@ -85,7 +85,7 @@ while(true) {
           for await (const event of events) {
             const [transactionId, round, timestamp, from, to, tokenId] = event;
             await db.insertTransaction({transactionId, contractId, tokenId, round, fromAddr: from, toAddr: to, timestamp});
-            await db.updateTokenOwner(contractId, tokenId, to);
+            //await db.updateTokenOwner(contractId, tokenId, to);
 
             // if from == zeroAddress, then this is a mint transaction. update tokens table with mintRound
             if (from === zeroAddress) {
