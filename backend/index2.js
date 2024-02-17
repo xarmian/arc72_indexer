@@ -32,8 +32,8 @@ console.log(`Database Synced to round: ${last_block}. Current round: ${end_block
 
 while (true) {
     if (last_block >= end_block) {
-        output(`Reached end of chain, sleeping for 10 seconds...`, true);
-        await sleep(10000);
+        output(`Reached end of chain, sleeping for 3 seconds...`, true);
+        await sleep(3000);
         try {
             end_block = (await algodClient.status().do())['last-round'];
         }
@@ -149,7 +149,7 @@ while (true) {
         } else {
             output(`Error retrieving block ${i} from API: ${error.message}, retrying.`, true);
         }
-        await sleep(3000); // wait 3 seconds before trying again
+        await sleep(10000); // wait 10 seconds before trying again
         continue;
     }
 
