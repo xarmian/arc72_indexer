@@ -46,6 +46,10 @@ export const swaggerOptions = {
                   type: 'string',
                   description: 'The URI given for the token by the metadataURI API of the contract.'
                 },
+                metadata: {
+                  type: 'string',
+                  description: 'The cached metadata of the NFT, should be JSON.'
+                }
               }
             },
             Transfer: {

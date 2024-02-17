@@ -98,7 +98,7 @@ export default class Database {
         return await this.all("SELECT * FROM collections");
     }
 
-    async insertOrUpdateToken({contractId, tokenId, tokenIndex, owner, metadataURI, metadata, approved}) {
+    async insertOrUpdateToken({contractId, tokenId, tokenIndex, owner, metadataURI, metadata, approved, mintRound}) {
         const result = await this.run(
             `
             UPDATE tokens 
@@ -111,9 +111,9 @@ export default class Database {
         if (result.changes === 0) {
             return await this.run(
                 `
-                INSERT INTO tokens (contractId, tokenId, tokenIndex, owner, metadataURI, metadata, approved) VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO tokens (contractId, tokenId, tokenIndex, owner, metadataURI, metadata, approved, mintRound) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 `,
-                [contractId, String(tokenId), tokenIndex, owner, metadataURI, metadata, approved]
+                [contractId, String(tokenId), tokenIndex, owner, metadataURI, metadata, approved, mintRound]
             );
         }
 
@@ -133,9 +133,9 @@ export default class Database {
         if (result.changes === 0) {
             return await this.run(
                 `
-                INSERT INTO collections (contractId, totalSupply, createRound, lastSyncRound) VALUES (?, ?, ?, ?)
+                INSERT INTO collections (contractId, totalSupply, createRound, lastSyncRound, isBlacklisted) VALUES (?, ?, ?, ?, ?)
                 `,
-                [contractId, Number(totalSupply), createRound, lastSyncRound]
+                [contractId, Number(totalSupply), createRound, lastSyncRound, 0]
             );
         }
         return result;
@@ -176,6 +176,10 @@ export default class Database {
         return await this.run("UPDATE tokens SET owner = ? WHERE contractId = ? AND tokenId = ?", [owner, contractId, String(tokenId)]);
     }
 
+    async updateTokenApproved(contractId, tokenId, approved) {
+        return await this.run("UPDATE tokens SET approved = ? WHERE contractId = ? AND tokenId = ?", [approved, contractId, String(tokenId)]);
+    }
+
     async initDB() {
         const tables = [
             `
@@ -188,7 +192,8 @@ export default class Database {
                 contractId TEXT PRIMARY KEY,
                 createRound INTEGER,
                 totalSupply INTEGER,
-                lastSyncRound INTEGER
+                lastSyncRound INTEGER,
+                isBlacklisted INTEGER
             )`,
             `
             CREATE TABLE IF NOT EXISTS tokens (

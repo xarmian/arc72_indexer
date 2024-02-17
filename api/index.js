@@ -233,6 +233,7 @@ app.get('/nft-indexer/v1/transfers', (req, res) => {
             rows.forEach((row) => {
                 row.contractId = Number(row.contractId);
                 row.tokenId = Number(row.tokenId);
+                delete row.amount;
             }); 
 
             // get round of last row
@@ -299,6 +300,8 @@ app.get('/nft-indexer/v1/collections', (req, res) => {
         conditions.push(`createRound >= $next`);
         params.$next = next;
     }
+
+    conditions.push(`isBlacklisted = '0'`);
 
     if (conditions.length > 0) {
         query += ` WHERE ` + conditions.join(' AND ');
