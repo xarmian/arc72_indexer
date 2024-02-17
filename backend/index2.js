@@ -108,7 +108,11 @@ while (true) {
                             // new token mint
                             const metadataURI = (await ctc.arc72_tokenURI(tokenId)).returnValue;
                             const metadata = JSON.stringify(await fetch(metadataURI).then((res) => res.json()));
+                            const totalSupply = (await ctc.arc72_totalSupply()).returnValue;
+
                             await db.insertOrUpdateToken({ contractId, tokenId, tokenIndex: 0, owner: to, metadataURI, metadata, approved: zeroAddress, mintRound: round});
+                            await db.updateCollectionTotalSupply(contractId, totalSupply);
+
                             console.log(`Minted token ${tokenId} for contract ${contractId}`);
                         }
                         else {
