@@ -28,7 +28,7 @@ let last_block = Number((await db.getInfo("syncRound"))?.value ?? 0);
 let end_block = (await algodClient.status().do())['last-round'];
 console.log(`Database Synced to round: ${last_block}. Current round: ${end_block}`);
 
-last_block = 3400851;
+// last_block = 4575540;
 
 while (true) {
     if (last_block >= end_block) {
