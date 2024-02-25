@@ -47,3 +47,20 @@ export function output(msg, clear = false) {
     }
     process.stdout.write(msg);
 }
+
+// return all app ids involved in a block of transactions (blk.block.txns)
+export function getAllAppIds(txns) {
+    let apps = [];
+    if (txns === undefined) return apps;
+    for (const t of txns) {
+        if (t.apid || t.txn?.apid) {
+            apps.push({
+                apid: t.apid ?? t.txn.apid,
+                isCreate: (t.txn.apap && t.txn.apsu ? true : false),
+            });
+        }
+        if (t.dt?.itx) apps = apps.concat(getAllAppIds(t.dt.itx));
+    }
+    return apps;
+}
+  
