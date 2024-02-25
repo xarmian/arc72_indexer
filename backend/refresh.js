@@ -44,8 +44,19 @@ for (const collection of collections) {
     // update transactions table for all transactions from createRound to currentRound
     output(`\nUpdating collection ${contractId} transactions to ${currentRound}...`);
     
-    const events = await ctc.arc72_Transfer({});
-
+    let events = [];
+    while (true) {
+      try {
+        events = await ctc.arc72_Transfer({});
+        break; // If successful, break the loop
+      }
+      catch(err) {
+        console.log(err);
+        // Sleep for 3 seconds before trying again
+        await new Promise(resolve => setTimeout(resolve, 3000));
+      }
+    }
+    
     // for each event, record a transaction in the database
     for await (const event of events) {
       const [transactionId, round, timestamp, from, to, tokenId] = event;
