@@ -7,6 +7,8 @@ import Database from "./database.js";
 
 const db = new Database('./db.sqlite');
 
+//last_block = 4636269;
+
 // get a list of collections in the database
 const collections = await db.getCollections();
 const currentRound = (await algodClient.status().do())['last-round'];

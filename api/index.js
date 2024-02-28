@@ -1,10 +1,12 @@
 import express from 'express';
-import sqlite3 from 'sqlite3';
 import swaggerJsDoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerOptions } from './swagger.js';
 import minimist from 'minimist'; // import minimist to parse command line arguments
 import fs from 'fs';
+import Database from '../backend/database.js';
+
+const db = new Database('./../backend/db.sqlite');
 
 const app = express();
 const args = minimist(process.argv.slice(2));
@@ -17,15 +19,16 @@ swaggerOptions.swaggerDefinition.info.version = packageJson.version;
 swaggerOptions.swaggerDefinition.servers.push({ url: `http://localhost:${port}`, description: 'Local Server' });
 
 const swaggerDocs = swaggerJsDoc(swaggerOptions);
+//app.use('/', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
 // Connect to SQLite database
-const db = new sqlite3.Database('../backend/db.sqlite', sqlite3.OPEN_READONLY, (err) => {
+/*const db = new sqlite3.Database('../backend/db.sqlite', sqlite3.OPEN_READONLY, (err) => {
     if (err) {
         console.error(err.message);
     }
     console.log('Connected to the ARC72 database.');
-});
+});*/
 
 app.get('/nft-indexer/v1/tokens', (req, res) => {
     res.header('Access-Control-Allow-Origin', '*');
@@ -33,7 +36,7 @@ app.get('/nft-indexer/v1/tokens', (req, res) => {
     
     let response = {};
 
-    db.get(`SELECT value FROM info WHERE key='syncRound'`, [], (err, row) => {
+    db.db.get(`SELECT value FROM info WHERE key='syncRound'`, [], (err, row) => {
         if (err) {
             res.status(500).json({ message: 'Error querying the database' });
             return;
@@ -114,7 +117,7 @@ app.get('/nft-indexer/v1/tokens', (req, res) => {
     }
 
     // Execute query
-    db.all(query, params, (err, rows) => {
+    db.db.all(query, params, (err, rows) => {
         if (err) {
             res.status(500).json({ message: 'Error querying the database' });
             return;
@@ -226,7 +229,7 @@ app.get('/nft-indexer/v1/transfers', (req, res) => {
     }
 
     // Execute query
-    db.all(query, params, (err, rows) => {
+    db.db.all(query, params, (err, rows) => {
         if (err) {
             res.status(500).json({ message: "Error in database operation" });
         } else {
@@ -315,7 +318,7 @@ app.get('/nft-indexer/v1/collections', (req, res) => {
     }
 
     // Execute query
-    db.all(query, params, (err, rows) => {
+    db.db.all(query, params, (err, rows) => {
         if (err) {
             res.status(500).json({ message: 'Error querying the database' });
             return;
@@ -338,7 +341,7 @@ app.get('/nft-indexer/v1/collections', (req, res) => {
 
         // get the first token from the collection with tokenIndex = 0
         rows.forEach((row) => {
-            db.get(`SELECT * FROM tokens WHERE contractId = ? AND tokenIndex = 0`, [row.contractId], (err, token) => {
+            db.db.get(`SELECT * FROM tokens WHERE contractId = ? AND tokenIndex = 0`, [row.contractId], (err, token) => {
                 if (err) {
                     res.status(500).json({ message: 'Error querying the database' });
                     return;
@@ -378,8 +381,408 @@ app.get('/nft-indexer/v1/collections', (req, res) => {
     });
 });
 
+app.get('/nft-indexer/v1/mp/markets', (req, res) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Response-Type', 'application/json');
+
+    // Extract query parameters
+    const mpContractId = req.query.mpContractId;
+    const version = req.query.version;
+    const next = req.query.next??0;
+    const limit = req.query.limit;
+
+    // Construct SQL query
+    let query = `SELECT * FROM markets`;
+    let conditions = [];
+    let params = {};
+
+    if (mpContractId) {
+        conditions.push(`mpContractId = $mpContractId`);
+        params.$mpContractId = mpContractId;
+    }
+
+    if (version) {
+        conditions.push(`version = $version`);
+        params.$version = version;
+    }
+
+    if (next) {
+        conditions.push(`createRound >= $next`);
+        params.$next = next;
+    }
+
+    conditions.push(`isBlacklisted = '0'`);
+
+    if (conditions.length > 0) {
+        query += ` WHERE ` + conditions.join(' AND ');
+    }
+
+    query += ` ORDER BY createRound ASC`;
+
+    if (limit) {
+        query += ` LIMIT $limit`;
+        params.$limit = limit;
+    }
+
+    // Execute query
+    db.db.all(query, params, (err, rows) => {
+        if (err) {
+            res.status(500).json({ message: 'Error querying the database' });
+            return;
+        }
+
+        // for all rows, change remove tokenIndex and change mintRound to mint-round
+        rows.forEach((row) => {
+            row.mpContractId = Number(row.mpContractId);
+            row.mpListingId = Number(row.mpListingId);
+            row.contractId = Number(row.contractId);
+            row.createRound = Number(row.createRound);
+            row.version = Number(row.version);
+            delete row.lastSyncRound;
+        });
+
+        // get round of last row
+        let maxRound = 0;
+        if (rows.length > 0) {
+            maxRound = rows[rows.length-1].createRound;
+        }
+
+        const response = {
+            markets: rows,
+        };
+        response['next-token'] = maxRound+1;
+
+        res.status(200).json(response);
+    });
+
+    // Log date/time, ip address, query
+    const date = new Date();
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+    console.log(`${date.toISOString()}: ${ip} ${query} ${JSON.stringify(params)}`);
+});
+
+        // /listings
+        //   transactionId = transaction ID of listing, TEXT, KEY
+        //   listingId = mpContractId_listingId, TEXT
+        //   contractId = collection contract ID, TEXT - INDEX
+        //   tokenId = collection token ID, TEXT
+        //   round = round of listing, INTEGER
+        //   seller = seller address, TEXT - INDEX
+        //   price = price in atomic units, TEXT - INDEX
+        //   currency = currency ID -- 0 for Voi or ARC200 id, TEXT - INDEX
+        //   createRound = round of listing creation, TEXT - INDEX
+        //   createTimestamp = timestamp of listing creation, TEXT
+        //   sales_id = reference to sales.transactionId -- NULL if not sold, TEXT - INDEX
+        //   delete_id = reference to deletes.transactionId -- NULL if not deleted, TEXT - INDEX
+
+        // -- queries
+        // contractId
+        // tokenId
+        // seller
+        // min-round
+        // max-round
+        // min-price
+        // max-price
+        // currency
+
+app.get('/nft-indexer/v1/mp/listings', async (req, res) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Response-Type', 'application/json');
+
+    // Extract query parameters
+    const transactionId = req.query.transactionId;
+    const mpContractId = req.query.mpContractId;
+    const mpListingId = req.query.mpListingId;
+    const collectionId = req.query.collectionId;
+    const tokenId = req.query.tokenId;
+    const seller = req.query.seller;
+    const minRound = req.query['min-round']??0;
+    const maxRound = req.query['max-round'];
+    const minPrice = req.query['min-price'];
+    const maxPrice = req.query['max-price'];
+    const currency = req.query.currency;
+    const active = req.query['active'];
+    const next = req.query.next??0;
+    const limit = req.query.limit;
+
+    // Construct SQL query
+    let query = `SELECT * FROM listings`;
+    let conditions = [];
+    let params = {};
+
+    if (transactionId) {
+        conditions.push(`transactionId = $transactionId`);
+        params.$transactionId = transactionId;
+    }
+
+    if (mpContractId) {
+        conditions.push(`mpContractId = $contractId`);
+        params.$contractId = mpContractId;
+
+        if (mpListingId) {
+            conditions.push(`mpListingId = $listingId`);
+            params.$listingId = mpListingId;
+        }
+    }
+
+    if (collectionId) {
+        conditions.push(`contractId = $collectionId`);
+        params.$collectionId = collectionId;
+
+        if (tokenId) {
+            conditions.push(`tokenId = $tokenId`);
+            params.$tokenId = tokenId;
+        }
+    }
+
+    if (seller) {
+        conditions.push(`seller = $seller`);
+        params.$seller = seller;
+    }
+
+    if (minRound) {
+        conditions.push(`round >= $minRound`);
+        params.$minRound = minRound;
+    }
+
+    if (maxRound) {
+        conditions.push(`round <= $maxRound`);
+        params.$maxRound = maxRound;
+    }
+
+    if (minPrice) {
+        conditions.push(`price >= $minPrice`);
+        params.$minPrice = minPrice;
+    }
+
+    if (maxPrice) {
+        conditions.push(`price <= $maxPrice`);
+        params.$maxPrice = maxPrice;
+    }
+
+    if (currency) {
+        conditions.push(`currency = $currency`);
+        params.$currency = currency;
+    }
+
+    if (active == 'true') {
+        conditions.push(`sales_id IS NULL AND delete_id IS NULL`);
+    }
+    else if (active == 'false') {
+        conditions.push(`(sales_id IS NOT NULL OR delete_id IS NOT NULL)`);
+    }
+
+    if (next) {
+        conditions.push(`createRound >= $next`);
+        params.$next = next;
+    }
+
+    if (conditions.length > 0) {
+        query += ` WHERE ` + conditions.join(' AND ');
+    }
+
+    query += ` ORDER BY createRound ASC`;
+
+    if (limit) {
+        query += ` LIMIT $limit`;
+        params.$limit = limit;
+    }
+
+    // Execute query
+    const rows = await db.all(query, params);
+
+    // for all rows, change remove tokenIndex and change mintRound to mint-round
+    for(let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+
+        row.mpContractId = Number(row.mpContractId);
+        row.mpListingId = Number(row.mpListingId);
+        row.collectionId = Number(row.contractId);
+        row.createRound = Number(row.createRound);
+        row.tokenId = Number(row.tokenId);
+        row.price = Number(row.price);
+        row.currency = Number(row.currency);
+        row.createRound = Number(row.createRound);
+
+        row.sale = await db.get(`SELECT * FROM sales WHERE transactionId = ?`, [row.sales_id]);
+        row.delete = await db.get(`SELECT * FROM deletes WHERE transactionId = ?`, [row.delete_id]);
+
+        delete row.sales_id;
+        delete row.delete_id;
+        delete row.contractId;
+    }
+
+    let mRound = 0;
+    if (rows.length > 0) {
+        mRound = rows[rows.length-1].createRound;
+    }
+
+    const response = {
+        listings: rows,
+    };
+    response['next-token'] = mRound+1;
+    res.status(200).json(response);
+
+    // Log date/time, ip address, query
+    const date = new Date();
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+    console.log(`${date.toISOString()}: ${ip} ${query} ${JSON.stringify(params)}`);
+});
+
+app.get('/nft-indexer/v1/mp/sales', async (req, res) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Response-Type', 'application/json');
+
+    // Extract query parameters
+    const transactionId = req.query.transactionId;
+    const mpContractId = req.query.mpContractId;
+    const mpListingId = req.query.mpListingId;
+    const collectionId = req.query.collectionId;
+    const tokenId = req.query.tokenId;
+    const seller = req.query.seller;
+    const buyer = req.query.buyer;
+    const minRound = req.query['min-round']??0;
+    const maxRound = req.query['max-round'];
+    const minPrice = req.query['min-price'];
+    const maxPrice = req.query['max-price'];
+    const currency = req.query.currency;
+    const next = req.query.next??0;
+    const limit = req.query.limit;
+
+    // Construct SQL query
+    let query = `SELECT * FROM sales`;
+    let conditions = [];
+    let params = {};
+
+    if (transactionId) {
+        conditions.push(`transactionId = $transactionId`);
+        params.$transactionId = transactionId;
+    }
+
+    if (mpContractId) {
+        conditions.push(`mpContractId = $mpContractId`);
+        params.$mpContractId = mpContractId;
+
+        if (mpListingId) {
+            conditions.push(`mpListingId = $mpListingId`);
+            params.$mpListingId = mpListingId;
+        }
+    }
+
+    if (collectionId) {
+        conditions.push(`contractId = $collectionId`);
+        params.$collectionId = collectionId;
+
+        if (tokenId) {
+            conditions.push(`tokenId = $tokenId`);
+            params.$tokenId = tokenId;
+        }
+    }
+
+    if (seller) {
+        conditions.push(`seller = $seller`);
+        params.$seller = seller;
+    }
+
+    if (buyer) {
+        conditions.push(`buyer = $buyer`);
+        params.$buyer = buyer;
+    }
+
+    if (minRound) {
+        conditions.push(`round >= $minRound`);
+        params.$minRound = minRound;
+    }
+
+    if (maxRound) {
+        conditions.push(`round <= $maxRound`);
+        params.$maxRound = maxRound;
+    }
+
+    if (minPrice) {
+        conditions.push(`price >= $minPrice`);
+        params.$minPrice = minPrice;
+    }
+
+    if (maxPrice) {
+        conditions.push(`price <= $maxPrice`);
+        params.$maxPrice = maxPrice;
+    }
+
+    if (currency) {
+        conditions.push(`currency = $currency`);
+        params.$currency = currency;
+    }
+
+    if (next) {
+        conditions.push(`round >= $next`);
+        params.$next = next;
+    }
+
+    if (conditions.length > 0) {
+        query += ` WHERE ` + conditions.join(' AND ');
+    }
+
+    query += ` ORDER BY round ASC`;
+
+    if (limit) {
+        query += ` LIMIT $limit`;
+        params.$limit = limit;
+    }
+
+    // Execute query
+    const rows = await db.all(query, params);
+
+    // for all rows, change remove tokenIndex and change mintRound to mint-round
+    for(let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+
+        row.mpContractId = Number(row.mpContractId);
+        row.mpListingId = Number(row.mpListingId);
+        row.collectionId = Number(row.contractId);
+        row.tokenId = Number(row.tokenId);
+        row.price = Number(row.price);
+        row.currency = Number(row.currency);
+        row.round = Number(row.round);
+        
+        row.listing = await db.get(`SELECT * FROM listings WHERE sales_id = ?`, [row.transactionId]);
+        if (row.listing) {
+            row.listing.mpContractId = Number(row.listing.mpContractId);
+            row.listing.mpListingId = Number(row.listing.mpListingId);
+            row.listing.collectionId = Number(row.listing.contractId);
+            row.listing.createRound = Number(row.listing.createRound);
+            row.listing.tokenId = Number(row.listing.tokenId);
+            row.listing.price = Number(row.listing.price);
+            row.listing.currency = Number(row.listing.currency);
+            row.listing.createRound = Number(row.listing.createRound);
+    
+            delete row.listing.sales_id;
+            delete row.listing.delete_id;
+            delete row.listing.contractId;
+        }
+
+        delete row.contractId;
+    }
+
+    let mRound = 0;
+    if (rows.length > 0) {
+        mRound = rows[rows.length-1].round;
+    }
+
+    const response = {
+        sales: rows,
+    };
+    response['next-token'] = mRound+1;
+    res.status(200).json(response);
+
+    // Log date/time, ip address, query
+    const date = new Date();
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+    console.log(`${date.toISOString()}: ${ip} ${query} ${JSON.stringify(params)}`);
+});
+
 app.get('/stats', (req, res) => {
-    db.all(`SELECT 
+    db.db.all(`SELECT 
             c.contractId, 
             c.totalSupply, 
             c.createRound,
@@ -467,7 +870,7 @@ app.get('/stats', (req, res) => {
             </table>`;
 
         // get last sync round
-        db.get(`SELECT value FROM info WHERE key='syncRound'`, [], (err, row) => {
+        db.db.get(`SELECT value FROM info WHERE key='syncRound'`, [], (err, row) => {
             const syncRound = Number(row.value);
             html += `<p>Last sync round: ${syncRound}</p>`;
             res.send(html);
@@ -478,7 +881,7 @@ app.get('/stats', (req, res) => {
 
 // /address endpoint showing list of all addresses that own tokens and the number of tokens they own
 app.get('/address', (req, res) => {
-    db.all(`SELECT owner, COUNT(*) AS total FROM tokens GROUP BY owner ORDER BY total DESC`, [], (err, rows) => {
+    db.db.all(`SELECT owner, COUNT(*) AS total FROM tokens GROUP BY owner ORDER BY total DESC`, [], (err, rows) => {
         if (err) {
             res.status(500).json({ message: 'Error querying the database' });
             return;
@@ -559,7 +962,7 @@ app.get('/address/:address', (req, res) => {
     const address = req.params.address;
 
     // get all tokens owned by address
-    db.all(`SELECT * FROM tokens WHERE owner = ?`, [address], (err, rows) => {
+    db.db.all(`SELECT * FROM tokens WHERE owner = ?`, [address], (err, rows) => {
         if (err) {
             res.status(500).json({ message: 'Error querying the database' });
             return;

@@ -36,6 +36,19 @@ export async function isARC72(contract) {
     }
 }
 
+export async function isMP(contract) {
+    try {
+        const sim = await contract.supportsInterface(bytesFromHex("0xae4d14ad"));
+        if (sim.success) {
+            return sim.returnValue;
+        }
+        return false;
+    }
+    catch(err) {
+        return false;
+    }
+}
+
 export async function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }

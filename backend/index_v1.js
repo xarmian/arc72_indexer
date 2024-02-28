@@ -17,7 +17,7 @@ let last_block = Number((await db.getInfo("syncRound"))?.value??0);
 let end_block = (await algodClient.status().do())['last-round'];
 console.log(`Database Synced to round: ${last_block}. Current round: ${end_block}`);
 
-last_block = 4419072;
+// last_block = 4419072;
 
 // update collection (async to allow multithread). if fails, reset syncRound to rnd
 // if contract is null it's a new contract (not in database yet)

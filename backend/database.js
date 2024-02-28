@@ -180,6 +180,125 @@ export default class Database {
         return await this.run("UPDATE tokens SET approved = ? WHERE contractId = ? AND tokenId = ?", [approved, contractId, String(tokenId)]);
     }
 
+    // marketplace queries
+    async marketExists(contractId) {
+        const market = await this.get("SELECT mpContractId FROM markets WHERE mpContractId = ?", [contractId]);
+        return (market) ? true : false;
+    }
+
+    async getMarketLastSync(contractId) {
+        const market = await this.get("SELECT lastSyncRound FROM markets WHERE mpContractId = ?", [contractId]);
+        return (market) ? market.lastSyncRound : 0;
+    }
+
+    async updateMarketLastSync(contractId, lastSyncRound) {
+        return await this.run("UPDATE markets SET lastSyncRound = ? WHERE mpContractId = ?", [lastSyncRound, contractId]);
+    }
+
+    async getMarkets() {
+        return await this.all("SELECT * FROM markets");
+    }
+
+    async insertOrUpdateMarket({contractId, createRound, lastSyncRound, isBlacklisted}) {
+        const result = await this.run(
+            `
+            UPDATE markets
+            SET createRound = ?, lastSyncRound = ?, isBlacklisted = ?
+            WHERE mpContractId = ?
+            `,
+            [createRound, lastSyncRound, isBlacklisted, contractId]
+        );
+
+        if (result.changes === 0) {
+            return await this.run(
+                `
+                INSERT INTO markets (mpContractId, createRound, lastSyncRound, isBlacklisted) VALUES (?, ?, ?, ?)
+                `,
+                [contractId, createRound, lastSyncRound, isBlacklisted]
+            );
+        }
+        return result;
+    }
+
+    async insertOrUpdateMarketListing({transactionId, mpContractId, mpListingId, contractId, tokenId, seller, price, currency, createRound, createTimestamp, endTimestamp, royalty, sales_id, delete_id}) {
+        const result = await this.run(
+            `
+            UPDATE listings
+            SET mpContractId = ?, mpListingId = ?, contractId = ?, tokenId = ?, seller = ?, price = ?, currency = ?, createRound = ?, createTimestamp = ?, endTimestamp = ?, royalty = ?, sales_id = ?, delete_id = ?
+            WHERE transactionId = ?
+            `,
+            [String(mpContractId), String(mpListingId), String(contractId), String(tokenId), seller, price, currency, createRound, createTimestamp, endTimestamp, royalty, sales_id, delete_id, transactionId]
+        );
+    
+            if (result.changes === 0) {
+                return await this.run(
+                    `
+                    INSERT INTO listings (transactionId, mpContractId, mpListingId, contractId, tokenId, seller, price, currency, createRound, createTimestamp, endTimestamp, royalty, sales_id, delete_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    `,
+                    [transactionId, String(mpContractId), String(mpListingId), String(contractId), String(tokenId), seller, price, currency, createRound, createTimestamp, endTimestamp, royalty, sales_id, delete_id]
+                );
+            }
+            return result;
+    }
+
+    async insertOrUpdateMarketSale({transactionId, mpContractId, mpListingId, contractId, tokenId, seller, buyer, currency, price, round, timestamp}) {
+        const result = await this.run(
+            `
+            UPDATE sales
+            SET contractId = ?, tokenId = ?, seller = ?, buyer = ?, currency = ?, price = ?, round = ?, timestamp = ?
+            WHERE transactionId = ?
+            `,
+            [contractId, String(tokenId), seller, buyer, String(currency), String(price), Number(round), Number(timestamp), transactionId]
+        );
+
+        if (result.changes === 0) {
+            return await this.run(
+                `
+                INSERT INTO sales (transactionId, mpContractId, mpListingId, contractId, tokenId, seller, buyer, currency, price, round, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                `,
+                [transactionId, String(mpContractId), String(mpListingId), String(contractId), String(tokenId), seller, buyer, String(currency), String(price), Number(round), Number(timestamp)]
+            );
+        }
+        console.log([transactionId, String(mpContractId), String(mpListingId), String(contractId), String(tokenId), seller, buyer, String(currency), String(price), Number(round), Number(timestamp)]);
+        return result;
+    }
+
+    async insertOrUpdateMarketDelete({transactionId, mpContractId, mpListingId, contractId, tokenId, owner, round, timestamp}) {
+        const result = await this.run(
+            `
+            UPDATE deletes
+            SET contractId = ?, tokenId = ?, owner = ?, round = ?, timestamp = ?
+            WHERE transactionId = ?
+            `,
+            [contractId, String(tokenId), owner, round, timestamp, transactionId]
+        );
+
+        if (result.changes === 0) {
+            return await this.run(
+                `
+                INSERT INTO deletes (transactionId, mpContractId, mpListingId, contractId, tokenId, owner, round, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                `,
+                [transactionId, String(mpContractId), String(mpListingId), String(contractId), String(tokenId), owner, round, timestamp]
+            );
+        }
+        return result;
+    }
+
+    // get listing by contractId and listingId
+    async getMarketListing(mpContractId, mpListingId) {
+        return await this.get("SELECT * FROM listings WHERE mpContractId = ? AND mpListingId = ?", [String(mpContractId), String(mpListingId)]);
+    }
+
+    // get sale by mpContractId and mpListingId
+    async getMarketSale(mpContractId, mpListingId) {
+        return await this.get("SELECT * FROM sales WHERE mpContractId = ? AND mpListingId = ?", [String(mpContractId), String(mpListingId)]);
+    }
+
+    // get delete by mpContractId and mpListingId
+    async getMarketDelete(mpContractId, mpListingId) {
+        return await this.get("SELECT * FROM deletes WHERE mpContractId = ? AND mpListingId = ?", [String(mpContractId), String(mpListingId)]);
+    }
+
     async initDB() {
         const tables = [
             `
@@ -219,7 +338,68 @@ export default class Database {
                 timestamp INTEGER,
                 FOREIGN KEY (contractId, tokenId) REFERENCES tokens (contractId, tokenId),
                 FOREIGN KEY (contractId) REFERENCES collections (contractId)
-            )`
+            )`,
+            `
+            CREATE TABLE IF NOT EXISTS markets (
+                mpContractId TEXT PRIMARY KEY,
+                createRound INTEGER,
+                version INTEGER,
+                lastSyncRound INTEGER,
+                isBlacklisted INTEGER
+            )`,
+            `
+            CREATE TABLE IF NOT EXISTS listings (
+                transactionId TEXT PRIMARY KEY,
+                mpContractId TEXT,
+                mpListingId TEXT,
+                contractId TEXT,
+                tokenId TEXT,
+                seller TEXT,
+                price TEXT,
+                currency TEXT,
+                createRound INTEGER,
+                createTimestamp INTEGER,
+                endTimestamp INTEGER,
+                royalty TEXT,
+                sales_id TEXT,
+                delete_id TEXT,
+                FOREIGN KEY (mpContractId) REFERENCES markets (mpContractId),
+                FOREIGN KEY (contractId, tokenId) REFERENCES tokens (contractId, tokenId),
+                FOREIGN KEY (contractId) REFERENCES collections (contractId),
+                FOREIGN KEY (sales_id) REFERENCES sales (transactionId),
+                FOREIGN KEY (delete_id) REFERENCES deletes (transactionId)
+            )`,
+            `
+            CREATE TABLE IF NOT EXISTS sales (
+                transactionId TEXT PRIMARY KEY,
+                mpContractId TEXT,
+                mpListingId TEXT,
+                contractId TEXT,
+                tokenId TEXT,
+                seller TEXT,
+                buyer TEXT,
+                currency TEXT,
+                price TEXT,
+                round INTEGER,
+                timestamp INTEGER,
+                FOREIGN KEY (mpContractId) REFERENCES markets (mpContractId),
+                FOREIGN KEY (contractId, tokenId) REFERENCES tokens (contractId, tokenId),
+                FOREIGN KEY (contractId) REFERENCES collections (contractId)
+            )`,
+            `
+            CREATE TABLE IF NOT EXISTS deletes (
+                transactionId TEXT PRIMARY KEY,
+                mpContractId TEXT,
+                mpListingId TEXT,
+                contractId TEXT,
+                tokenId TEXT,
+                owner TEXT,
+                round INTEGER,
+                timestamp INTEGER,
+                FOREIGN KEY (mpContractId) REFERENCES markets (mpContractId),
+                FOREIGN KEY (contractId, tokenId) REFERENCES tokens (contractId, tokenId),
+                FOREIGN KEY (contractId) REFERENCES collections (contractId)
+            )`,
         ];
 
         for (let table of tables) {
@@ -227,3 +407,32 @@ export default class Database {
         }
     }
 }
+
+/*
+-- /markets
+CREATE INDEX idx_markets_createRound ON markets(createRound);
+CREATE INDEX idx_markets_version ON markets(version);
+
+-- /listings
+CREATE INDEX idx_listings_contractId ON listings(contractId);
+CREATE INDEX idx_listings_seller ON listings(seller);
+CREATE INDEX idx_listings_price ON listings(price);
+CREATE INDEX idx_listings_currency ON listings(currency);
+CREATE INDEX idx_listings_createRound ON listings(createRound);
+CREATE INDEX idx_listings_sales_id ON listings(sales_id);
+CREATE INDEX idx_listings_delete_id ON listings(delete_id);
+
+-- sales
+CREATE INDEX idx_sales_transactionId ON sales(transactionId);
+CREATE INDEX idx_sales_contractId ON sales(contractId);
+CREATE INDEX idx_sales_buyer ON sales(buyer);
+CREATE INDEX idx_sales_currency ON sales(currency);
+CREATE INDEX idx_sales_price ON sales(price);
+CREATE INDEX idx_sales_round ON sales(round);
+
+-- /deletes
+CREATE INDEX idx_deletes_transactionId ON deletes(transactionId);
+CREATE INDEX idx_deletes_contractId ON deletes(contractId);
+CREATE INDEX idx_deletes_owner ON deletes(owner);
+CREATE INDEX idx_deletes_round ON deletes(round);
+*/

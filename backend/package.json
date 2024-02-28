@@ -11,6 +11,6 @@
   "license": "ISC",
   "dependencies": {
     "sqlite3": "^5.1.7",
-    "ulujs": "^0.0.11"
+    "ulujs": "^0.2.3"
   }
 }

@@ -102,6 +102,108 @@ export const swaggerOptions = {
                   description: 'The round at which the NFT collection contract was created.'
                 },
               }
+            },
+            Listing: {
+              type: 'object',
+              properties: {
+                transactionId: {
+                  type: 'string',
+                  description: 'The transaction ID of the listing'
+                },
+                mpContractId: {
+                  type: 'string',
+                  description: 'The ID of a Marketplace contract'
+                },
+                mpListingId: {
+                  type: 'string',
+                  description: 'The ID of a listing in the marketplace'
+                },
+                collectionId: {
+                  type: 'string',
+                  description: 'The contract ID of the collection being listed'
+                },
+                tokenId: {
+                  type: 'string',
+                  description: 'The ID of the token being listed'
+                },
+                seller: {
+                  type: 'string',
+                  description: 'The address of the seller'
+                },
+                price: {
+                  type: 'integer',
+                  description: 'The price of the listing'
+                },
+                currency: {
+                  type: 'string',
+                  description: 'The currency of the listing, 0 = Native Token, otherwise ASA or ARC-200 token ID'
+                },
+                createRound: {
+                  type: 'integer',
+                  description: 'The round the listing was created'
+                },
+                createTimestamp: {
+                  type: 'integer',
+                  description: 'The timestamp when the listing was created'
+                },
+                royalty: {
+                  type: 'integer',
+                  description: 'The royalty for the listing'
+                },
+              },
+            },
+            "Sale": {
+              type: 'object',
+              properties: {
+                transactionId: {
+                  type: 'string',
+                  description: 'The transaction ID of the sale'
+                },
+                mpContractId: {
+                  type: 'string',
+                  description: 'The ID of a Marketplace contract'
+                },
+                mpListingId: {
+                  type: 'string',
+                  description: 'The ID of a listing in the marketplace'
+                },
+                collectionId: {
+                  type: 'string',
+                  description: 'The contract ID of the collection being sold'
+                },
+                tokenId: {
+                  type: 'string',
+                  description: 'The ID of the token being sold'
+                },
+                seller: {
+                  type: 'string',
+                  description: 'The address of the seller'
+                },
+                buyer: {
+                  type: 'string',
+                  description: 'The address of the buyer'
+                },
+                price: {
+                  type: 'integer',
+                  description: 'The price of the sale'
+                },
+                currency: {
+                  type: 'string',
+                  description: 'The currency of the sale, 0 = Native Token, otherwise ASA or ARC-200 token ID'
+                },
+                round: {
+                  type: 'integer',
+                  description: 'The round of the sale'
+                },
+                createTimestamp: {
+                  type: 'integer',
+                  description: 'The timestamp of the sale'
+                },
+                listing: {
+                  "$ref": "#/components/schemas/Listing",
+                  description: 'The listing of the sale'
+                },
+              }
             }
           }
       }
@@ -314,4 +416,182 @@ export const swaggerOptions = {
  *       description: Bad request
  *     500:
  *       description: Server error
+ */
+
+/**
+ * @swagger
+ * /nft-indexer/v1/mp/listings:
+ *  get:
+ *   summary: Retrieves marketplace listings
+ *   description: Fetch marketplace listing details based on query parameters (this is a NON-STANDARD endpoint)
+ *   parameters:
+ *     - in: query
+ *       name: mpContractId
+ *       schema:
+ *         type: integer
+ *         description: Limit to only the listings with the given Marketplace contractId
+ *     - in: query
+ *       name: mpListingId
+ *       schema:
+ *         type: integer
+ *         description: Limit to only the listings with the given Marketplace listingId (requires mpContractId)
+ *     - in: query
+ *       name: collectionId
+ *       schema:
+ *         type: integer
+ *         description: Limit to only the listings with the given collectionId
+ *     - in: query
+ *       name: tokenId
+ *       schema:
+ *         type: integer
+ *         description: Limit to only the listings with the given tokenId (requires collectionId)
+ *     - in: query
+ *       name: seller
+ *       schema:
+ *         type: string
+ *         description: Limit to only the listings with the given seller
+ *     - in: query
+ *       name: min-round
+ *       schema:
+ *         type: integer
+ *         description: Include results to listings created on or after the given round.
+ *     - in: query
+ *       name: max-round
+ *       schema:
+ *         type: integer
+ *         description: Include results to listings created on or before the given round.
+ *     - in: query
+ *       name: min-price
+ *       schema:
+ *         type: integer
+ *         description: Limit to only the listings with the price greater than or equal to the given price
+ *     - in: query
+ *       name: max-price
+ *       schema:
+ *         type: integer
+ *         description: Limit to only the listings with the price less than or equal to the given price
+ *     - in: query
+ *       name: currency
+ *       schema:
+ *         type: string
+ *         description: Limit to only the listings with the given currency
+ *     - in: query
+ *       name: active
+ *       schema:
+ *         type: boolean
+ *         description: Limit to only the active listings
+ *     - in: query
+ *       name: next
+ *       schema:
+ *         type: string
+ *         description: Token for the next page of results. Use the next-token provided by the previous page of results.
+ *   responses:
+ *     200:
+ *       description: A successful response
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               listings:
+ *                 type: array
+ *                 items:
+ *                   $ref: '#/components/schemas/Listing'
+ *               current-round:
+ *                 type: integer
+ *               next-token:
+ *                 type: string
+ *     400:
+ *       description: Bad request
+ *     500:
+ *       description: Server error 
+ */
+
+/**
+ * @swagger
+ * /nft-indexer/v1/mp/sales:
+ *  get:
+ *   summary: Retrieves marketplace sales
+ *   description: Fetch marketplace sales details based on query parameters (this is a NON-STANDARD endpoint)
+ *   parameters:
+ *     - in: query
+ *       name: mpContractId
+ *       schema:
+ *         type: integer
+ *         description: Limit to only the sales with the given Marketplace contractId
+ *     - in: query
+ *       name: mpListingId
+ *       schema:
+ *         type: integer
+ *         description: Limit to only the sales with the given Marketplace listingId (requires mpContractId)
+ *     - in: query
+ *       name: collectionId
+ *       schema:
+ *         type: integer
+ *         description: Limit to only the sales with the given collectionId
+ *     - in: query
+ *       name: tokenId
+ *       schema:
+ *         type: integer
+ *         description: Limit to only the sales with the given tokenId (requires collectionId)
+ *     - in: query
+ *       name: seller
+ *       schema:
+ *         type: string
+ *         description: Limit to only the sales with the given seller
+ *     - in: query
+ *       name: buyer
+ *       schema:
+ *         type: string
+ *         description: Limit to only the sales with the given buyer
+ *     - in: query
+ *       name: min-round
+ *       schema:
+ *         type: integer
+ *         description: Include results to listings created on or after the given round.
+ *     - in: query
+ *       name: max-round
+ *       schema:
+ *         type: integer
+ *         description: Include results to listings created on or before the given round.
+ *     - in: query
+ *       name: min-price
+ *       schema:
+ *         type: integer
+ *         description: Limit to only the sales with the price greater than or equal to the given price
+ *     - in: query
+ *       name: max-price
+ *       schema:
+ *         type: integer
+ *         description: Limit to only the sales with the price less than or equal to the given price
+ *     - in: query
+ *       name: currency
+ *       schema:
+ *         type: string
+ *         description: Limit to only the sales with the given currency
+ *     - in: query
+ *       name: next
+ *       schema:
+ *         type: string
+ *         description: Token for the next page of results. Use the next-token provided by the previous page of results.
+ *   responses:
+ *     200:
+ *       description: A successful response
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               listings:
+ *                 type: array
+ *                 items:
+ *                   $ref: '#/components/schemas/Sale'
+ *               current-round:
+ *                 type: integer
+ *               next-token:
+ *                 type: string
+ *     400:
+ *       description: Bad request
+ *     500:
+ *       description: Server error 
  */
