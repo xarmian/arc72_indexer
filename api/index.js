@@ -486,6 +486,21 @@ app.get('/nft-indexer/v1/mp/markets', (req, res) => {
         // currency
 
 app.get('/nft-indexer/v1/mp/listings', async (req, res) => {
+    
+    let response = {};
+
+    db.db.get(`SELECT value FROM info WHERE key='syncRound'`, [], (err, row) => {
+        if (err) {
+            res.status(500).json({ message: 'Error querying the database' });
+            return;
+        }
+
+        // Construct response
+        response = {
+            ['current-round']: Number(row.value),
+        };
+    });
+
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Response-Type', 'application/json');
 
@@ -536,17 +551,24 @@ app.get('/nft-indexer/v1/mp/listings', async (req, res) => {
     }
 
     if (seller) {
-        conditions.push(`seller = $seller`);
-        params.$seller = seller;
+        if (Array.isArray(seller)) {
+            conditions.push(`seller IN (${seller.map((_, i) => `$seller${i}`).join(',')})`);
+            seller.forEach((s, i) => {
+                params[`$seller${i}`] = s;
+            });
+        } else {
+            conditions.push(`seller = $seller`);
+            params.$seller = seller;
+        }
     }
 
     if (minRound) {
-        conditions.push(`round >= $minRound`);
+        conditions.push(`createRound >= $minRound`);
         params.$minRound = minRound;
     }
 
     if (maxRound) {
-        conditions.push(`round <= $maxRound`);
+        conditions.push(`createRound <= $maxRound`);
         params.$maxRound = maxRound;
     }
 
@@ -617,9 +639,7 @@ app.get('/nft-indexer/v1/mp/listings', async (req, res) => {
         mRound = rows[rows.length-1].createRound;
     }
 
-    const response = {
-        listings: rows,
-    };
+    response['listings'] = rows;
     response['next-token'] = mRound+1;
     res.status(200).json(response);
 
@@ -630,6 +650,21 @@ app.get('/nft-indexer/v1/mp/listings', async (req, res) => {
 });
 
 app.get('/nft-indexer/v1/mp/sales', async (req, res) => {
+
+    let response = {};
+
+    db.db.get(`SELECT value FROM info WHERE key='syncRound'`, [], (err, row) => {
+        if (err) {
+            res.status(500).json({ message: 'Error querying the database' });
+            return;
+        }
+
+        // Construct response
+        response = {
+            ['current-round']: Number(row.value),
+        };
+    });
+
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Response-Type', 'application/json');
 
@@ -680,15 +715,29 @@ app.get('/nft-indexer/v1/mp/sales', async (req, res) => {
     }
 
     if (seller) {
-        conditions.push(`seller = $seller`);
-        params.$seller = seller;
+        if (Array.isArray(seller)) {
+            conditions.push(`seller IN (${seller.map((_, i) => `$seller${i}`).join(',')})`);
+            seller.forEach((s, i) => {
+                params[`$seller${i}`] = s;
+            });
+        } else {
+            conditions.push(`seller = $seller`);
+            params.$seller = seller;
+        }
     }
 
     if (buyer) {
-        conditions.push(`buyer = $buyer`);
-        params.$buyer = buyer;
+        if (Array.isArray(buyer)) {
+            conditions.push(`buyer IN (${buyer.map((_, i) => `$buyer${i}`).join(',')})`);
+            buyer.forEach((b, i) => {
+                params[`$buyer${i}`] = b;
+            });
+        } else {
+            conditions.push(`buyer = $buyer`);
+            params.$buyer = buyer;
+        }
     }
-
+    
     if (minRound) {
         conditions.push(`round >= $minRound`);
         params.$minRound = minRound;
@@ -769,9 +818,7 @@ app.get('/nft-indexer/v1/mp/sales', async (req, res) => {
         mRound = rows[rows.length-1].round;
     }
 
-    const response = {
-        sales: rows,
-    };
+    response.sales = rows
     response['next-token'] = mRound+1;
     res.status(200).json(response);
 

@@ -17,6 +17,8 @@ export default class Database {
                 });
             }
         });
+
+        this.db.configure('busyTimeout', 10000);
     }
 
     run(query, params = []) {
