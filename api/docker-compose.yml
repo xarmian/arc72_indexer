@@ -1,12 +1,11 @@
 services:
-  # nginx-proxy
   nginx-proxy:
-    image: nginxproxy/nginx-proxy:alpine # new nginx-proxy image
+    image: nginxproxy/nginx-proxy:1.5.1
     container_name: nginx-proxy
-    restart: always
+    restart: unless-stopped
     ports:
-      - 80:80  # you will need port 80
-      - 443:443  # https
+      - 80:80
+      - 443:443
     volumes:
       - conf:/etc/nginx/conf.d
       - vhost:/etc/nginx/vhost.d
@@ -15,14 +14,14 @@ services:
       - certs:/etc/nginx/certs:ro
       - /var/run/docker.sock:/tmp/docker.sock:ro
     environment:
-    - ENABLE_IPV6=true # suppport IPv6
+      - ENABLE_IPV6=true
     networks:
       - nginx-proxy
 
-  # acme companion
   acme-companion:
-    image: nginxproxy/acme-companion # new ssl companion image
+    image: nginxproxy/acme-companion
     container_name: acme-companion
+    restart: unless-stopped
     volumes_from:
       - nginx-proxy
     volumes:
@@ -30,23 +29,23 @@ services:
       - acme:/etc/acme.sh
       - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
-      - DEFAULT_EMAIL=youremail.com  # your email
+      - DEFAULT_EMAIL=your@email.com
     networks:
       - nginx-proxy
 
-  arc72indexer:
+  arc72-indexer:
     build: .
     container_name: arc72-indexer
-    restart: always
+    restart: unless-stopped
     volumes:
-      - .:/app:ro
+      - ../:/app:ro
     environment:
-      - VIRTUAL_HOST=arc72-idx.nftnavigator.xyz,arc72-idx2.nftnavigator.xyz
-      - LETSENCRYPT_HOST=arc72-idx.nftnavigator.xyz,arc72-idx2.nftnavigator.xyz
+      - VIRTUAL_HOST=arc72-idx.nftnavigator.xyz
+      - LETSENCRYPT_HOST=arc72-idx2.nftnavigator.xyz
     networks:
       - nginx-proxy
 
- volumes:
+volumes:
   conf: {}
   vhost: {}
   html: {}

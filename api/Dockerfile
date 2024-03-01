@@ -1,7 +1,9 @@
 FROM node:latest
 
+EXPOSE 3000
+
 # Create app directory
-WORKDIR /app
+WORKDIR /app/api
 
 # Install app dependencies
 # A wildcard is used to ensure both package.json AND package-lock.json are copied
@@ -15,4 +17,4 @@ WORKDIR /app
 # Bundle app source
 # COPY . .
 
-CMD [ "node", "/app/api/index.js" ]
+CMD [ "node", "index.js" ]
