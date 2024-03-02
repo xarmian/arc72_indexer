@@ -54,6 +54,7 @@ app.get('/nft-indexer/v1/tokens', (req, res) => {
     const limit = req.query.limit;
     const contractId = req.query.contractId;
     const tokenId = req.query.tokenId;
+    const tokenIds = req.query.tokenIds;
     const approved = req.query.approved;
     const owner = req.query.owner;
     let mintMinRound = req.query['mint-min-round']??0;
@@ -90,6 +91,15 @@ app.get('/nft-indexer/v1/tokens', (req, res) => {
             // If owner is a single value, use the = operator
             conditions.push(`owner = $owner`);
             params.$owner = owner;
+        }
+    }
+    if (tokenIds) {
+        const ids = tokenIds.split(',');
+        if (Array.isArray(ids)) {
+            conditions.push(`(contractId || '_' || tokenId) IN (${ids.map((_, i) => `$tokenId${i}`).join(',')})`);
+            ids.forEach((t, i) => {
+                params[`$tokenId${i}`] = t;
+            });
         }
     }
     if (approved) {
