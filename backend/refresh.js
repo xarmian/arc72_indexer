@@ -7,10 +7,32 @@ import Database from "./database.js";
 
 const db = new Database('./db.sqlite');
 
-//last_block = 4636269;
+let useCollectionId;
 
+// process.argv[0] is the node executable
+// process.argv[1] is the script file being run
+// So we start at index 2
+for (let i = 2; i < process.argv.length; i++) {
+    if (process.argv[i] === '-c') {
+        if (i + 1 < process.argv.length) {
+            useCollectionId = Number(process.argv[i + 1]);
+        }
+        break;
+    }
+}
+
+let collections = [];
 // get a list of collections in the database
-const collections = await db.getCollections();
+if (useCollectionId) {
+  collections.push({
+    contractId: useCollectionId,
+    createRound: 0,
+    lastSyncRound: 0
+  });
+}
+else {
+  collections = await db.getCollections();
+}
 const currentRound = (await algodClient.status().do())['last-round'];
 
 // for each collection, refresh the collection and tokens tables
