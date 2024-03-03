@@ -7,7 +7,7 @@ import Database from "./database.js";
 
 const db = new Database('./db.sqlite');
 
-let useCollectionId;
+let useContractId;
 
 // process.argv[0] is the node executable
 // process.argv[1] is the script file being run
@@ -15,7 +15,7 @@ let useCollectionId;
 for (let i = 2; i < process.argv.length; i++) {
     if (process.argv[i] === '-c') {
         if (i + 1 < process.argv.length) {
-            useCollectionId = Number(process.argv[i + 1]);
+            useContractId = Number(process.argv[i + 1]);
         }
         break;
     }
@@ -23,9 +23,9 @@ for (let i = 2; i < process.argv.length; i++) {
 
 let collections = [];
 // get a list of collections in the database
-if (useCollectionId) {
+if (useContractId) {
   collections.push({
-    contractId: useCollectionId,
+    contractId: useContractId,
     createRound: 0,
     lastSyncRound: 0
   });

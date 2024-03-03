@@ -59,6 +59,7 @@ while (true) {
 
         // get all app calls from block
         const apps = getAllAppIds(blk.block.txns);
+        //console.log(`Found ${apps.length} app calls in block ${i}`);
 
         // for each app, check if it's an ARC72 contract
         for (const app of apps) {
@@ -86,7 +87,7 @@ while (true) {
                     contractType = 2;
                 }
                 else {
-                    console.log(`Contract ${contractId} is not an ARC72 contract, skipping`);
+                    console.log(`Contract ${contractId} is not an ARC72 or MP contract, skipping`);
                     continue;
                 }
             }
@@ -94,7 +95,7 @@ while (true) {
                 // check if we have this contractId in the database
                 lastSyncRound = await db.getCollectionLastSync(contractId);
                 if (lastSyncRound == 0) {
-                    console.log(`Contract ${contractId} not found in collections table, skipping`);
+                    console.log(`\nContract ${contractId} not found in collections table, skipping`);
                 }
                 else {
                     contractType = 1;
@@ -110,15 +111,15 @@ while (true) {
                     else {
                         contractType = 2;
                         ctc = new MPContract(contractId, algodClient, indexerClient);
-                        console.log(`Updating contract ${contractId} in markets table`);
+                        console.log(`Updating contract ${contractId} in markets table from round ${lastSyncRound} to ${rnd}`);
                     }
                 }
             }
 
-            if (lastSyncRound < rnd) {
+            if (lastSyncRound <= rnd) {
                 if (contractType == 1) { // NFT Collection
                     // get transaction history since lastSyncRound
-                    const events = await ctc.arc72_Transfer({ minRound: (lastSyncRound+1), maxRound: rnd });
+                    const events = await ctc.arc72_Transfer({ minRound: (lastSyncRound), maxRound: rnd });
 
                     console.log(`Processing ${events.length} events for contract ${contractId} from round ${lastSyncRound} to ${rnd}`);
 
@@ -147,7 +148,7 @@ while (true) {
                     }
                 
                     // get approval history since lastSyncRound
-                    const aevents = await ctc.arc72_Approval({ minRound: (lastSyncRound+1), maxRound: rnd });
+                    const aevents = await ctc.arc72_Approval({ minRound: (lastSyncRound), maxRound: rnd });
 
                     console.log(`Processing ${aevents.length} approval events for contract ${contractId} from round ${lastSyncRound} to ${rnd}`);
 
@@ -165,8 +166,7 @@ while (true) {
                 }
                 else if (contractType == 2) { // Nautilus Marketplace Contract
                     // get listing events since lastSyncRound
-                    const list_events = await ctc.ListEvent({ minRound: (lastSyncRound+1), maxRound: rnd });
-
+                    const list_events = await ctc.ListEvent({ minRound: (lastSyncRound), maxRound: rnd });
                     console.log(`Processing ${list_events.length} listing events for contract ${contractId} from round ${lastSyncRound} to ${rnd}`);
 
                     // for each event, record a transaction in the database
@@ -189,7 +189,7 @@ while (true) {
                         await db.insertOrUpdateMarketListing({ transactionId, mpContractId: contractId, mpListingId, contractId: collectionId, tokenId, seller, price, currency, createRound, createTimestamp, endTimestamp, royalty, sales_id: null, delete_id: null });
                     }
 
-                    const buy_events = await ctc.BuyEvent({ minRound: (lastSyncRound+1), maxRound: rnd });
+                    const buy_events = await ctc.BuyEvent({ minRound: (lastSyncRound), maxRound: rnd });
 
                     console.log(`Processing ${buy_events.length} buy events for contract ${contractId} from round ${lastSyncRound} to ${rnd}`);
 
@@ -207,7 +207,7 @@ while (true) {
                         if (listing) {
                             // insert or update sale
                             await db.insertOrUpdateMarketSale({ transactionId, 
-                                                                mpContractId: listing.contractId, 
+                                                                mpContractId: listing.mpContractId, 
                                                                 mpListingId: listing.mpListingId, 
                                                                 contractId: listing.contractId,
                                                                 tokenId: listing.tokenId, 
@@ -239,7 +239,7 @@ while (true) {
                         }
                     }
 
-                    const del_events = await ctc.DeleteListingEvent({ minRound: (lastSyncRound+1), maxRound: rnd });
+                    const del_events = await ctc.DeleteListingEvent({ minRound: (lastSyncRound), maxRound: rnd });
 
                     console.log(`Processing ${del_events.length} delete events for contract ${contractId} from round ${lastSyncRound} to ${rnd}`);
 
@@ -255,7 +255,7 @@ while (true) {
 
                         if (listing) {
                             await db.insertOrUpdateMarketDelete({ transactionId: transactionId, 
-                                mpContractId: listing.contractId, 
+                                mpContractId: listing.mpContractId, 
                                 mpListingId: listing.mpListingId, 
                                 contractId: listing.contractId,
                                 tokenId: listing.tokenId, 

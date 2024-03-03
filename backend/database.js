@@ -223,24 +223,25 @@ export default class Database {
     }
 
     async insertOrUpdateMarketListing({transactionId, mpContractId, mpListingId, contractId, tokenId, seller, price, currency, createRound, createTimestamp, endTimestamp, royalty, sales_id, delete_id}) {
+        const updateSQL = `UPDATE listings
+                            SET mpContractId = ?, mpListingId = ?, contractId = ?, tokenId = ?, seller = ?, price = ?, currency = ?, createRound = ?, createTimestamp = ?, endTimestamp = ?, royalty = ?, sales_id = ?, delete_id = ?
+                            WHERE transactionId = ?`;
+        // console.log(`insertOrUpdateMarketListing updateSQL: ${updateSQL}`);
+
         const result = await this.run(
-            `
-            UPDATE listings
-            SET mpContractId = ?, mpListingId = ?, contractId = ?, tokenId = ?, seller = ?, price = ?, currency = ?, createRound = ?, createTimestamp = ?, endTimestamp = ?, royalty = ?, sales_id = ?, delete_id = ?
-            WHERE transactionId = ?
-            `,
+            updateSQL,
             [String(mpContractId), String(mpListingId), String(contractId), String(tokenId), seller, price, currency, createRound, createTimestamp, endTimestamp, royalty, sales_id, delete_id, transactionId]
         );
     
-            if (result.changes === 0) {
-                return await this.run(
-                    `
-                    INSERT INTO listings (transactionId, mpContractId, mpListingId, contractId, tokenId, seller, price, currency, createRound, createTimestamp, endTimestamp, royalty, sales_id, delete_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    `,
-                    [transactionId, String(mpContractId), String(mpListingId), String(contractId), String(tokenId), seller, price, currency, createRound, createTimestamp, endTimestamp, royalty, sales_id, delete_id]
-                );
-            }
-            return result;
+        if (result.changes === 0) {
+            const insertSQL = `INSERT INTO listings (transactionId, mpContractId, mpListingId, contractId, tokenId, seller, price, currency, createRound, createTimestamp, endTimestamp, royalty, sales_id, delete_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+            // console.log(`insertOrUpdateMarketListing insertSQL: ${insertSQL}`);
+            return await this.run(
+                insertSQL,
+                [transactionId, String(mpContractId), String(mpListingId), String(contractId), String(tokenId), seller, price, currency, createRound, createTimestamp, endTimestamp, royalty, sales_id, delete_id]
+            );
+        }
+        return result;
     }
 
     async insertOrUpdateMarketSale({transactionId, mpContractId, mpListingId, contractId, tokenId, seller, buyer, currency, price, round, timestamp}) {
