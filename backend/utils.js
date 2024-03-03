@@ -93,7 +93,10 @@ export function getAllAppIdsIdx(txns) {
                 isCreate: (t['on-completion'] === 0 ? true : false),
             });
         }
+        if (t['inner-txns']) apps = apps.concat(getAllAppIdsIdx(t['inner-txns']));
     }
-    return apps;
+    
+    // return array of unique apps objects { apid: number, isCreate: boolean }
+    return apps.filter((v, i, a) => a.findIndex(t => (t.apid === v.apid)) === i);
 }
   
