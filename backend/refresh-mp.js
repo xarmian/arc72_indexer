@@ -34,7 +34,7 @@ else {
   collections = await db.getMarkets();
 }
 //const currentRound = (await algodClient.status().do())['last-round'];
-const currentRound = (await indexerClient.lookupAccountByID(zeroAddress).do());
+const currentRound = (await indexerClient.lookupAccountByID(zeroAddress).do())['current-round'];
 
 console.log(`Current round: ${currentRound}`);
 
@@ -46,7 +46,7 @@ for (const collection of collections) {
   const isMPC = await isMP(cctc);
 
   if (isMPC) {
-    output(`\nRefreshing MP Contract ID: ${mpContractId}`);
+    console.log(`Refreshing MP Contract ID: ${mpContractId}`);
 
     const ctc = new MPContract(Number(mpContractId), algodClient, indexerClient);
 
@@ -206,6 +206,6 @@ for (const collection of collections) {
         }
     }
 
-    output('Done.\n');
+    console.log('Done.');
   }
 }

@@ -35,7 +35,7 @@ else {
 }
 
 // const currentRound = (await algodClient.status().do())['last-round'];
-const currentRound = (await indexerClient.lookupAccountByID(zeroAddress).do());
+const currentRound = (await indexerClient.lookupAccountByID(zeroAddress).do())['current-round'];
 
 console.log(`Current round: ${currentRound}`);
 
