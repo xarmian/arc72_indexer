@@ -57,9 +57,9 @@ while (true) {
             }, 5000); // 5 second timeout
         });
 
-        const blk = await Promise.race([algodClient.block(i).do(), timeoutPromise]);
-        const rnd = blk.block.rnd;
-
+        const blk = await Promise.race([indexerClient.lookupAccountByID(zeroAddress).do(), timeoutPromise]);
+        const rnd = blk['current-round'];
+        
         // get all app calls from block
         const apps = getAllAppIds(blk.block.txns);
         //console.log(`Found ${apps.length} app calls in block ${i}`);
