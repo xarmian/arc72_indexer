@@ -262,7 +262,7 @@ export default class Database {
                 [transactionId, String(mpContractId), String(mpListingId), String(contractId), String(tokenId), seller, buyer, String(currency), String(price), Number(round), Number(timestamp)]
             );
         }
-        console.log([transactionId, String(mpContractId), String(mpListingId), String(contractId), String(tokenId), seller, buyer, String(currency), String(price), Number(round), Number(timestamp)]);
+        // console.log([transactionId, String(mpContractId), String(mpListingId), String(contractId), String(tokenId), seller, buyer, String(currency), String(price), Number(round), Number(timestamp)]);
         return result;
     }
 
