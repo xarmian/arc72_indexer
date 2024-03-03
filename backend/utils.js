@@ -76,4 +76,24 @@ export function getAllAppIds(txns) {
     }
     return apps;
 }
+
+export function getAllAppIdsIdx(txns) {
+    let apps = [];
+    if (txns === undefined) return apps;
+    for (const t of txns) {
+        if (t['created-application-index']) {
+            apps.push({
+                apid: t['created-application-index'],
+                isCreate: true,
+            });
+        }
+        else if (t['application-transaction']) {
+            apps.push({
+                apid: t['application-transaction']['application-id'],
+                isCreate: (t['on-completion'] === 0 ? true : false),
+            });
+        }
+    }
+    return apps;
+}
   

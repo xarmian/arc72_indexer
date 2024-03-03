@@ -18,7 +18,7 @@
 */
 
 import { arc72 as Contract, mp as MPContract } from "ulujs";
-import { isARC72, zeroAddress, algodClient, indexerClient, sleep, output, getAllAppIds, isMP } from "./utils.js";
+import { isARC72, zeroAddress, algodClient, indexerClient, sleep, output, getAllAppIdsIdx, isMP } from "./utils.js";
 import Database from "./database.js";
 
 const db = new Database('./db.sqlite');
@@ -57,12 +57,14 @@ while (true) {
             }, 5000); // 5 second timeout
         });
 
-        const blk = await Promise.race([indexerClient.lookupAccountByID(zeroAddress).do(), timeoutPromise]);
-        const rnd = blk['current-round'];
-        
+        const blk = await Promise.race([indexerClient.lookupBlock(last_block).do(), timeoutPromise]);
+        const rnd = blk['round'];
+
         // get all app calls from block
-        const apps = getAllAppIds(blk.block.txns);
-        //console.log(`Found ${apps.length} app calls in block ${i}`);
+        const apps = getAllAppIdsIdx(blk.transactions);
+        if (apps.length > 0) {
+            console.log(`Found ${apps.length} apps in block ${i}`);
+        }
 
         // for each app, check if it's an ARC72 contract
         for (const app of apps) {
