@@ -24,7 +24,7 @@ import Database from "./database.js";
 const db = new Database('./db.sqlite');
 
 // get last sync round from info table
-let last_block = Number((await db.getInfo("syncRound"))?.value ?? 0);
+let last_block = Number((await db.getInfo("syncRound"))?.value-1 ?? 0);
 // let end_block = (await algodClient.status().do())['last-round'];
 let end_block = (await indexerClient.lookupAccountByID(zeroAddress).do())['current-round'];
 
