@@ -33,7 +33,11 @@ if (useContractId) {
 else {
   collections = await db.getCollections();
 }
-const currentRound = (await algodClient.status().do())['last-round'];
+
+// const currentRound = (await algodClient.status().do())['last-round'];
+const currentRound = (await indexerClient.lookupAccountByID(zeroAddress).do());
+
+console.log(`Current round: ${currentRound}`);
 
 // for each collection, refresh the collection and tokens tables
 for (const collection of collections) {

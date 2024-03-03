@@ -33,7 +33,10 @@ if (useContractId) {
 else {
   collections = await db.getMarkets();
 }
-const currentRound = (await algodClient.status().do())['last-round'];
+//const currentRound = (await algodClient.status().do())['last-round'];
+const currentRound = (await indexerClient.lookupAccountByID(zeroAddress).do());
+
+console.log(`Current round: ${currentRound}`);
 
 // for each collection, refresh the collection and tokens tables
 for (const collection of collections) {
@@ -47,11 +50,11 @@ for (const collection of collections) {
 
     const ctc = new MPContract(Number(mpContractId), algodClient, indexerClient);
 
-    // get listing events since lastSyncRound
+    // get listing events
     let list_events = [];
     while (true) {
       try {
-        list_events = await ctc.ListEvent({});
+        list_events = await ctc.ListEvent({ minRound: 4747663});
         break; // If successful, break the loop
       }
       catch(err) {
@@ -141,7 +144,7 @@ for (const collection of collections) {
                                                 });
         }
         else {
-            console.log(`Listing ${contractId} ${listingId} not found in database`);
+            console.log(`Listing ${mpContractId} ${listingId} not found in database`);
         }
     }
 
@@ -159,7 +162,7 @@ for (const collection of collections) {
       }
     }
 
-    console.log(`Processing ${del_events.length} listing events for contract ${mpContractId}`);
+    console.log(`Processing ${del_events.length} delete events for contract ${mpContractId}`);
     
     // for each event, record a transaction in the database
     for await (const event of del_events) {
@@ -173,7 +176,7 @@ for (const collection of collections) {
 
         if (listing) {
             await db.insertOrUpdateMarketDelete({ transactionId: transactionId, 
-                mpContractId: listing.contractId, 
+                mpContractId: listing.mpContractId, 
                 mpListingId: listing.mpListingId, 
                 contractId: listing.contractId,
                 tokenId: listing.tokenId, 
