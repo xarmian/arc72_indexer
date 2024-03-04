@@ -402,6 +402,7 @@ export const swaggerOptions = {
  *         description: Maximum number of results to return. There could be additional pages even if the limit is not reached.
  *     - in: query
  *       name: includes
+ *       schema:
  *         type: string
  *         description: Comma-separated list of additional properties to include in the response. Currently supported: "unique-owners"
  *   responses:

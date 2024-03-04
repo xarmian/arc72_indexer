@@ -314,17 +314,17 @@ app.get('/nft-indexer/v1/collections', async (req, res) => {
     }
 
     if (mintRound) {
-        conditions.push(`mintRound = $mintRound`);
+        conditions.push(`createRound = $mintRound`);
         params.$mintRound = mintRound;
     }
 
     if (mintMinRound > 0) {
-        conditions.push(`mintRound >= $mintMinRound`);
+        conditions.push(`createRound >= $mintMinRound`);
         params.$mintMinRound = mintMinRound;
     }
 
     if (mintMaxRound) {
-        conditions.push(`mintRound <= $mintMaxRound`);
+        conditions.push(`createRound <= $mintMaxRound`);
         params.$mintMaxRound = mintMaxRound;
     }
 
