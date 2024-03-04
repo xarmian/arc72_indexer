@@ -404,7 +404,7 @@ export const swaggerOptions = {
  *       name: includes
  *       schema:
  *         type: string
- *         description: Comma-separated list of additional properties to include in the response. Currently supported: "unique-owners"
+ *         description: Comma separated list of additional properties to include in the response.
  *   responses:
  *     200:
  *       description: A successful response
