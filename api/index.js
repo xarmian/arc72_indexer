@@ -272,17 +272,36 @@ app.get('/nft-indexer/v1/transfers', (req, res) => {
     });
 });
 
-app.get('/nft-indexer/v1/collections', (req, res) => {
+app.get('/nft-indexer/v1/collections', async (req, res) => {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Response-Type', 'application/json');
+
+    let response = {};
+
+    db.db.get(`SELECT value FROM info WHERE key='syncRound'`, [], (err, row) => {
+        if (err) {
+            res.status(500).json({ message: 'Error querying the database' });
+            return;
+        }
+
+        // Construct response
+        response = {
+            ['current-round']: Number(row.value),
+        };
+    });
 
     // Extract query parameters
     const contractId = req.query.contractId;
     const mintRound = req.query['mint-round'];
     const minTotalSupply = req.query['min-total-supply'];
     const maxTotalSupply = req.query['max-total-supply'];
+    const mintMinRound = req.query['mint-min-round']??0;
+    const mintMaxRound = req.query['mint-max-round'];
     const next = req.query.next??0;
     const limit = req.query.limit;
+
+    // "includes" is a query parameter that can be used to include additional data in the response
+    const includes = req.query.includes?.split(',')??[];
 
     // Construct SQL query
     let query = `SELECT * FROM collections`;
@@ -297,6 +316,16 @@ app.get('/nft-indexer/v1/collections', (req, res) => {
     if (mintRound) {
         conditions.push(`mintRound = $mintRound`);
         params.$mintRound = mintRound;
+    }
+
+    if (mintMinRound > 0) {
+        conditions.push(`mintRound >= $mintMinRound`);
+        params.$mintMinRound = mintMinRound;
+    }
+
+    if (mintMaxRound) {
+        conditions.push(`mintRound <= $mintMaxRound`);
+        params.$mintMaxRound = mintMaxRound;
     }
 
     if (minTotalSupply) {
@@ -328,67 +357,53 @@ app.get('/nft-indexer/v1/collections', (req, res) => {
     }
 
     // Execute query
-    db.db.all(query, params, (err, rows) => {
-        if (err) {
-            res.status(500).json({ message: 'Error querying the database' });
-            return;
+    const rows = await db.all(query, params);
+
+    for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+
+        row.contractId = Number(row.contractId);
+        row.totalSupply = Number(row.totalSupply);
+        row.mintRound = Number(row.createRound);
+        delete row.lastSyncRound;
+        delete row.createRound;
+
+        const tokens = await db.get(`SELECT * FROM tokens WHERE contractId = ? AND tokenIndex = 0`, [row.contractId]);
+        if (tokens) {
+            row.firstToken = {
+                contractId: Number(tokens.contractId),
+                tokenId: Number(tokens.tokenId),
+                owner: tokens.owner,
+                metadataURI: tokens.metadataURI,
+                metadata: tokens.metadata,
+                approved: tokens.approved,
+            };
+        }
+        else {
+            row.firstToken = null;
         }
 
-        // for all rows, change remove tokenIndex and change mintRound to mint-round
-        rows.forEach((row) => {
-            row.contractId = Number(row.contractId);
-            row.totalSupply = Number(row.totalSupply);
-            row.mintRound = Number(row.createRound);
-            delete row.lastSyncRound;
-            delete row.createRound;
-        });
-
-        // get round of last row
-        let maxRound = 0;
-        if (rows.length > 0) {
-            maxRound = rows[rows.length-1].mintRound;
+        if (includes.includes('unique-owners')) {
+            const uniqueOwners = await db.get(`SELECT COUNT(DISTINCT owner) as uniqueOwners FROM tokens WHERE contractId = ?`, [row.contractId]);
+            row.uniqueOwners = uniqueOwners.uniqueOwners;
         }
+    }
 
-        // get the first token from the collection with tokenIndex = 0
-        rows.forEach((row) => {
-            db.db.get(`SELECT * FROM tokens WHERE contractId = ? AND tokenIndex = 0`, [row.contractId], (err, token) => {
-                if (err) {
-                    res.status(500).json({ message: 'Error querying the database' });
-                    return;
-                }
+    // get round of last row
+    let maxRound = 0;
+    if (rows.length > 0) {
+        maxRound = rows[rows.length-1].mintRound;
+    }
 
-                // if token exists, add it to the row
-                if (token) {
-                    row.firstToken = {
-                        contractId: Number(token.contractId),
-                        tokenId: Number(token.tokenId),
-                        owner: token.owner,
-                        metadataURI: token.metadataURI,
-                        metadata: token.metadata,
-                        approved: token.approved,
-                    };
-                }
-                else {
-                    row.firstToken = null;
-                }
+    response['collections'] = rows;
+    response['next-token'] = maxRound+1;
+    res.status(200).json(response);
 
-                // if this is the last row, send the response
-                if (row === rows[rows.length-1]) {
-                    // Format and send response
-                    const response = {
-                        collections: rows,
-                    };
-                    response['next-token'] = maxRound+1;
-                    res.status(200).json(response);
+    // Log date/time, ip address, query
+    const date = new Date();
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+    console.log(`${date.toISOString()}: ${ip} ${query} ${JSON.stringify(params)}`);
 
-                    // Log date/time, ip address, query
-                    const date = new Date();
-                    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
-                    console.log(`${date.toISOString()}: ${ip} ${query} ${JSON.stringify(params)}`);
-                }
-            });
-        });
-    });
 });
 
 app.get('/nft-indexer/v1/mp/markets', (req, res) => {
@@ -471,30 +486,6 @@ app.get('/nft-indexer/v1/mp/markets', (req, res) => {
     console.log(`${date.toISOString()}: ${ip} ${query} ${JSON.stringify(params)}`);
 });
 
-        // /listings
-        //   transactionId = transaction ID of listing, TEXT, KEY
-        //   listingId = mpContractId_listingId, TEXT
-        //   contractId = collection contract ID, TEXT - INDEX
-        //   tokenId = collection token ID, TEXT
-        //   round = round of listing, INTEGER
-        //   seller = seller address, TEXT - INDEX
-        //   price = price in atomic units, TEXT - INDEX
-        //   currency = currency ID -- 0 for Voi or ARC200 id, TEXT - INDEX
-        //   createRound = round of listing creation, TEXT - INDEX
-        //   createTimestamp = timestamp of listing creation, TEXT
-        //   sales_id = reference to sales.transactionId -- NULL if not sold, TEXT - INDEX
-        //   delete_id = reference to deletes.transactionId -- NULL if not deleted, TEXT - INDEX
-
-        // -- queries
-        // contractId
-        // tokenId
-        // seller
-        // min-round
-        // max-round
-        // min-price
-        // max-price
-        // currency
-
 app.get('/nft-indexer/v1/mp/listings', async (req, res) => {
     
     let response = {};
@@ -527,6 +518,8 @@ app.get('/nft-indexer/v1/mp/listings', async (req, res) => {
     const maxPrice = req.query['max-price'];
     const currency = req.query.currency;
     const active = req.query['active'];
+    const sold = req.query['sold'];
+    const deleted = req.query['deleted'];
     const next = req.query.next??0;
     const limit = req.query.limit;
 
@@ -602,6 +595,20 @@ app.get('/nft-indexer/v1/mp/listings', async (req, res) => {
     }
     else if (active == 'false') {
         conditions.push(`(sales_id IS NOT NULL OR delete_id IS NOT NULL)`);
+    }
+
+    if (sold == 'true') {
+        conditions.push(`sales_id IS NOT NULL`);
+    }
+    else if (sold == 'false') {
+        conditions.push(`sales_id IS NULL`);
+    }
+
+    if (deleted == 'true') {
+        conditions.push(`delete_id IS NOT NULL`);
+    }
+    else if (deleted == 'false') {
+        conditions.push(`delete_id IS NULL`);
     }
 
     if (next) {

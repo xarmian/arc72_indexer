@@ -381,12 +381,12 @@ export const swaggerOptions = {
  *         type: integer
  *         description: Limit to only the collection with the given contractId
  *     - in: query
- *       name: min-mint-round
+ *       name: mint-min-round
  *       schema:
  *         type: integer
  *         description: Include results to collections minted on or after the given round.
  *     - in: query
- *       name: max-mint-round
+ *       name: mint-min-round
  *       schema:
  *         type: integer
  *         description: Include results to collections minted on or before the given round.
@@ -400,6 +400,10 @@ export const swaggerOptions = {
  *       schema:
  *         type: integer
  *         description: Maximum number of results to return. There could be additional pages even if the limit is not reached.
+ *     - in: query
+ *       name: includes
+ *         type: string
+ *         description: Comma-separated list of additional properties to include in the response. Currently supported: "unique-owners"
  *   responses:
  *     200:
  *       description: A successful response
