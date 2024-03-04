@@ -489,6 +489,16 @@ export const swaggerOptions = {
  *         type: boolean
  *         description: Limit to only the active listings
  *     - in: query
+ *       name: sold
+ *       schema:
+ *         type: boolean
+ *         description: Limit to only sold listings
+ *     - in: query
+ *       name: deleted
+ *       schema:
+ *         type: boolean
+ *         description: Limit to only deleted listings
+ *     - in: query
  *       name: next
  *       schema:
  *         type: string

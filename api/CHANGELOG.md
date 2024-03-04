@@ -4,3 +4,6 @@
   * Comma-separated list of additional values to include in the response object
   * Currently only supports `unique-owners`
   * i.e. /collections/?includes=unique-owners
+* Added `sold` (boolean) and `deleted` (boolean) query parameters to /listings endpoint
+  * Returns listings that are sold/deleted or not sold/deleted
+  * `/listings/?sold=false&deleted=false` is the same as `/listings/?active=true`
