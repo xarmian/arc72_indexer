@@ -18,7 +18,7 @@
 */
 
 import { arc72 as Contract, mp as MPContract } from "ulujs";
-import { isARC72, zeroAddress, algodClient, indexerClient, sleep, output, getAllAppIdsIdx, isMP } from "./utils.js";
+import { isARC72, zeroAddress, algodClient, indexerClient, sleep, output, getAllAppIdsIdx, isMP, decodeGlobalState } from "./utils.js";
 import Database from "./database.js";
 
 const db = new Database('./db.sqlite');
@@ -30,7 +30,7 @@ let end_block = (await indexerClient.lookupAccountByID(zeroAddress).do())['curre
 
 console.log(`Database Synced to round: ${last_block}. Current round: ${end_block}`);
 
-//last_block = 4636660;
+last_block = 4636660;
 
 while (true) {
     if (last_block >= end_block) {
@@ -78,10 +78,18 @@ while (true) {
 
                 if (await isARC72(ctc)) {
                     console.log(`Adding new contract ${contractId} to collections table`);
-                    const mintRound = rnd;
                     const totalSupply = (await ctc.arc72_totalSupply()).returnValue;
                     lastSyncRound = rnd;
-                    await db.insertOrUpdateCollection({ contractId, totalSupply, createRound: mintRound, lastSyncRound });
+
+                    // get creator from indexer
+                    const app = (await indexerClient.lookupApplications(contractId).do());
+                    const creator = app.application.params.creator;
+                    const createRound = app.application['created-at-round'];
+                
+                    const globalState = app.application.params['global-state'];
+                    const decodedState = JSON.stringify(decodeGlobalState(globalState));
+
+                    await db.insertOrUpdateCollection({ contractId, totalSupply, createRound, lastSyncRound, creator, globalState: decodedState });
                     contractType = 1;
                 }
                 else if (await isMP(ctc)) {
@@ -106,6 +114,17 @@ while (true) {
                     contractType = 1;
                     ctc = new Contract(contractId, algodClient, indexerClient);
                     console.log(`Updating contract ${contractId} in collections table`);
+
+                    const totalSupply = (await ctc.arc72_totalSupply()).returnValue;
+
+                    const app = (await indexerClient.lookupApplications(contractId).do());
+                    const creator = app.application.params.creator;
+                    const createRound = app.application['created-at-round'];
+                
+                    const globalState = app.application.params['global-state'];
+                    const decodedState = JSON.stringify(decodeGlobalState(globalState));
+
+                    await db.insertOrUpdateCollection({ contractId, totalSupply, createRound, lastSyncRound, creator, globalState: decodedState });
                 }
 
                 if (contractType == 0) {

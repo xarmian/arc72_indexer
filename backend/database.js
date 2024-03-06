@@ -11,8 +11,7 @@ export default class Database {
                 console.log('Connected to database');
                 this.db.get("SELECT value FROM info WHERE key='syncRound'", (err, row) => {
                     if (err || !row) {
-                        console.log('Database is new, initializing...');
-                        this.initDB();
+                        console.log('Database does not exist.');
                     }
                 });
             }
@@ -122,22 +121,22 @@ export default class Database {
         return result;
     }
 
-    async insertOrUpdateCollection({contractId, totalSupply, createRound, lastSyncRound}) {
+    async insertOrUpdateCollection({contractId, totalSupply, createRound, lastSyncRound, creator, globalState}) {
         const result = await this.run(
             `
             UPDATE collections 
-            SET totalSupply = ?, lastSyncRound = ?
+            SET totalSupply = ?, lastSyncRound = ?, creator = ?, globalState = ?
             WHERE contractId = ?
             `,
-            [Number(totalSupply), lastSyncRound, contractId]
+            [Number(totalSupply), lastSyncRound, creator, globalState, contractId]
         );
 
         if (result.changes === 0) {
             return await this.run(
                 `
-                INSERT INTO collections (contractId, totalSupply, createRound, lastSyncRound, isBlacklisted) VALUES (?, ?, ?, ?, ?)
+                INSERT INTO collections (contractId, totalSupply, createRound, lastSyncRound, isBlacklisted, creator, globalState) VALUES (?, ?, ?, ?, ?, ?, ?)
                 `,
-                [contractId, Number(totalSupply), createRound, lastSyncRound, 0]
+                [contractId, Number(totalSupply), createRound, lastSyncRound, 0, creator, globalState]
             );
         }
         return result;
@@ -315,7 +314,9 @@ export default class Database {
                 createRound INTEGER,
                 totalSupply INTEGER,
                 lastSyncRound INTEGER,
-                isBlacklisted INTEGER
+                isBlacklisted INTEGER,
+                creator TEXT,
+                globalState TEXT
             )`,
             `
             CREATE TABLE IF NOT EXISTS tokens (
@@ -438,4 +439,16 @@ CREATE INDEX idx_deletes_transactionId ON deletes(transactionId);
 CREATE INDEX idx_deletes_contractId ON deletes(contractId);
 CREATE INDEX idx_deletes_owner ON deletes(owner);
 CREATE INDEX idx_deletes_round ON deletes(round);
+
+-- /collections
+CREATE INDEX idx_collections_createRound ON collections(createRound);
+CREATE INDEX idx_collections_creator ON collections(creator);
+
+-- / tokens
+CREATE INDEX idx_tokens_contractId ON tokens(contractId, tokenId);
+CREATE INDEX idx_tokens_owner ON tokens(owner);
+CREATE INDEX idx_tokens_approved ON tokens(approved);
+CREATE INDEX idx_tokens_mintRound ON tokens(mintRound);
+
+
 */

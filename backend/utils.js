@@ -99,4 +99,27 @@ export function getAllAppIdsIdx(txns) {
     // return array of unique apps objects { apid: number, isCreate: boolean }
     return apps.filter((v, i, a) => a.findIndex(t => (t.apid === v.apid)) === i);
 }
+
+export const decodeGlobalState = (globalState) => {
+    const decodedState = globalState.map((state) => {
+        const key = Buffer.from(state.key, 'base64').toString(); // Decode key from base64
+        let value;
+
+        if (state.value.type === 1) { 
+            // first see if it's a valid address
+            const b = new Uint8Array(Buffer.from(state.value.bytes, 'base64'))
+            value = algosdk.encodeAddress(b)
+
+            // then decode as string
+            if (!algosdk.isValidAddress(value)) {
+                value = Buffer.from(state.value.bytes, 'base64').toString()
+            }
+        } else if (state.value.type === 2) { // Check if the type is uint
+            value = state.value.uint;
+        }
+
+        return { key, value };
+    });
   
+    return decodedState;
+}

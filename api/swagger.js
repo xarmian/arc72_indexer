@@ -105,6 +105,22 @@ export const swaggerOptions = {
                   type: 'integer',
                   description: 'The round at which the NFT collection contract was created.'
                 },
+                firstToken: {
+                  "$ref": "#/components/schemas/Token",
+                  description: 'The first token in the collection, null if the collection is empty.'
+                },
+                globalState: {
+                  type: 'array',
+                  description: 'Array of global state key-value pairs'
+                },
+                isBlacklisted: {
+                  type: 'boolean',
+                  description: 'Whether the collection is blacklisted.'
+                },
+                creator: {
+                  type: 'string',
+                  description: 'The address of the creator of the collection.'
+                },
               }
             },
             Listing: {
@@ -405,6 +421,11 @@ export const swaggerOptions = {
  *       schema:
  *         type: string
  *         description: Comma separated list of additional properties to include in the response.
+ *     - in: query
+ *       name: creator
+ *       schema:
+ *         type: string
+ *         description: Wallet address of the creator of the collection
  *   responses:
  *     200:
  *       description: A successful response

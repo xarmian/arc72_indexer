@@ -297,6 +297,7 @@ app.get('/nft-indexer/v1/collections', async (req, res) => {
     const maxTotalSupply = req.query['max-total-supply'];
     const mintMinRound = req.query['mint-min-round']??0;
     const mintMaxRound = req.query['mint-max-round'];
+    const creator = req.query.creator;
     const next = req.query.next??0;
     const limit = req.query.limit;
 
@@ -338,6 +339,11 @@ app.get('/nft-indexer/v1/collections', async (req, res) => {
         params.$maxTotalSupply = maxTotalSupply;
     }
 
+    if (creator) {
+        conditions.push(`creator = $creator`);
+        params.$creator = creator;
+    }
+
     if (next) {
         conditions.push(`createRound >= $next`);
         params.$next = next;
@@ -365,6 +371,7 @@ app.get('/nft-indexer/v1/collections', async (req, res) => {
         row.contractId = Number(row.contractId);
         row.totalSupply = Number(row.totalSupply);
         row.mintRound = Number(row.createRound);
+        row.globalState = JSON.parse(row?.globalState??"{}");
         delete row.lastSyncRound;
         delete row.createRound;
 
