@@ -30,7 +30,7 @@ let end_block = (await indexerClient.lookupAccountByID(zeroAddress).do())['curre
 
 console.log(`Database Synced to round: ${last_block}. Current round: ${end_block}`);
 
-last_block = 4636660;
+// last_block = 4636660;
 
 while (true) {
     if (last_block >= end_block) {
