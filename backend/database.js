@@ -433,6 +433,7 @@ CREATE INDEX idx_sales_buyer ON sales(buyer);
 CREATE INDEX idx_sales_currency ON sales(currency);
 CREATE INDEX idx_sales_price ON sales(price);
 CREATE INDEX idx_sales_round ON sales(round);
+CREATE INDEX idx_sales_timestamp ON sales(timestamp);
 
 -- /deletes
 CREATE INDEX idx_deletes_transactionId ON deletes(transactionId);

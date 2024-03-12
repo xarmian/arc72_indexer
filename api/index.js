@@ -704,6 +704,8 @@ app.get('/nft-indexer/v1/mp/sales', async (req, res) => {
     const maxRound = req.query['max-round'];
     const minPrice = req.query['min-price'];
     const maxPrice = req.query['max-price'];
+    const minTime = req.query['min-time'];
+    const maxTime = req.query['max-time'];
     const currency = req.query.currency;
     const next = req.query.next??0;
     const limit = req.query.limit;
@@ -780,6 +782,16 @@ app.get('/nft-indexer/v1/mp/sales', async (req, res) => {
     if (maxPrice) {
         conditions.push(`price <= $maxPrice`);
         params.$maxPrice = maxPrice;
+    }
+
+    if (minTime) {
+        conditions.push(`timestamp >= $minTime`);
+        params.$minTime = minTime;
+    }
+
+    if (maxTime) {
+        conditions.push(`timestamp <= $maxTime`);
+        params.$maxTime = maxTime;
     }
 
     if (currency) {

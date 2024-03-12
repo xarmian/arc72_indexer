@@ -605,6 +605,16 @@ export const swaggerOptions = {
  *         type: integer
  *         description: Limit to only the sales with the price less than or equal to the given price
  *     - in: query
+ *       name: min-time
+ *       schema:
+ *         type: integer
+ *         description: Limit to only the sales which occurred on or after the given timestamp
+ *     - in: query
+ *       name: max-time
+ *       schema:
+ *         type: integer
+ *         description: Limit to only the sales which occurred on or before the given timestamp
+ *     - in: query
  *       name: currency
  *       schema:
  *         type: string
