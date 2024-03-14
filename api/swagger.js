@@ -615,6 +615,11 @@ export const swaggerOptions = {
  *         type: integer
  *         description: Limit to only the sales which occurred on or before the given timestamp
  *     - in: query
+ *       name: sort
+ *       schema:
+ *         type: string
+ *         description: "Sort by a given field, currently supports 'round'. Use '-' to sort in descending order. Example: sort=-round. NOTE: next token does not work with this option."
+ *     - in: query
  *       name: currency
  *       schema:
  *         type: string

@@ -709,6 +709,7 @@ app.get('/nft-indexer/v1/mp/sales', async (req, res) => {
     const currency = req.query.currency;
     const next = req.query.next??0;
     const limit = req.query.limit;
+    const sort = req.query.sort;
 
     // Construct SQL query
     let query = `SELECT * FROM sales`;
@@ -808,7 +809,26 @@ app.get('/nft-indexer/v1/mp/sales', async (req, res) => {
         query += ` WHERE ` + conditions.join(' AND ');
     }
 
-    query += ` ORDER BY round ASC`;
+    const allowedColumns = ['round'];
+
+    if (sort) {
+        let direction = 'ASC';
+        let column = sort;
+
+        // If the sort string starts with a hyphen, remove it and set direction to 'DESC'
+        if (sort.startsWith('-')) {
+            column = sort.substring(1);
+            direction = 'DESC';
+        }
+
+        if (allowedColumns.includes(column)) {
+            query += ` ORDER BY ${column} ${direction}`;
+        } else {
+            ` ORDER BY round ASC`;
+        }
+    } else {
+        query += ` ORDER BY round ASC`;
+    }
 
     if (limit) {
         query += ` LIMIT $limit`;
