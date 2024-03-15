@@ -425,6 +425,7 @@ CREATE INDEX idx_listings_currency ON listings(currency);
 CREATE INDEX idx_listings_createRound ON listings(createRound);
 CREATE INDEX idx_listings_sales_id ON listings(sales_id);
 CREATE INDEX idx_listings_delete_id ON listings(delete_id);
+CREATE INDEX idx_listings_createTimestamp ON listings(createTimestamp);
 
 -- sales
 CREATE INDEX idx_sales_transactionId ON sales(transactionId);
