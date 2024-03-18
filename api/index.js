@@ -661,7 +661,7 @@ app.get('/nft-indexer/v1/mp/listings', async (req, res) => {
         const row = rows[i];
 
         row.token = await db.get(`SELECT * FROM tokens WHERE contractId = ? AND tokenId = ? AND owner = ? AND approved = ?`, [row.contractId, row.tokenId, row.seller, row.escrowAddr]);
-        if (!row.token) {
+        if (active == 'true' &&  !row.token) {
             continue;
         }
 
