@@ -200,22 +200,22 @@ export default class Database {
         return await this.all("SELECT * FROM markets");
     }
 
-    async insertOrUpdateMarket({contractId, createRound, lastSyncRound, isBlacklisted}) {
+    async insertOrUpdateMarket({contractId, escrowAddr, createRound, lastSyncRound, isBlacklisted}) {
         const result = await this.run(
             `
             UPDATE markets
-            SET createRound = ?, lastSyncRound = ?, isBlacklisted = ?
+            SET escrowAddr = ?, createRound = ?, lastSyncRound = ?, isBlacklisted = ?
             WHERE mpContractId = ?
             `,
-            [createRound, lastSyncRound, isBlacklisted, contractId]
+            [escrowAddr, createRound, lastSyncRound, isBlacklisted, contractId]
         );
 
         if (result.changes === 0) {
             return await this.run(
                 `
-                INSERT INTO markets (mpContractId, createRound, lastSyncRound, isBlacklisted) VALUES (?, ?, ?, ?)
+                INSERT INTO markets (mpContractId, escrowAddr, createRound, lastSyncRound, isBlacklisted) VALUES (?, ?, ?, ?, ?)
                 `,
-                [contractId, createRound, lastSyncRound, isBlacklisted]
+                [contractId, escrowAddr, createRound, lastSyncRound, isBlacklisted]
             );
         }
         return result;
@@ -346,6 +346,7 @@ export default class Database {
             `
             CREATE TABLE IF NOT EXISTS markets (
                 mpContractId TEXT PRIMARY KEY,
+                escrowAddr TEXT,
                 createRound INTEGER,
                 version INTEGER,
                 lastSyncRound INTEGER,
@@ -416,6 +417,7 @@ export default class Database {
 -- /markets
 CREATE INDEX idx_markets_createRound ON markets(createRound);
 CREATE INDEX idx_markets_version ON markets(version);
+CREATE INDEX idx_markets_escrowAddr ON markets(escrowAddr);
 
 -- /listings
 CREATE INDEX idx_listings_contractId ON listings(contractId);

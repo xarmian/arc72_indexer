@@ -519,6 +519,7 @@ app.get('/nft-indexer/v1/mp/listings', async (req, res) => {
     const collectionId = req.query.collectionId;
     const tokenId = req.query.tokenId;
     const seller = req.query.seller;
+    const escrowAddr = req.query['escrow-addr'];
     const minRound = req.query['min-round']??0;
     const maxRound = req.query['max-round'];
     const minPrice = req.query['min-price'];
@@ -533,7 +534,7 @@ app.get('/nft-indexer/v1/mp/listings', async (req, res) => {
     const limit = req.query.limit;
 
     // Construct SQL query
-    let query = `SELECT * FROM listings`;
+    let query = `SELECT l.*,m.escrowAddr FROM listings l LEFT JOIN markets m ON l.mpContractId = m.mpContractId`;
     let conditions = [];
     let params = {};
 
@@ -543,7 +544,7 @@ app.get('/nft-indexer/v1/mp/listings', async (req, res) => {
     }
 
     if (mpContractId) {
-        conditions.push(`mpContractId = $contractId`);
+        conditions.push(`l.mpContractId = $contractId`);
         params.$contractId = mpContractId;
 
         if (mpListingId) {
@@ -574,13 +575,18 @@ app.get('/nft-indexer/v1/mp/listings', async (req, res) => {
         }
     }
 
+    if (escrowAddr) {
+        conditions.push(`m.escrowAddr = $escrowAddr`);
+        params.$escrowAddr = escrowAddr;
+    }
+
     if (minRound) {
-        conditions.push(`createRound >= $minRound`);
+        conditions.push(`l.createRound >= $minRound`);
         params.$minRound = minRound;
     }
 
     if (maxRound) {
-        conditions.push(`createRound <= $maxRound`);
+        conditions.push(`l.createRound <= $maxRound`);
         params.$maxRound = maxRound;
     }
 
@@ -631,7 +637,7 @@ app.get('/nft-indexer/v1/mp/listings', async (req, res) => {
     }
 
     if (next) {
-        conditions.push(`createRound >= $next`);
+        conditions.push(`l.createRound >= $next`);
         params.$next = next;
     }
 
@@ -650,8 +656,14 @@ app.get('/nft-indexer/v1/mp/listings', async (req, res) => {
     const rows = await db.all(query, params);
 
     // for all rows, change remove tokenIndex and change mintRound to mint-round
+    let listings = [];
     for(let i = 0; i < rows.length; i++) {
         const row = rows[i];
+
+        row.token = await db.get(`SELECT * FROM tokens WHERE contractId = ? AND tokenId = ? AND owner = ? AND approved = ?`, [row.contractId, row.tokenId, row.seller, row.escrowAddr]);
+        if (!row.token) {
+            continue;
+        }
 
         row.mpContractId = Number(row.mpContractId);
         row.mpListingId = Number(row.mpListingId);
@@ -668,14 +680,16 @@ app.get('/nft-indexer/v1/mp/listings', async (req, res) => {
         delete row.sales_id;
         delete row.delete_id;
         delete row.contractId;
+
+        listings.push(row);
     }
 
     let mRound = 0;
-    if (rows.length > 0) {
-        mRound = rows[rows.length-1].createRound;
+    if (listings.length > 0) {
+        mRound = listings[listings.length-1].createRound;
     }
 
-    response['listings'] = rows;
+    response['listings'] = listings;
     response['next-token'] = mRound+1;
     res.status(200).json(response);
 

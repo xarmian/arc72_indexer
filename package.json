@@ -1,6 +1,6 @@
 {
   "name": "arc72_indexer",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "ARC-72 Indexer",
   "scripts": {
     "postinstall": "(cd ./backend && npm install) && (cd ./api && npm install)",

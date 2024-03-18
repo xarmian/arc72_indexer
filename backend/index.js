@@ -20,6 +20,7 @@
 import { arc72 as Contract, mp as MPContract } from "ulujs";
 import { isARC72, zeroAddress, algodClient, indexerClient, sleep, output, getAllAppIdsIdx, isMP, decodeGlobalState } from "./utils.js";
 import Database from "./database.js";
+import algosdk from "algosdk";
 
 const db = new Database('./db.sqlite');
 
@@ -96,7 +97,8 @@ while (true) {
                     console.log(`Adding new contract ${contractId} to markets table`);
                     const createRound = rnd;
                     lastSyncRound = rnd;
-                    await db.insertOrUpdateMarket({ contractId, createRound, lastSyncRound, isBlacklisted: 0 });
+                    const escrowAddr = algosdk.getApplicationAddress(Number(contractId));
+                    await db.insertOrUpdateMarket({ contractId, escrowAddr, createRound, lastSyncRound, isBlacklisted: 0 });
                     contractType = 2;
                 }
                 else {

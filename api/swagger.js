@@ -150,6 +150,10 @@ export const swaggerOptions = {
                   type: 'string',
                   description: 'The address of the seller'
                 },
+                escrowAddr: {
+                  type: 'string',
+                  description: 'The escrow address of the marketplace contract'
+                },
                 price: {
                   type: 'integer',
                   description: 'The price of the listing'
@@ -170,6 +174,10 @@ export const swaggerOptions = {
                   type: 'integer',
                   description: 'The royalty for the listing'
                 },
+                token: {
+                  "$ref": "#/components/schemas/Token",
+                  description: 'The token being listed'
+                }
               },
             },
             "Sale": {
@@ -480,6 +488,11 @@ export const swaggerOptions = {
  *       schema:
  *         type: string
  *         description: Limit to only the listings with the given seller
+ *     - in: query
+ *       name: escrow-addr
+ *       schema:
+ *         type: string
+ *         description: Limit to only the listings on marketplaces with the given escrow address
  *     - in: query
  *       name: min-round
  *       schema:
