@@ -660,7 +660,7 @@ app.get('/nft-indexer/v1/mp/listings', async (req, res) => {
     for(let i = 0; i < rows.length; i++) {
         const row = rows[i];
 
-        row.token = await db.get(`SELECT * FROM tokens WHERE contractId = ? AND tokenId = ? AND owner = ? AND approved = ?`, [row.contractId, row.tokenId, row.seller, row.escrowAddr]);
+        row.token = await db.get(`SELECT * FROM tokens WHERE contractId = ? AND tokenId = ? AND owner = ? AND approved = ?`, [row.contractId, row.tokenId, row.seller, row.escrowAddr]) ?? null;
         if (active == 'true' &&  !row.token) {
             continue;
         }
@@ -674,8 +674,8 @@ app.get('/nft-indexer/v1/mp/listings', async (req, res) => {
         row.currency = Number(row.currency);
         row.createRound = Number(row.createRound);
 
-        row.sale = await db.get(`SELECT * FROM sales WHERE transactionId = ?`, [row.sales_id]);
-        row.delete = await db.get(`SELECT * FROM deletes WHERE transactionId = ?`, [row.delete_id]);
+        row.sale = await db.get(`SELECT * FROM sales WHERE transactionId = ?`, [row.sales_id]) ?? null;
+        row.delete = await db.get(`SELECT * FROM deletes WHERE transactionId = ?`, [row.delete_id]) ?? null;
 
         delete row.sales_id;
         delete row.delete_id;
