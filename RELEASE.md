@@ -4,16 +4,19 @@
 * API
   * Add /deletes endpoint and update swagger documentation
 # 0.0.9 - 2024-03-18
+
 * Backend
   * Add Marketplace Escrow Account to Marketplace Contract table (markets)
 * API
   * Embed token object in /listings response
   * During /listings response, validate token.owner = listing.seller and token.approved = listing.escrow and omit invalid listings
 * DB Changes -- added markets.escrowAddr column and index
+
 # 0.0.8 - 2024-03-14
 * API
   * Sort /sales response by Round
   * Add min-time and max-time to /listings endpoint, update swagger
+
 # 0.0.7 - 2024-03-06
 * API
   * Add `creator` address to /collections endpoint
