@@ -910,6 +910,184 @@ app.get('/nft-indexer/v1/mp/sales', async (req, res) => {
     console.log(`${date.toISOString()}: ${ip} ${query} ${JSON.stringify(params)}`);
 });
 
+app.get('/nft-indexer/v1/mp/deletes', async (req, res) => {
+
+    let response = {};
+
+    db.db.get(`SELECT value FROM info WHERE key='syncRound'`, [], (err, row) => {
+        if (err) {
+            res.status(500).json({ message: 'Error querying the database' });
+            return;
+        }
+
+        // Construct response
+        response = {
+            ['current-round']: Number(row.value),
+        };
+    });
+
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Response-Type', 'application/json');
+
+    // Extract query parameters
+    const transactionId = req.query.transactionId;
+    const mpContractId = req.query.mpContractId;
+    const mpListingId = req.query.mpListingId;
+    const collectionId = req.query.collectionId;
+    const tokenId = req.query.tokenId;
+    const owner = req.query.owner;
+    const minRound = req.query['min-round']??0;
+    const maxRound = req.query['max-round'];
+    const minTime = req.query['min-time'];
+    const maxTime = req.query['max-time'];
+    const next = req.query.next??0;
+    const limit = req.query.limit;
+    const sort = req.query.sort;
+
+    // Construct SQL query
+    let query = `SELECT * FROM deletes`;
+    let conditions = [];
+    let params = {};
+
+    if (transactionId) {
+        conditions.push(`transactionId = $transactionId`);
+        params.$transactionId = transactionId;
+    }
+
+    if (mpContractId) {
+        conditions.push(`mpContractId = $mpContractId`);
+        params.$mpContractId = mpContractId;
+
+        if (mpListingId) {
+            conditions.push(`mpListingId = $mpListingId`);
+            params.$mpListingId = mpListingId;
+        }
+    }
+
+    if (collectionId) {
+        conditions.push(`contractId = $collectionId`);
+        params.$collectionId = collectionId;
+
+        if (tokenId) {
+            conditions.push(`tokenId = $tokenId`);
+            params.$tokenId = tokenId;
+        }
+    }
+
+    if (owner) {
+        if (Array.isArray(owner)) {
+            conditions.push(`owner IN (${owner.map((_, i) => `$owner${i}`).join(',')})`);
+            owner.forEach((o, i) => {
+                params[`$owner${i}`] = o;
+            });
+        } else {
+            conditions.push(`owner = $owner`);
+            params.$owner = owner;
+        }
+    }
+    
+    if (minRound) {
+        conditions.push(`round >= $minRound`);
+        params.$minRound = minRound;
+    }
+
+    if (maxRound) {
+        conditions.push(`round <= $maxRound`);
+        params.$maxRound = maxRound;
+    }
+
+    if (minTime) {
+        conditions.push(`timestamp >= $minTime`);
+        params.$minTime = minTime;
+    }
+
+    if (maxTime) {
+        conditions.push(`timestamp <= $maxTime`);
+        params.$maxTime = maxTime;
+    }
+
+    if (next) {
+        conditions.push(`round >= $next`);
+        params.$next = next;
+    }
+
+    if (conditions.length > 0) {
+        query += ` WHERE ` + conditions.join(' AND ');
+    }
+
+    const allowedColumns = ['round'];
+
+    if (sort) {
+        let direction = 'ASC';
+        let column = sort;
+
+        // If the sort string starts with a hyphen, remove it and set direction to 'DESC'
+        if (sort.startsWith('-')) {
+            column = sort.substring(1);
+            direction = 'DESC';
+        }
+
+        if (allowedColumns.includes(column)) {
+            query += ` ORDER BY ${column} ${direction}`;
+        } else {
+            ` ORDER BY round ASC`;
+        }
+    } else {
+        query += ` ORDER BY round ASC`;
+    }
+
+    if (limit) {
+        query += ` LIMIT $limit`;
+        params.$limit = limit;
+    }
+
+    // Execute query
+    const rows = await db.all(query, params);
+
+    // for all rows, change remove tokenIndex and change mintRound to mint-round
+    for(let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+
+        row.mpContractId = Number(row.mpContractId);
+        row.mpListingId = Number(row.mpListingId);
+        row.collectionId = Number(row.contractId);
+        row.tokenId = Number(row.tokenId);
+        row.round = Number(row.round);
+        
+        row.listing = await db.get(`SELECT * FROM listings WHERE delete_id = ?`, [row.transactionId]);
+        if (row.listing) {
+            row.listing.mpContractId = Number(row.listing.mpContractId);
+            row.listing.mpListingId = Number(row.listing.mpListingId);
+            row.listing.collectionId = Number(row.listing.contractId);
+            row.listing.createRound = Number(row.listing.createRound);
+            row.listing.tokenId = Number(row.listing.tokenId);
+            row.listing.price = Number(row.listing.price);
+            row.listing.currency = Number(row.listing.currency);
+            row.listing.createRound = Number(row.listing.createRound);
+    
+            delete row.listing.sales_id;
+            delete row.listing.delete_id;
+            delete row.listing.contractId;
+        }
+
+        delete row.contractId;
+    }
+
+    let mRound = 0;
+    if (rows.length > 0) {
+        mRound = rows[rows.length-1].round;
+    }
+
+    response.deletes = rows
+    response['next-token'] = mRound+1;
+    res.status(200).json(response);
+
+    // Log date/time, ip address, query
+    const date = new Date();
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+    console.log(`${date.toISOString()}: ${ip} ${query} ${JSON.stringify(params)}`);
+});
+
 app.get('/stats', (req, res) => {
     db.db.all(`SELECT 
             c.contractId, 

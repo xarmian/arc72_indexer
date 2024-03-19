@@ -673,3 +673,87 @@ export const swaggerOptions = {
  *     500:
  *       description: Server error 
  */
+
+/**
+ * @swagger
+ * /nft-indexer/v1/mp/deletes:
+ *  get:
+ *   summary: Retrieves marketplace deletes
+ *   description: Fetch marketplace deletes details based on query parameters (this is a NON-STANDARD endpoint)
+ *   parameters:
+ *     - in: query
+ *       name: mpContractId
+ *       schema:
+ *         type: integer
+ *         description: Limit to only the deletes with the given Marketplace contractId
+ *     - in: query
+ *       name: mpListingId
+ *       schema:
+ *         type: integer
+ *         description: Limit to only the deletes with the given Marketplace listingId (requires mpContractId)
+ *     - in: query
+ *       name: collectionId
+ *       schema:
+ *         type: integer
+ *         description: Limit to only the deletes with the given collectionId
+ *     - in: query
+ *       name: tokenId
+ *       schema:
+ *         type: integer
+ *         description: Limit to only the deletes with the given tokenId (requires collectionId)
+ *     - in: query
+ *       name: owner
+ *       schema:
+ *         type: string
+ *         description: Limit to only the deletes with the given owner
+ *     - in: query
+ *       name: min-round
+ *       schema:
+ *         type: integer
+ *         description: Include results to listings created on or after the given round.
+ *     - in: query
+ *       name: max-round
+ *       schema:
+ *         type: integer
+ *         description: Include results to listings created on or before the given round.
+ *     - in: query
+ *       name: min-time
+ *       schema:
+ *         type: integer
+ *         description: Limit to only the deletes which occurred on or after the given timestamp
+ *     - in: query
+ *       name: max-time
+ *       schema:
+ *         type: integer
+ *         description: Limit to only the deletes which occurred on or before the given timestamp
+ *     - in: query
+ *       name: sort
+ *       schema:
+ *         type: string
+ *         description: "Sort by a given field, currently supports 'round'. Use '-' to sort in descending order. Example: sort=-round. NOTE: next token does not work with this option."
+ *     - in: query
+ *       name: next
+ *       schema:
+ *         type: string
+ *         description: Token for the next page of results. Use the next-token provided by the previous page of results.
+ *   responses:
+ *     200:
+ *       description: A successful response
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               listings:
+ *                 type: array
+ *                 items:
+ *                   $ref: '#/components/schemas/Sale'
+ *               current-round:
+ *                 type: integer
+ *               next-token:
+ *                 type: string
+ *     400:
+ *       description: Bad request
+ *     500:
+ *       description: Server error 
+ */

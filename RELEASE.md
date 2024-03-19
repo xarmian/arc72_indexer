@@ -1,5 +1,8 @@
 ## Release Notes
 
+# 0.0.10 - 2024-03-19
+* API
+  * Add /deletes endpoint and update swagger documentation
 # 0.0.9 - 2024-03-18
 * Backend
   * Add Marketplace Escrow Account to Marketplace Contract table (markets)

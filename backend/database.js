@@ -443,6 +443,7 @@ CREATE INDEX idx_deletes_transactionId ON deletes(transactionId);
 CREATE INDEX idx_deletes_contractId ON deletes(contractId);
 CREATE INDEX idx_deletes_owner ON deletes(owner);
 CREATE INDEX idx_deletes_round ON deletes(round);
+CREATE INDEX idx_deletes_timestamp ON deletes(timestamp);
 
 -- /collections
 CREATE INDEX idx_collections_createRound ON collections(createRound);
