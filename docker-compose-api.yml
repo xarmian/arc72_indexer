@@ -42,11 +42,12 @@ services:
     restart: unless-stopped
     volumes:
       - ./db:/app/db:ro
-    ports:
-      - 3000:3000
+    expose:
+      - 3000
     environment:
       - VIRTUAL_HOST=
       - LETSENCRYPT_HOST=
+      - LETSENCRYPT_EMAIL=
     networks:
       - nginx-proxy
 
