@@ -51,14 +51,14 @@ CREATE TABLE IF NOT EXISTS transfers (
 ------------------------------------------
 
 -- /collections
-CREATE INDEX idx_collections_createRound ON collections(createRound);
-CREATE INDEX idx_collections_creator ON collections(creator);
+CREATE INDEX IF NOT EXISTS idx_collections_createRound ON collections(createRound);
+CREATE INDEX IF NOT EXISTS idx_collections_creator ON collections(creator);
 
 -- / tokens
-CREATE INDEX idx_tokens_contractId ON tokens(contractId, tokenId);
-CREATE INDEX idx_tokens_owner ON tokens(owner);
-CREATE INDEX idx_tokens_approved ON tokens(approved);
-CREATE INDEX idx_tokens_mintRound ON tokens(mintRound);
+CREATE INDEX IF NOT EXISTS idx_tokens_contractId ON tokens(contractId, tokenId);
+CREATE INDEX IF NOT EXISTS idx_tokens_owner ON tokens(owner);
+CREATE INDEX IF NOT EXISTS idx_tokens_approved ON tokens(approved);
+CREATE INDEX IF NOT EXISTS idx_tokens_mintRound ON tokens(mintRound);
 
 ------------------------------------------
 -- Marketplace Tables
@@ -131,46 +131,46 @@ CREATE TABLE IF NOT EXISTS deletes (
 ------------------------------------------
 
 -- /markets
-CREATE INDEX idx_markets_createRound ON markets(createRound);
-CREATE INDEX idx_markets_version ON markets(version);
-CREATE INDEX idx_markets_escrowAddr ON markets(escrowAddr);
+CREATE INDEX IF NOT EXISTS idx_markets_createRound ON markets(createRound);
+CREATE INDEX IF NOT EXISTS idx_markets_version ON markets(version);
+CREATE INDEX IF NOT EXISTS idx_markets_escrowAddr ON markets(escrowAddr);
 
 -- /listings
-CREATE INDEX idx_listings_contractId ON listings(contractId);
-CREATE INDEX idx_listings_seller ON listings(seller);
-CREATE INDEX idx_listings_price ON listings(price);
-CREATE INDEX idx_listings_currency ON listings(currency);
-CREATE INDEX idx_listings_createRound ON listings(createRound);
-CREATE INDEX idx_listings_sales_id ON listings(sales_id);
-CREATE INDEX idx_listings_delete_id ON listings(delete_id);
-CREATE INDEX idx_listings_createTimestamp ON listings(createTimestamp);
+CREATE INDEX IF NOT EXISTS idx_listings_contractId ON listings(contractId);
+CREATE INDEX IF NOT EXISTS idx_listings_seller ON listings(seller);
+CREATE INDEX IF NOT EXISTS idx_listings_price ON listings(price);
+CREATE INDEX IF NOT EXISTS idx_listings_currency ON listings(currency);
+CREATE INDEX IF NOT EXISTS idx_listings_createRound ON listings(createRound);
+CREATE INDEX IF NOT EXISTS idx_listings_sales_id ON listings(sales_id);
+CREATE INDEX IF NOT EXISTS idx_listings_delete_id ON listings(delete_id);
+CREATE INDEX IF NOT EXISTS idx_listings_createTimestamp ON listings(createTimestamp);
 
 -- sales
-CREATE INDEX idx_sales_transactionId ON sales(transactionId);
-CREATE INDEX idx_sales_contractId ON sales(contractId);
-CREATE INDEX idx_sales_buyer ON sales(buyer);
-CREATE INDEX idx_sales_currency ON sales(currency);
-CREATE INDEX idx_sales_price ON sales(price);
-CREATE INDEX idx_sales_round ON sales(round);
-CREATE INDEX idx_sales_timestamp ON sales(timestamp);
+CREATE INDEX IF NOT EXISTS idx_sales_transactionId ON sales(transactionId);
+CREATE INDEX IF NOT EXISTS idx_sales_contractId ON sales(contractId);
+CREATE INDEX IF NOT EXISTS idx_sales_buyer ON sales(buyer);
+CREATE INDEX IF NOT EXISTS idx_sales_currency ON sales(currency);
+CREATE INDEX IF NOT EXISTS idx_sales_price ON sales(price);
+CREATE INDEX IF NOT EXISTS idx_sales_round ON sales(round);
+CREATE INDEX IF NOT EXISTS idx_sales_timestamp ON sales(timestamp);
 
 -- /deletes
-CREATE INDEX idx_deletes_transactionId ON deletes(transactionId);
-CREATE INDEX idx_deletes_contractId ON deletes(contractId);
-CREATE INDEX idx_deletes_owner ON deletes(owner);
-CREATE INDEX idx_deletes_round ON deletes(round);
-CREATE INDEX idx_deletes_timestamp ON deletes(timestamp);
+CREATE INDEX IF NOT EXISTS idx_deletes_transactionId ON deletes(transactionId);
+CREATE INDEX IF NOT EXISTS idx_deletes_contractId ON deletes(contractId);
+CREATE INDEX IF NOT EXISTS idx_deletes_owner ON deletes(owner);
+CREATE INDEX IF NOT EXISTS idx_deletes_round ON deletes(round);
+CREATE INDEX IF NOT EXISTS idx_deletes_timestamp ON deletes(timestamp);
 
 ------------------------------------------
 -- ARC-0200 Contract Tables
 ------------------------------------------
-
+/*
 -- contract metadata for arc-0200 contracts
 CREATE TABLE contracts_0200 (
     contractId TEXT,
     name TEXT,
     symbol TEXT,
-    decimals: INTEGER,
+    decimals INTEGER,
     totalSupply TEXT,
     minter TEXT,
     metadata BLOB,
@@ -208,5 +208,5 @@ CREATE TABLE approvals_0200 {
     timestamp TEXT,
     PRIMARY KEY (transactionId)
 };
-
+*/
 -- Path: backend/schemas.sql

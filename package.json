@@ -4,6 +4,7 @@
   "description": "ARC-72 Indexer",
   "scripts": {
     "postinstall": "(cd ./backend && npm install) && (cd ./api && npm install)",
+    "init-db": "mkdir -p db && sqlite3 ./db/db.sqlite < ./backend/schemas.sql && echo \"Database Initialized: ${PWD}/db/db.sqlite\"",
     "backend": "cd ./backend && node index.js",
     "api": "cd ./api && node index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
