@@ -1,0 +1,23 @@
+FROM node:20.11.0
+
+EXPOSE 3000
+
+ENV DOCKER_MODE=true
+ENV DB_PATH=/app/db/db.sqlite
+
+WORKDIR /app/api
+
+COPY ./api/package*.json ./
+
+RUN npm install
+# RUN npm ci --only=production
+
+COPY ./api .
+
+COPY ./backend/database.js .
+
+WORKDIR /app
+
+COPY ./package*.json ./
+
+CMD [ "npm", "run", "api" ]

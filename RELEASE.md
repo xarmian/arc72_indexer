@@ -1,5 +1,9 @@
 ## Release Notes
 
+# 0.1.0 - 2024-03-28
+* Significant refactoring
+* Docker deployment
+
 # 0.0.10 - 2024-03-19
 * API
   * Add /deletes endpoint and update swagger documentation

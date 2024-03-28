@@ -29,19 +29,24 @@ services:
       - acme:/etc/acme.sh
       - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
-      - DEFAULT_EMAIL=your@email.com
+      - DEFAULT_EMAIL=
     networks:
       - nginx-proxy
 
-  arc72-indexer:
-    build: .
-    container_name: arc72-indexer
+  arc72-indexer-api:
+    build:
+      context: .
+      dockerfile: Dockerfile-api
+    image: xarmian/arc72-indexer-api
+    container_name: arc72-indexer-api
     restart: unless-stopped
     volumes:
-      - ../:/app:ro
+      - ./db:/app/db:ro
+    ports:
+      - 3000:3000
     environment:
-      - VIRTUAL_HOST=arc72-idx.nftnavigator.xyz
-      - LETSENCRYPT_HOST=arc72-idx2.nftnavigator.xyz
+      - VIRTUAL_HOST=
+      - LETSENCRYPT_HOST=
     networks:
       - nginx-proxy
 

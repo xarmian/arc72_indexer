@@ -1,4 +1,7 @@
 import algosdk from "algosdk";
+import readline from "readline";
+import dotenv from "dotenv";
+dotenv.config();
 
 const ALGOD = {
     API_KEY: "",
@@ -54,11 +57,15 @@ export async function sleep(ms) {
 }
 
 export function output(msg, clear = false) {
-    if (clear) {
-        process.stdout.clearLine();
-        process.stdout.cursorTo(0);
+    if (process.env.DOCKER_MODE && process.env.DOCKER_MODE === "true") {
+        console.log(msg);
     }
-    process.stdout.write(msg);
+    else {
+        if (clear) {
+            readline.clearLine(process.stdout, 0);
+        }
+        process.stdout.write(msg);
+    }
 }
 
 // return all app ids involved in a block of transactions (blk.block.txns)

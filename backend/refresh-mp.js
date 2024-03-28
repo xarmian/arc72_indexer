@@ -4,8 +4,11 @@
 import { arc72 as Contract, mp as MPContract } from "ulujs";
 import { isMP, zeroAddress, algodClient, indexerClient, sleep, output } from "./utils.js";
 import Database from "./database.js";
+import dotenv from 'dotenv';
+dotenv.config();
 
-const db = new Database('./db.sqlite');
+const DB_PATH = process.env.DB_PATH || '../db/db.sqlite';
+const db = new Database(DB_PATH);
 
 let useContractId;
 

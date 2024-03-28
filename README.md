@@ -43,9 +43,18 @@ To use an alternate port for the API server, pass the -p argument, such as:
 ```
 npm run api -- -p 5101
 ```
+or use the environment variable API_SERVER_PORT, i.e.
+```
+API_SERVER_PORT=5101 npm run api
+```
+
+### Docker Deployment
+```
+docker-compose -f docker-compose-backend.yml up -d
+docker-compose -f docker-compose-api.yml up -d
+```
 
 ### Things To Do
-* Docker deployment
 * Replace database backend (PostreSQL?)
 * Improve API server logging
 * Use a follower node instead of the public node

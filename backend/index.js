@@ -21,8 +21,11 @@ import { arc72 as Contract, mp as MPContract } from "ulujs";
 import { isARC72, zeroAddress, algodClient, indexerClient, sleep, output, getAllAppIdsIdx, isMP, decodeGlobalState } from "./utils.js";
 import Database from "./database.js";
 import algosdk from "algosdk";
+import dotenv from 'dotenv';
+dotenv.config();
 
-const db = new Database('./db.sqlite');
+const DB_PATH = process.env.DB_PATH || '../db/db.sqlite';
+const db = new Database(DB_PATH);
 
 // get last sync round from info table
 let last_block = Number((await db.getInfo("syncRound"))?.value-1 ?? 0);
@@ -49,7 +52,9 @@ while (true) {
     }
     let i = last_block + 1;
 
-    output(`Retrieving block ${i} (${end_block - i} behind)`, true);
+    if (!process.env.DOCKER_MODE || process.env.DOCKER_MODE !== 'true' || i % 100 === 0) {
+        output(`Retrieving block ${i} (${end_block - i} behind)`, true);
+    }
 
     try {
         const timeoutPromise = new Promise((resolve, reject) => {
@@ -265,7 +270,7 @@ while (true) {
                         }
                     }
 
-                    const del_events = await ctc.DeleteListingEvent({ minRound: (lastSyncRound), maxRound: rnd });
+                    const del_events = await ctc.DeleteNetListingEvent({ minRound: (lastSyncRound), maxRound: rnd });
 
                     console.log(`Processing ${del_events.length} delete events for contract ${contractId} from round ${lastSyncRound} to ${rnd}`);
 

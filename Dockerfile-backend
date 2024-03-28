@@ -1,0 +1,21 @@
+FROM node:20.11.0
+
+ENV DOCKER_MODE=true
+ENV DB_PATH=/app/db/db.sqlite
+
+# Create app directory
+WORKDIR /app/backend
+
+COPY ./backend/package*.json ./
+
+RUN npm install
+# RUN npm ci --only=production
+
+# Bundle app source
+COPY ./backend .
+
+WORKDIR /app
+
+COPY ./package*.json ./
+
+CMD [ "npm", "run", "backend" ]
