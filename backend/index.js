@@ -38,7 +38,7 @@ console.log(`Database Synced to round: ${last_block}. Current round: ${end_block
 
 while (true) {
     if (last_block >= end_block) {
-        output(`Reached end of chain, sleeping for 3 seconds...`, true);
+        //output(`Reached end of chain, sleeping for 3 seconds...`, true);
         await sleep(3000);
         try {
             // end_block = (await algodClient.status().do())['last-round'];
