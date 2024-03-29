@@ -93,7 +93,7 @@ for (const collection of collections) {
     let buy_events = [];
     while (true) {
       try {
-        list_events = await ctc.BuyEvent({});
+        buy_events = await ctc.BuyEvent({});
         break; // If successful, break the loop
       }
       catch(err) {
