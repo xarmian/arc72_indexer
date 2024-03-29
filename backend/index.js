@@ -270,7 +270,7 @@ while (true) {
                         }
                     }
 
-                    const del_events = await ctc.DeleteNetListingEvent({ minRound: (lastSyncRound), maxRound: rnd });
+                    const del_events = await ctc.DeleteListingEvent({ minRound: (lastSyncRound), maxRound: rnd });
 
                     console.log(`Processing ${del_events.length} delete events for contract ${contractId} from round ${lastSyncRound} to ${rnd}`);
 
