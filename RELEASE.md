@@ -1,5 +1,8 @@
 ## Release Notes
 
+# 0.1.1 - 2024-04-01
+* Update listings, sales, and deletes endpoints to accept arrays of collectionId, buyer, seller, and owner for multiple item search
+
 # 0.1.0 - 2024-03-28
 * Significant refactoring
 * Docker deployment

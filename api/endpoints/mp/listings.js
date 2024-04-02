@@ -19,12 +19,12 @@
  *       name: collectionId
  *       schema:
  *         type: integer
- *         description: Limit to only the listings with the given collectionId
+ *         description: Limit to only the listings with the given collectionId (also accepts array of integers)
  *     - in: query
  *       name: tokenId
  *       schema:
  *         type: integer
- *         description: Limit to only the listings with the given tokenId (requires collectionId)
+ *         description: Limit to only the listings with the given tokenId (requires collectionId) (also accepts array of integers)
  *     - in: query
  *       name: seller
  *       schema:
@@ -171,12 +171,27 @@ export const listingsEndpoint = async (req, res, db) => {
     }
 
     if (collectionId) {
-        conditions.push(`contractId = $collectionId`);
-        params.$collectionId = collectionId;
+        if (Array.isArray(collectionId)) {
+            conditions.push(`contractId IN (${collectionId.map((_, i) => `$collectionId${i}`).join(',')})`);
+            collectionId.forEach((c, i) => {
+                params[`$collectionId${i}`] = c;
+            });
+        } else {
+            conditions.push(`contractId = $collectionId`);
+            params.$collectionId = collectionId;
+        }
 
         if (tokenId) {
-            conditions.push(`tokenId = $tokenId`);
-            params.$tokenId = tokenId;
+            if (Array.isArray(tokenId)) {
+                conditions.push(`tokenId IN (${tokenId.map((_, i) => `$tokenId${i}`).join(',')})`);
+                tokenId.forEach((t, i) => {
+                    params[`$tokenId${i}`] = t;
+                });
+            }
+            else {
+                conditions.push(`tokenId = $tokenId`);
+                params.$tokenId = tokenId;
+            }
         }
     }
 
