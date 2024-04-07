@@ -37,7 +37,8 @@ else {
   collections = await db.getMarkets();
 }
 //const currentRound = (await algodClient.status().do())['last-round'];
-const currentRound = (await indexerClient.lookupAccountByID(zeroAddress).do())['current-round'];
+//const currentRound = (await indexerClient.lookupAccountByID(zeroAddress).do())['current-round'];
+const currentRound = (await indexerClient.makeHealthCheck().do())['round'];
 
 console.log(`Current round: ${currentRound}`);
 

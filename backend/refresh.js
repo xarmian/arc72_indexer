@@ -42,7 +42,8 @@ else {
 }
 
 // const currentRound = (await algodClient.status().do())['last-round'];
-const currentRound = (await indexerClient.lookupAccountByID(zeroAddress).do())['current-round'];
+// const currentRound = (await indexerClient.lookupAccountByID('SDLCDDT7GAREOI5TJAZGIMXKPYYCPQVY4DXY75GHWHLKU7SZYVXVL5VIDY').do())['current-round'];
+const currentRound = (await indexerClient.makeHealthCheck().do())['round'];
 
 console.log(`Current round: ${currentRound}`);
 

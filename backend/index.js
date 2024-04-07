@@ -30,7 +30,8 @@ const db = new Database(DB_PATH);
 // get last sync round from info table
 let last_block = Number((await db.getInfo("syncRound"))?.value-1 ?? 0);
 // let end_block = (await algodClient.status().do())['last-round'];
-let end_block = (await indexerClient.lookupAccountByID(zeroAddress).do())['current-round'];
+// let end_block = (await indexerClient.lookupAccountByID(zeroAddress).do())['current-round'];
+let end_block = (await indexerClient.makeHealthCheck().do())['round'];
 
 console.log(`Database Synced to round: ${last_block}. Current round: ${end_block}`);
 
@@ -42,7 +43,8 @@ while (true) {
         await sleep(3000);
         try {
             // end_block = (await algodClient.status().do())['last-round'];
-            end_block = (await indexerClient.lookupAccountByID(zeroAddress).do())['current-round'];
+            // end_block = (await indexerClient.lookupAccountByID(zeroAddress).do())['current-round'];
+            end_block = (await indexerClient.makeHealthCheck().do())['round'];
         }
         catch (error) {
             output(`Error retrieving end block from API: ${error.message}, retrying.`, true);

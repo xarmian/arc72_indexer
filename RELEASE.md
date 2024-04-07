@@ -1,5 +1,8 @@
 ## Release Notes
 
+# 0.1.2 - 2024-04-07
+* Use indexer's /health endpoint to get current indexer block. Lower impact on indexer, remove reliance on existence of zeroAddress.
+
 # 0.1.1 - 2024-04-01
 * Update listings, sales, and deletes endpoints to accept arrays of collectionId, buyer, seller, and owner for multiple item search
 
