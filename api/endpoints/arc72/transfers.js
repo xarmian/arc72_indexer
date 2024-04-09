@@ -55,6 +55,11 @@
  *         schema:
  *           type: integer
  *         description: Limit results to transfers made on or before the given round.
+ *       - in: query
+ *         name: includes
+ *         schema:
+ *           type: string
+ *         description: Comma separated list of additional properties to include in the response (e.g. token).
  *     responses:
  *       200:
  *         description: A successful response
@@ -91,6 +96,7 @@ export const transfersEndpoint = async (req, res, db) => {
     const to = req.query.to;
     let minRound = req.query['min-round']??0;
     const maxRound = req.query['max-round'];
+    const includes = req.query.includes;
 
     if (next.length > 0) minRound = Math.max(Number(next), Number(minRound));
     
@@ -163,6 +169,39 @@ export const transfersEndpoint = async (req, res, db) => {
             let maxRound = 0;
             if (rows.length > 0) {
                 maxRound = rows[rows.length-1].round;
+            }
+
+            if (includes && includes.includes('token')) {
+                const tokens = rows.map(row => row.tokenId);
+                db.db.all(`SELECT * FROM tokens WHERE tokenId IN (${tokens.join(',')})`, [], (err, tokenRows) => {
+                    if (err) {
+                        res.status(500).json({ message: "Error in database operation" });
+                    } else {
+                        const tokenMap = {};
+                        tokenRows.forEach((row) => {
+                            tokenMap[row.tokenId] = {
+                                contractId: Number(row.contractId),
+                                tokenId: Number(row.tokenId),
+                                tokenIndex: Number(row.tokenIndex),
+                                owner: row.owner,
+                                metadataURI: row.metadataURI,
+                                metadata: row.metadata,
+                                approved: row.approved,
+                            };
+                        });
+
+                        rows.forEach((row) => {
+                            row.token = tokenMap[row.tokenId];
+                        });
+
+                        res.status(200).json({
+                            transfers: rows,
+                            currentRound: round,
+                            'next-token': maxRound+1,
+                        });
+                    }
+                });
+                return;
             }
 
             const response = {

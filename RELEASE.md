@@ -1,5 +1,9 @@
 ## Release Notes
 
+# 0.1.3 - 2024-04-09
+* Add burnedSupply to collections endpoint
+* Add includes parameter to transfers endpoint to include the token in the response object
+
 # 0.1.2 - 2024-04-07
 * Use indexer's /health endpoint to get current indexer block. Lower impact on indexer, remove reliance on existence of zeroAddress.
 

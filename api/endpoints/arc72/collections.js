@@ -1,3 +1,5 @@
+const zeroAddress = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ';
+
 /**
  * @swagger
  * /nft-indexer/v1/collections:
@@ -164,6 +166,12 @@ export const collectionsEndpoint = async (req, res, db) => {
         delete row.lastSyncRound;
         delete row.createRound;
 
+        const burnedCount = await db.get(`SELECT COUNT(*) as burnedCount FROM tokens 
+                                          WHERE contractId = ?
+                                          AND owner = ?
+                                          AND approved = ?`, [row.contractId, zeroAddress, zeroAddress]);
+        row.burnedSupply = burnedCount.burnedCount;
+
         const tokens = await db.get(`SELECT * FROM tokens WHERE contractId = ? AND tokenIndex = 0`, [row.contractId]);
         if (tokens) {
             row.firstToken = {
@@ -180,9 +188,13 @@ export const collectionsEndpoint = async (req, res, db) => {
         }
 
         if (includes.includes('unique-owners')) {
-            const uniqueOwners = await db.get(`SELECT COUNT(DISTINCT owner) as uniqueOwners FROM tokens WHERE contractId = ?`, [row.contractId]);
+            const uniqueOwners = await db.get(`SELECT COUNT(DISTINCT owner) as uniqueOwners FROM tokens 
+                                                WHERE contractId = ?
+                                                AND owner != ?
+                                                AND approved != ?`, [row.contractId, zeroAddress, zeroAddress]);
             row.uniqueOwners = uniqueOwners.uniqueOwners;
         }
+
     }
 
     // get round of last row
