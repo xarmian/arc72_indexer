@@ -172,14 +172,14 @@ export const transfersEndpoint = async (req, res, db) => {
             }
 
             if (includes && includes.includes('token')) {
-                const tokens = rows.map(row => row.tokenId);
-                db.db.all(`SELECT * FROM tokens WHERE tokenId IN (${tokens.join(',')})`, [], (err, tokenRows) => {
+                const tokens = rows.map(row => ({ tokenId: row.tokenId, contractId: row.contractId }));
+                db.db.all(`SELECT * FROM tokens WHERE tokenId IN (${tokens.map(token => token.tokenId).join(',')}) AND contractId IN (${tokens.map(token => token.contractId).join(',')})`, [], (err, tokenRows) => {
                     if (err) {
                         res.status(500).json({ message: "Error in database operation" });
                     } else {
                         const tokenMap = {};
                         tokenRows.forEach((row) => {
-                            tokenMap[row.tokenId] = {
+                            tokenMap[`${row.tokenId}-${row.contractId}`] = {
                                 contractId: Number(row.contractId),
                                 tokenId: Number(row.tokenId),
                                 tokenIndex: Number(row.tokenIndex),
@@ -191,7 +191,7 @@ export const transfersEndpoint = async (req, res, db) => {
                         });
 
                         rows.forEach((row) => {
-                            row.token = tokenMap[row.tokenId];
+                            row.token = tokenMap[`${row.tokenId}-${row.contractId}`];
                         });
 
                         res.status(200).json({
