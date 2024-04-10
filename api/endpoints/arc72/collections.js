@@ -169,7 +169,7 @@ export const collectionsEndpoint = async (req, res, db) => {
         const burnedCount = await db.get(`SELECT COUNT(*) as burnedCount FROM tokens 
                                           WHERE contractId = ?
                                           AND owner = ?
-                                          AND approved = ?`, [row.contractId, zeroAddress, zeroAddress]);
+                                          AND (approved IS NULL OR approved = ?)`, [row.contractId, zeroAddress, zeroAddress]);
         row.burnedSupply = burnedCount.burnedCount;
 
         const tokens = await db.get(`SELECT * FROM tokens WHERE contractId = ? AND tokenIndex = 0`, [row.contractId]);
