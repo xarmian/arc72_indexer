@@ -173,11 +173,15 @@ while (true) {
                         }
                         else {
                             await db.updateTokenOwner(contractId, tokenId, to);
-                            console.log(`Updated token ${tokenId} owner to ${to}`);
+
+                            // check token approval
+                            const approved = (await ctc.arc72_getApproved(tokenId)).returnValue??null;
+                            await db.updateTokenApproved(contractId, tokenId, approved);
+
+                            console.log(`Updated token ${tokenId} owner to ${to}, approval to ${approved}`);
                         }
 
                         await db.insertTransaction({ transactionId, contractId, tokenId, round, fromAddr: from, toAddr: to, timestamp });
-
                     }
                 
                     // get approval history since lastSyncRound
