@@ -41,8 +41,6 @@ else {
   collections = await db.getCollections();
 }
 
-// const currentRound = (await algodClient.status().do())['last-round'];
-// const currentRound = (await indexerClient.lookupAccountByID('SDLCDDT7GAREOI5TJAZGIMXKPYYCPQVY4DXY75GHWHLKU7SZYVXVL5VIDY').do())['current-round'];
 const currentRound = (await indexerClient.makeHealthCheck().do())['round'];
 
 console.log(`Current round: ${currentRound}`);
@@ -66,9 +64,12 @@ for (const collection of collections) {
         try {
           const tokenId = (await ctc.arc72_tokenByIndex(i)).returnValue;
           const owner = (await ctc.arc72_ownerOf(tokenId)).returnValue;
-          const approved = (await ctc.arc72_getApproved(tokenId)).returnValue;
+          const approved = (await ctc.arc72_getApproved(tokenId)).returnValue??null;
           const metadataURI = (await ctc.arc72_tokenURI(tokenId)).returnValue;
-          const metadata = JSON.stringify(await fetch(metadataURI).then((res) => res.json()));
+          let metadata = null;
+          if (metadataURI != undefined) {
+            metadata = JSON.stringify(await fetch(metadataURI).then((res) => res.json()));
+          }
 
           await db.insertOrUpdateToken({contractId, tokenId, tokenIndex: i, owner, metadataURI, metadata, approved});
         }

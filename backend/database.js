@@ -100,14 +100,28 @@ export default class Database {
     }
 
     async insertOrUpdateToken({contractId, tokenId, tokenIndex, owner, metadataURI, metadata, approved, mintRound}) {
-        const result = await this.run(
-            `
-            UPDATE tokens 
-            SET tokenIndex = ?, owner = ?, metadataURI = ?, metadata = ?, approved = ?
-            WHERE contractId = ? AND tokenId = ?
-            `,
-            [tokenIndex, owner, metadataURI, metadata, String(approved), contractId, String(tokenId)]
-        );
+        let result = undefined;
+        if (metadataURI) {
+            result = await this.run(
+                `
+                UPDATE tokens 
+                SET tokenIndex = ?, owner = ?, metadataURI = ?, metadata = ?, approved = ?
+                WHERE contractId = ? AND tokenId = ?
+                `,
+                [tokenIndex, owner, metadataURI, metadata, String(approved), contractId, String(tokenId)]
+            );
+        }
+        else {
+            result = await this.run(
+                `
+                UPDATE tokens 
+                SET tokenIndex = ?, owner = ?, approved = ?
+                WHERE contractId = ? AND tokenId = ?
+                `,
+                [tokenIndex, owner, approved, contractId, String(tokenId)]
+            );
+        }
+
 
         if (result.changes === 0) {
             return await this.run(

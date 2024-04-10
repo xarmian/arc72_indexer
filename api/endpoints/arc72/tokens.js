@@ -1,3 +1,5 @@
+const zeroAddress = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ';
+
 /**
  * @swagger
  * /nft-indexer/v1/tokens:
@@ -181,6 +183,7 @@ export const tokensEndpoint = async (req, res, db) => {
             row.tokenId = Number(row.tokenId);
             row['mint-round'] = row.mintRound;
             delete row.mintRound;
+            row.isBurned = (row.owner == zeroAddress && (row.approved == null || row.approved == zeroAddress));
 
             /*try {
                 row.metadata = JSON.parse(row.metadata);
