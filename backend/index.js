@@ -193,8 +193,9 @@ while (true) {
                     for await (const event of aevents) {
                         const [transactionId, round, timestamp, from, to, tokenId] = event;
 
-                        await db.updateTokenApproved(contractId, tokenId, to);
-                        console.log(`Updated token ${tokenId} approved to ${to}`);
+                        const approved = (await ctc.arc72_getApproved(tokenId)).returnValue??null;
+                        await db.updateTokenApproved(contractId, tokenId, approved);
+                        console.log(`Updated token ${tokenId} approved to ${approved}`);
                     }
 
                     // update lastSyncRound in collections table
