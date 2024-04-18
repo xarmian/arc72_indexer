@@ -65,6 +65,20 @@ docker-compose -f docker-compose-backend.yml up -d
 docker-compose -f docker-compose-api.yml up -d
 ```
 
+### Utilizing alternate Indexer and Node
+By default the indexer utilizes the public Voi Indexer and Algod endpoints.
+This can be modified using the following environment variables:
+
+- `ALGOD_HOST` - AVM Node URL
+- `ALGOD_TOKEN` - AVM Node access Token
+- `INDEXER_HOST` - AVM Indexer URL
+- `INDEXER_TOKEN` - AVM Indexer Token
+
+These environment variables may be added to the Backend container compose file (docker-compose-backend.yml)
+to scrape data from an alternative indexer and node, or can be pointed to a different chain altogether. 
+
+NOTE: If changing the chain, make sure to delete or rename `/db/db.sqlite` and re-initialize the database!
+
 ### Things To Do
 * Replace database backend (PostreSQL?)
 * Improve API server logging

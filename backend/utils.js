@@ -1,23 +1,22 @@
 import algosdk from "algosdk";
 import readline from "readline";
-import dotenv from "dotenv";
-dotenv.config();
+import 'dotenv/config';
+import { arc200 as a200Contract } from "ulujs";
 
-const ALGOD = {
-    API_KEY: "",
-    URL: "https://testnet-api.voi.nodly.io",
-    PORT: 443,
-};
+const {
+    ALGOD_TOKEN = "",
+    ALGOD_HOST = "https://testnet-api.voi.nodly.io",
+    ALGOD_PORT = "443",
 
-const INDEXER = {
-    API_KEY: "",
-    URL: "https://testnet-idx.voi.nodly.io",
-    PORT: 443,
-}
+    INDEXER_TOKEN = "",
+    INDEXER_HOST = "https://testnet-idx.voi.nodly.io",
+    INDEXER_PORT = "443",
+} = process.env;
 
-export const algodClient = new algosdk.Algodv2({"X-Algo-API-Token": ALGOD.API_KEY}, ALGOD.URL, ALGOD.PORT);
-export const indexerClient = new algosdk.Indexer(INDEXER.API_KEY, INDEXER.URL, INDEXER.PORT);
+export const algodClient = new algosdk.Algodv2({"X-Algo-API-Token": ALGOD_TOKEN}, ALGOD_HOST, ALGOD_PORT);
+export const indexerClient = new algosdk.Indexer(INDEXER_TOKEN, INDEXER_HOST, INDEXER_PORT);
 export const zeroAddress = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ";
+export const trim = (str) => str.replace(/\0/g, '');
 
 // function to convert hex to bytes, modeled after ethers arrayify function
 export function bytesFromHex(hex) {
@@ -48,6 +47,22 @@ export async function isMP(contract) {
         return false;
     }
     catch(err) {
+        return false;
+    }
+}
+
+export async function isARC200(contract) {
+    try {
+        const contractId = contract.contractInstance.contractId;
+        const c = new a200Contract(contractId, algodClient, indexerClient);
+        const metaData = await c.getMetadata();
+        if (metaData.success) {
+            return metaData.returnValue;
+        }
+        return false;
+    }
+    catch(err) {
+        console.log(err);
         return false;
     }
 }
