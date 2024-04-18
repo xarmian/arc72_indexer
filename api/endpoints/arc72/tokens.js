@@ -11,7 +11,7 @@ const zeroAddress = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ'
  *         name: round
  *         schema:
  *           type: integer
- *         description: Include results for the specified round. For performance reasons, this parameter may be disabled on some configurations.
+ *         description: Include the owner at the specified round and tokens minted on or after the specified round. Approved and other metadata is not round specific.
  *       - in: query
  *         name: next
  *         schema:
@@ -106,55 +106,60 @@ export const tokensEndpoint = async (req, res, db) => {
     if (next.length > 0) mintMinRound = Math.max(Number(next), Number(mintMinRound));
 
     // Construct SQL query
-    let query = `SELECT * FROM tokens`;
+    let query = `SELECT * FROM tokens t`;
     let conditions = [];
     let params = {};
 
-    if (round) {
-        conditions.push(`mintRound = $round`);
+    if (round && contractId) {
+        query = `SELECT t.*,tr.toAddr FROM tokens t`;
+        query += ` LEFT JOIN transfers tr ON t.contractId = tr.contractId AND t.tokenId = tr.tokenId
+                    AND tr.round = (SELECT MAX(round) FROM transfers trx WHERE trx.contractId = t.contractId AND trx.tokenId = t.tokenId AND (trx.round <= $round) )`;
+
+        conditions.push(`t.mintRound <= $round`);
         params.$round = round;
     }
+
     if (contractId) {
-        conditions.push(`contractId = $contractId`);
+        conditions.push(`t.contractId = $contractId`);
         params.$contractId = contractId;
     }
     if (tokenId) {
-        conditions.push(`tokenId = $tokenId`);
+        conditions.push(`t.tokenId = $tokenId`);
         params.$tokenId = tokenId;
     }
     if (owner) {
         if (Array.isArray(owner)) {
             // If owner is an array, use the IN operator
             const placeholders = owner.map((_, i) => `$owner${i}`);
-            conditions.push(`owner IN (${placeholders.join(', ')})`);
+            conditions.push(`t.owner IN (${placeholders.join(', ')})`);
             owner.forEach((addr, i) => {
                 params[`$owner${i}`] = addr;
             });
         } else {
             // If owner is a single value, use the = operator
-            conditions.push(`owner = $owner`);
+            conditions.push(`t.owner = $owner`);
             params.$owner = owner;
         }
     }
     if (tokenIds) {
         const ids = tokenIds.split(',');
         if (Array.isArray(ids)) {
-            conditions.push(`(contractId || '_' || tokenId) IN (${ids.map((_, i) => `$tokenId${i}`).join(',')})`);
+            conditions.push(`(t.contractId || '_' || t.tokenId) IN (${ids.map((_, i) => `$tokenId${i}`).join(',')})`);
             ids.forEach((t, i) => {
                 params[`$tokenId${i}`] = t;
             });
         }
     }
     if (approved) {
-        conditions.push(`approved = $approved`);
+        conditions.push(`t.approved = $approved`);
         params.$approved = approved;
     }
     if (mintMinRound > 0) {
-        conditions.push(`mintRound >= $mintMinRound`);
+        conditions.push(`t.mintRound >= $mintMinRound`);
         params.$mintMinRound = mintMinRound;
     }
     if (mintMaxRound) {
-        conditions.push(`mintRound <= $mintMaxRound`);
+        conditions.push(`t.mintRound <= $mintMaxRound`);
         params.$mintMaxRound = mintMaxRound;
     }
 
@@ -162,7 +167,7 @@ export const tokensEndpoint = async (req, res, db) => {
         query += ` WHERE ` + conditions.join(' AND ');
     }
 
-    query += ` ORDER BY mintRound ASC`;
+    query += ` ORDER BY t.mintRound ASC, t.contractId ASC, t.tokenId ASC`;
 
     if (limit) {
         query += ` LIMIT $limit`;
@@ -172,6 +177,7 @@ export const tokensEndpoint = async (req, res, db) => {
     // Execute query
     db.db.all(query, params, (err, rows) => {
         if (err) {
+            console.log(err);
             res.status(500).json({ message: 'Error querying the database' });
             return;
         }
@@ -183,6 +189,13 @@ export const tokensEndpoint = async (req, res, db) => {
             row.tokenId = Number(row.tokenId);
             row['mint-round'] = row.mintRound;
             delete row.mintRound;
+
+            // if a round is provided, find the owner at that round based on the last transfer that occurred on or before `round`
+            if (round && row.toAddr) {
+                row.owner = row.toAddr;
+                delete row.toAddr;
+            }
+
             row.isBurned = (row.owner == zeroAddress && (row.approved == null || row.approved == zeroAddress));
 
             /*try {

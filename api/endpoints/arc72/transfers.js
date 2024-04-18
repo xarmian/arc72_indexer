@@ -9,7 +9,7 @@
  *         name: round
  *         schema:
  *           type: integer
- *         description: Include results for the specified round. For performance reasons, this parameter may be disabled on some configurations.
+ *         description: Include results for the specified round.
  *       - in: query
  *         name: next
  *         schema:
