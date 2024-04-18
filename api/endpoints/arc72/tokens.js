@@ -110,7 +110,7 @@ export const tokensEndpoint = async (req, res, db) => {
     let conditions = [];
     let params = {};
 
-    if (round && contractId) {
+    if (round) {
         query = `SELECT t.*,tr.toAddr FROM tokens t`;
         query += ` LEFT JOIN transfers tr ON t.contractId = tr.contractId AND t.tokenId = tr.tokenId
                     AND tr.round = (SELECT MAX(round) FROM transfers trx WHERE trx.contractId = t.contractId AND trx.tokenId = t.tokenId AND (trx.round <= $round) )`;
