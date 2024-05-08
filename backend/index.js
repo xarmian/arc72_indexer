@@ -28,7 +28,7 @@ const DB_PATH = process.env.DB_PATH || '../db/db.sqlite';
 const db = new Database(DB_PATH);
 
 // get last sync round from info table
-let last_block = Number((await db.getInfo("syncRound"))?.value-1 ?? 0);
+let last_block = Number((await db.getInfo("syncRound"))?.value ?? 1) - 1;
 // let end_block = (await algodClient.status().do())['last-round'];
 // let end_block = (await indexerClient.lookupAccountByID(zeroAddress).do())['current-round'];
 let end_block = (await indexerClient.makeHealthCheck().do())['round'];
