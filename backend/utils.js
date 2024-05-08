@@ -15,6 +15,7 @@ const {
 
 export const algodClient = new algosdk.Algodv2({"X-Algo-API-Token": ALGOD_TOKEN}, ALGOD_HOST, ALGOD_PORT);
 export const indexerClient = new algosdk.Indexer(INDEXER_TOKEN, INDEXER_HOST, INDEXER_PORT);
+
 export const zeroAddress = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ";
 export const trim = (str) => str.replace(/\0/g, '');
 

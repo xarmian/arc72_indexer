@@ -1,6 +1,7 @@
 import express from 'express';
 import swaggerJsDoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
+import https from 'https';
 import { swaggerOptions } from './swagger.js';
 import minimist from 'minimist'; // import minimist to parse command line arguments
 import fs from 'fs';
@@ -20,7 +21,9 @@ const DB_PATH = process.env.DB_PATH || '../db/db.sqlite';
 const db = new Database(DB_PATH);
 
 const app = express();
+
 const args = minimist(process.argv.slice(2));
+
 const port = args.p || process.env.API_SERVER_PORT || 3000;
 
 const endpoints = [
@@ -73,9 +76,34 @@ endpoints.forEach((endpoint) => {
 });
 
 // Start the server
+
+if(!args.https) {
 app.listen(port, () => {
     console.log(`Indexer API Server listening at http://localhost:${port}`);
     console.log(`API Docs: http://localhost:${port}/api-docs`);
     console.log(`Tokens Endpoint: http://localhost:${port}/nft-indexer/v1/tokens`);
     console.log(`Transfers Endpoint: http://localhost:${port}/nft-indexer/v1/transfers`);
+})
+} else {
+const redirectApp = express()
+const redirectUrl = 'https://arc72-idx.nautilus.sh'
+redirectApp.get('*', (req, res) => {
+    const redirectTo = redirectUrl + req.originalUrl;
+    res.redirect(redirectTo);
 });
+redirectApp.listen(80, () => {
+    console.log(`Server is running on port 80`);
+});
+https
+  .createServer(
+    {
+      key: fs.readFileSync(process.env.HTTPS_KEY),
+      cert: fs.readFileSync(process.env.HTTPS_CERT),
+      ca: fs.readFileSync(process.env.HTTPS_CA),
+    },
+    app
+  )
+  .listen(443, () => {
+    console.log(`Listening on port 443...`)
+  })
+}

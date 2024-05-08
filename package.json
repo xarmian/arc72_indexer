@@ -11,8 +11,5 @@
   },
   "type": "module",
   "author": "David Runion",
-  "license": "ISC",
-  "dependencies": {
-  }
+  "license": "ISC"
 }
-
