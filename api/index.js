@@ -4,7 +4,7 @@ import swaggerUi from 'swagger-ui-express';
 import { swaggerOptions } from './swagger.js';
 import minimist from 'minimist'; // import minimist to parse command line arguments
 import fs from 'fs';
-import Database from './database.js';
+import Database from '../backend/database.js';
 import { tokensEndpoint } from './endpoints/arc72/tokens.js';
 import { transfersEndpoint } from './endpoints/arc72/transfers.js';
 import { collectionsEndpoint } from './endpoints/arc72/collections.js';
