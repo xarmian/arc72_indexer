@@ -2,6 +2,12 @@ import algosdk from "algosdk";
 import readline from "readline";
 import 'dotenv/config';
 import { arc200 as a200Contract } from "ulujs";
+import {
+  CONTRACT_TYPE_UNKNOWN,
+  CONTRACT_TYPE_ARC72,
+  CONTRACT_TYPE_MP
+} from "./constants.js";
+
 
 const {
     ALGOD_TOKEN = "",
@@ -16,7 +22,6 @@ const {
 export const algodClient = new algosdk.Algodv2({"X-Algo-API-Token": ALGOD_TOKEN}, ALGOD_HOST, ALGOD_PORT);
 export const indexerClient = new algosdk.Indexer(INDEXER_TOKEN, INDEXER_HOST, INDEXER_PORT);
 
-export const zeroAddress = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ";
 export const trim = (str) => str.replace(/\0/g, '');
 
 // function to convert hex to bytes, modeled after ethers arrayify function
@@ -26,9 +31,13 @@ export function bytesFromHex(hex) {
     return Buffer.from(hex, "hex");
 }
 
-export async function isARC72(contract) {
+
+const INTERFACE_SELECTOR_ARC72 = "0x4e22a3ba";
+const INTERFACE_SELECTOR_MP = "0xae4d14ad";
+
+async function isSupported(contract, interfaceSelector) {
     try {
-        const sim = await contract.supportsInterface(bytesFromHex("0x4e22a3ba"));
+        const sim = await contract.supportsInterface(bytesFromHex(interfaceSelector));
         if (sim.success) {
             return sim.returnValue;
         }
@@ -39,17 +48,12 @@ export async function isARC72(contract) {
     }
 }
 
+export async function isARC72(contract) {
+    return isSupported(contract, INTERFACE_SELECTOR_ARC72)
+}
+
 export async function isMP(contract) {
-    try {
-        const sim = await contract.supportsInterface(bytesFromHex("0xae4d14ad"));
-        if (sim.success) {
-            return sim.returnValue;
-        }
-        return false;
-    }
-    catch(err) {
-        return false;
-    }
+    return isSupported(contract, INTERFACE_SELECTOR_MP)
 }
 
 export async function isARC200(contract) {
@@ -66,6 +70,12 @@ export async function isARC200(contract) {
         console.log(err);
         return false;
     }
+}
+
+export async function getContractType(contract) {
+	if(await isARC72(contract)) return CONTRACT_TYPE_ARC72;
+	else if(await isMP(contract)) return CONTRACT_TYPE_MP;
+	return CONTRACT_TYPE_UNKNOWN;
 }
 
 export async function sleep(ms) {
@@ -146,3 +156,11 @@ export const decodeGlobalState = (globalState) => {
   
     return decodedState;
 }
+
+export const decodeMpCurrencyData = (currencyData) => {
+    const ct = currencyData[0];
+    const currency = (ct == '00') ? 0 : parseInt(currencyData[1],16);
+    const price = (ct == '00') ? Number(currencyData[1]) : parseInt(currencyData[2], 16);
+    return { currency, price };
+}
+    
