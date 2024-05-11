@@ -221,14 +221,8 @@ CREATE TABLE IF NOT EXISTS approvals_0200 (
 -- TODO add arc-200 indexes
 
 -- /contracts_0200
---CREATE INDEX IF NOT EXISTS idx_collections_createRound ON collections(createRound);
---CREATE INDEX IF NOT EXISTS idx_collections_creator ON collections(creator);
 
 -- / accounts_0200
---CREATE INDEX IF NOT EXISTS idx_tokens_contractId ON tokens(contractId, tokenId);
---CREATE INDEX IF NOT EXISTS idx_tokens_owner ON tokens(owner);
---CREATE INDEX IF NOT EXISTS idx_tokens_approved ON tokens(approved);
---CREATE INDEX IF NOT EXISTS idx_tokens_mintRound ON tokens(mintRound);
 
 -- / transfers_0200
 

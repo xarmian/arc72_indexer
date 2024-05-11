@@ -320,6 +320,14 @@ export default class Database {
 
     // ARC-0200
  
+    async getContract0200LastSync(contractId) {
+        const contract = await this.get("SELECT lastSyncRound FROM contracts_0200 WHERE contractId = ?", [contractId]);
+        return (contract) ? contract.lastSyncRound : 0;
+    }
+
+    async updateContract0200LastSync(contractId, lastSyncRound) {
+        return await this.run("UPDATE contracts_0200 SET lastSyncRound = ? WHERE contractId = ?", [lastSyncRound, contractId]);
+    }
 
     async insertOrUpdateContract0200({contractId, name, symbol, decimals, totalSupply, createRound, lastSyncRound, creator, tokenId, metadata}) {
         const result = await this.run(
@@ -328,21 +336,58 @@ export default class Database {
             SET totalSupply = ?, lastSyncRound = ?, creator = ?, metadata = ?
             WHERE contractId = ?
             `,
-            [Number(totalSupply), lastSyncRound, creator, globalState, contractId]
+            [totalSupply, lastSyncRound, creator, metadata, contractId]
         );
 
         if (result.changes === 0) {
             return await this.run(
                 `
-                INSERT INTO contracts_0200 (contractId, tokenId, name, symbol, decimals, totalSupply, creator, metadata, createRound, lastSyncRound, isBlacklisted) VALUES (?, ?, ?. ?, ?, ?, ?, ?, ?)
+                INSERT INTO contracts_0200 (contractId, tokenId, name, symbol, decimals, totalSupply, creator, metadata, createRound, lastSyncRound, isBlacklisted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 `,
-                [contractId, Number(totalSupply), createRound, lastSyncRound, 0, creator, globalState]
+                [contractId, tokenId, name, symbol, Number(decimals), totalSupply, creator, metadata, createRound, lastSyncRound, 0]
             );
         }
         return result;
     }
 
-    
+    async insertOrUpdateAccount0200({accountId, contractId, balance}) {
+        const result = await this.run(
+            `
+            UPDATE accounts_0200
+            SET balance = ?
+            WHERE accountId = ? AND contractId = ?
+            `,
+            [balance, accountId, contractId]
+        );
+
+        if (result.changes === 0) {
+            return await this.run(
+                `
+                INSERT INTO accounts_0200 (accountId, contractId, balance) VALUES (?, ?, ?)
+                `,
+                [accountId, contractId, balance]
+            );
+        }
+        return result;
+    }
+
+    async insertTransfer0200({transactionId, contractId, timestamp, round, sender, receiver, amount}) {
+        return await this.run(
+            `
+            INSERT OR IGNORE INTO transfers_0200 (transactionId, contractId, timestamp, round, sender, receiver, amount) VALUES (?, ?, ?, ?, ?, ?, ?)
+            `,
+            [transactionId, contractId, timestamp, round, sender, receiver, amount]
+        );
+    }
+
+    async insertApproval0200({transactionId, contractId, timestamp, round, sender, receiver, amount}) {
+        return await this.run(
+            `
+            INSERT OR IGNORE INTO approvals_0200 (transactionId, contractId, timestamp, round, sender, receiver, amount) VALUES (?, ?, ?, ?, ?, ?, ?)
+            `,
+            [transactionId, contractId, timestamp, round, sender, receiver, amount]
+        );
+    }
 
     // TODO add arc-0200 
     async initDB() {
@@ -449,6 +494,52 @@ export default class Database {
                 FOREIGN KEY (contractId, tokenId) REFERENCES tokens (contractId, tokenId),
                 FOREIGN KEY (contractId) REFERENCES collections (contractId)
             )`,
+            `
+            CREATE TABLE IF NOT EXISTS contracts_0200 (
+                contractId TEXT PRIMARY KEY,
+                tokenId TEXT,
+                name TEXT,
+                symbol TEXT,
+                decimals INTEGER,
+                totalSupply INTEGER,
+                creator TEXT,
+                metadata BLOB,
+                createRound INTEGER,
+                lastSyncRound INTEGER,
+                isBlacklisted INTEGER
+            )`,
+            `
+            CREATE TABLE IF NOT EXISTS accounts_0200 (
+                accountId TEXT,
+                contractId TEXT,
+                balance TEXT,
+                PRIMARY KEY (accountId, contractId)
+            )
+            `,
+            `
+            CREATE TABLE IF NOT EXISTS transfers_0200 (
+                transactionId TEXT,
+                contractId TEXT,
+                timestamp INTEGER,
+                round INTEGER,
+                sender TEXT,
+                receiver TEXT,
+                amount TEXT,
+                PRIMARY KEY (transactionId)
+            )
+            `,
+            `
+            CREATE TABLE IF NOT EXISTS approvals_0200 (
+                transactionId TEXT,
+                contractId TEXT,
+                timestamp INTEGER,
+                round INTEGER,
+                sender TEXT,
+                receiver TEXT,
+                amount TEXT,
+                PRIMARY KEY (transactionId)
+            )
+            `,
         ];
 
         for (let table of tables) {
