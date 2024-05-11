@@ -4,6 +4,7 @@ import { arc200 as a200Contract, CONTRACT } from "ulujs";
 import {
     CONTRACT_TYPE_UNKNOWN,
     CONTRACT_TYPE_ARC72,
+    CONTRACT_TYPE_ARC200,
     CONTRACT_TYPE_MP,
 } from "./constants.js";
 import Database from "./database.js";
@@ -46,6 +47,7 @@ export function bytesFromHex(hex) {
 
 const INTERFACE_SELECTOR_ARC72 = "0x4e22a3ba";
 const INTERFACE_SELECTOR_MP = "0xae4d14ad";
+const INTERFACE_SELECTOR_ARC200 = "0xc7bea040";
 
 async function isSupported(contractId, interfaceSelector) {
     try {
@@ -80,24 +82,26 @@ export async function isMP(contractId) {
     return isSupported(contractId, INTERFACE_SELECTOR_MP);
 }
 
-export async function isARC200(contract) {
-    try {
-        const contractId = contract.contractInstance.contractId;
-        const c = new a200Contract(contractId, algodClient, indexerClient);
-        const metaData = await c.getMetadata();
-        if (metaData.success) {
-            return metaData.returnValue;
-        }
-        return false;
-    } catch (err) {
-        console.log(err);
-        return false;
-    }
+export async function isARC200(contractId) {
+    return isSupported(contractId, INTERFACE_SELECTOR_ARC200);
+    // try {
+    //     const contractId = contract.contractInstance.contractId;
+    //     const c = new a200Contract(contractId, algodClient, indexerClient);
+    //     const metaData = await c.getMetadata();
+    //     if (metaData.success) {
+    //         return metaData.returnValue;
+    //     }
+    //     return false;
+    // } catch (err) {
+    //     console.log(err);
+    //     return false;
+    // }
 }
 
 export async function getContractType(contract) {
     if (await isARC72(contract)) return CONTRACT_TYPE_ARC72;
     else if (await isMP(contract)) return CONTRACT_TYPE_MP;
+    else if (await isARC200(contract)) return CONTRACT_TYPE_ARC200;
     return CONTRACT_TYPE_UNKNOWN;
 }
 

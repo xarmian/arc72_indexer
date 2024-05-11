@@ -1,6 +1,5 @@
 import { CONTRACT, abi } from "ulujs";
 import { algodClient, indexerClient, decodeMpCurrencyData, db } from "../../utils.js";
-import Database from "../../database.js";
 
 const getListingEvent = (event) => {
   const [

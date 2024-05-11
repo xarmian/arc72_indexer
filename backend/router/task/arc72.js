@@ -1,7 +1,6 @@
 import { CONTRACT, abi } from "ulujs";
 import { algodClient, indexerClient, decodeGlobalState, db } from "../../utils.js";
 import { ZERO_ADDRESS } from "../../constants.js";
-import Database from "../../database.js";
 
 const makeContract = (contractId) =>
   new CONTRACT(contractId, algodClient, indexerClient, abi.arc72);
