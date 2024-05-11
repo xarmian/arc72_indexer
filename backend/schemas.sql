@@ -166,39 +166,42 @@ CREATE INDEX IF NOT EXISTS idx_deletes_timestamp ON deletes(timestamp);
 ------------------------------------------
 
 -- contract metadata for arc-0200 contracts
-CREATE TABLE contracts_0200 (
-    contractId TEXT PRIMARY KEY,
+
+CREATE TABLE IF NOT EXISTS contracts_0200 (
+    contractId TEXT,
     tokenId TEXT, -- NULL pure 0 wVOI >0 wVSA
     name TEXT,
     symbol TEXT,
     decimals INTEGER,
     totalSupply TEXT,
     creator TEXT,
-    metadata BLOB
+    metadata BLOB,
+    createRound INTEGER,
+    PRIMARY KEY (contractId)
 );
 
 -- map of account balances for arc-0200 contracts
-CREATE TABLE accounts_0200 {
-    contractId TEXT,
+CREATE TABLE IF NOT EXISTS accounts_0200 (
     accountId TEXT,
+    contractId TEXT,
     balance TEXT,
     PRIMARY KEY (accountId, contractId)
-};
+);
 
 -- transfer history for arc-0200 contracts
-CREATE TABLE transfers_0200 {
-    contractId TEXT,
+CREATE TABLE IF NOT EXISTS transfers_0200 (
     transactionId TEXT,
+    contractId TEXT,
     timestamp INTEGER,
     round INTEGER,
-    from TEXT,
-    to TEXT,
+    sender TEXT, -- avoid from, reserved word
+    receiver TEXT, -- avoid to, reserved word
     amount TEXT,
     PRIMARY KEY (transactionId)
-};
+);
 
 -- approval history for arc-0200 contracts
-CREATE TABLE approvals_0200 {
+CREATE TABLE IF NOT EXISTS approvals_0200 (
     transactionId TEXT,
     contractId TEXT,
     timestamp INTEGER,
@@ -207,6 +210,26 @@ CREATE TABLE approvals_0200 {
     spender TEXT,
     amount TEXT,
     PRIMARY KEY (transactionId)
-};
-*/
+);
+
+------------------------------------------
+-- ARC-0200 Indexes
+------------------------------------------
+
+-- TODO add arc-200 indexes
+
+-- /contracts_0200
+--CREATE INDEX IF NOT EXISTS idx_collections_createRound ON collections(createRound);
+--CREATE INDEX IF NOT EXISTS idx_collections_creator ON collections(creator);
+
+-- / accounts_0200
+--CREATE INDEX IF NOT EXISTS idx_tokens_contractId ON tokens(contractId, tokenId);
+--CREATE INDEX IF NOT EXISTS idx_tokens_owner ON tokens(owner);
+--CREATE INDEX IF NOT EXISTS idx_tokens_approved ON tokens(approved);
+--CREATE INDEX IF NOT EXISTS idx_tokens_mintRound ON tokens(mintRound);
+
+-- / transfers_0200
+
+-- / approvals_0200
+
 -- Path: backend/schemas.sql
