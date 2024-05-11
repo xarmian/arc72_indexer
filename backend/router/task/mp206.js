@@ -184,7 +184,7 @@ const doIndex = async (app, round) => {
   let lastSyncRound;
   if (app.isCreate) {
     lastSyncRound = round;
-    console.log(`Adding new contract ${contractId} to markets table`);
+    console.log(`Adding new contract ${contractId} to markets table in round ${round}`);
     const escrowAddr = algosdk.getApplicationAddress(Number(contractId));
     const createRound = round;
     const isBlacklisted = 0;

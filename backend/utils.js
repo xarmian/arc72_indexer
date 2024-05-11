@@ -1,12 +1,14 @@
 import algosdk from "algosdk";
 import readline from "readline";
-import "dotenv/config";
 import { arc200 as a200Contract, CONTRACT } from "ulujs";
 import {
   CONTRACT_TYPE_UNKNOWN,
   CONTRACT_TYPE_ARC72,
   CONTRACT_TYPE_MP,
 } from "./constants.js";
+import Database from "./database.js";
+import dotenv from "dotenv";
+dotenv.config();
 
 const {
   ALGOD_TOKEN = "",
@@ -28,6 +30,10 @@ export const indexerClient = new algosdk.Indexer(
   INDEXER_HOST,
   INDEXER_PORT
 );
+
+const DB_PATH = process.env.DB_PATH || "../db/db.sqlite";
+
+export const db = new Database(DB_PATH);
 
 export const trim = (str) => str.replace(/\0/g, "");
 
