@@ -1,5 +1,5 @@
 import { arc72 as Contract } from "ulujs";
-import { algodClient, indexerClient } from "./utils.js";
+import { algodClient, indexerClient } from "../../utils.js";
 import { ZERO_ADDRESS } from "../../constants.js";
 import Database from "../../database.js";
 

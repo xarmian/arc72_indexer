@@ -1,6 +1,5 @@
 import { mp as Contract } from "ulujs";
-import { algodClient, indexerClient } from "./utils.js";
-import { decodeMpCurrencyData } from "../../utils";
+import { algodClient, indexerClient, decodeMpCurrencyData } from "../../utils.js";
 import Database from "../../database.js";
 
 const DB_PATH = process.env.DB_PATH || "../../../db/db.sqlite";
