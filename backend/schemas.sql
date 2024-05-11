@@ -164,48 +164,48 @@ CREATE INDEX IF NOT EXISTS idx_deletes_timestamp ON deletes(timestamp);
 ------------------------------------------
 -- ARC-0200 Contract Tables
 ------------------------------------------
-/*
+
 -- contract metadata for arc-0200 contracts
 CREATE TABLE contracts_0200 (
-    contractId TEXT,
+    contractId TEXT PRIMARY KEY,
+    tokenId TEXT, -- NULL pure 0 wVOI >0 wVSA
     name TEXT,
     symbol TEXT,
     decimals INTEGER,
     totalSupply TEXT,
-    minter TEXT,
-    metadata BLOB,
-    PRIMARY KEY (contractId, tokenId)
+    creator TEXT,
+    metadata BLOB
 );
 
 -- map of account balances for arc-0200 contracts
 CREATE TABLE accounts_0200 {
-    accountId TEXT,
     contractId TEXT,
-    tokenId TEXT,
+    accountId TEXT,
     balance TEXT,
-    PRIMARY KEY (accountId, contractId, tokenId)
+    PRIMARY KEY (accountId, contractId)
 };
 
 -- transfer history for arc-0200 contracts
 CREATE TABLE transfers_0200 {
-    transactionId TEXT,
     contractId TEXT,
-    tokenId TEXT,
+    transactionId TEXT,
+    timestamp INTEGER,
+    round INTEGER,
     from TEXT,
     to TEXT,
     amount TEXT,
-    timestamp TEXT,
-    PRIMARY KEY (transferId)
+    PRIMARY KEY (transactionId)
 };
 
 -- approval history for arc-0200 contracts
 CREATE TABLE approvals_0200 {
     transactionId TEXT,
     contractId TEXT,
-    tokenId TEXT,
+    timestamp INTEGER,
+    round INTEGER,
     owner TEXT,
-    approved TEXT,
-    timestamp TEXT,
+    spender TEXT,
+    amount TEXT,
     PRIMARY KEY (transactionId)
 };
 */
