@@ -1,4 +1,4 @@
-import { mp as Contract } from "ulujs";
+import { CONTRACT, abi } from "ulujs";
 import { algodClient, indexerClient, decodeMpCurrencyData } from "../../utils.js";
 import Database from "../../database.js";
 
@@ -59,13 +59,13 @@ const getDeleteEvent = (event) => {
 };
 
 const makeContract = (contractId) =>
-  new Contract(contractId, algodClient, indexerClient);
+  new CONTRACT(contractId, algodClient, indexerClient, abi.mp)
 
 const onListing = async (ci, events) => {
   const contractId = ci.getContractId();
-  const listEvents = events.find((el = el.name === "e_sale_ListEvent"));
+  const listEvents = events.find(el => el.name === "e_sale_ListEvent").events;
   console.log(
-    `Processing ${listEvents.length} listing events for contract ${contractId} from round ${lastSyncRound} to ${rnd}`
+    `Processing ${listEvents.length} listing events for contract ${contractId}`
   );
   for await (const event of listEvents) {
     const listing = getListingEvent(event);
@@ -75,57 +75,43 @@ const onListing = async (ci, events) => {
 
 const onBuy = async (ci, events) => {
   const contractId = ci.getContractId();
-  const buyEvents = events.find((el = el.name === "e_sale_BuyEvent"));
+  const buyEvents = events.find(el => el.name === "e_sale_BuyEvent").events;
   console.log(
-    `Processing ${buyEvents.length} buy events for contract ${contractId} from round ${lastSyncRound} to ${rnd}`
+    `Processing ${buyEvents.length} buy events for contract ${contractId}`
   );
   for await (const event of buyEvents) {
     const { transactionId, round, timestamp, listingId, buyer } =
       getBuyEvent(event);
     const listing = await db.getMarketListing(contractId, listingId);
     if (listing) {
-      const {
-        mpContractId,
-        mpListingId,
-        contractId,
-        tokenId,
-        seller,
-        currency,
-        price,
-        royalty,
-        createRound,
-        createTimestamp,
-        endTimestamp,
-        delete_id,
-      } = listing;
       const mpSale = {
-        transactionId,
-        mpContractId,
-        mpListingId,
-        contractId,
-        tokenId,
-        seller,
-        buyer,
-        currency,
-        price,
-        round,
-        timestamp,
+	      transactionId,
+	      mpContractId: listing.mpContractId,
+	      mpListingId: listing.mpListingId,
+	      contractId: listing.contractId,
+	      tokenId: listing.tokenId,
+	      seller: listing.seller,
+	      buyer,
+	      currency: listing.currency,
+	      price: listing.price,
+	      round,
+	      timestamp
       };
       const mpListing = {
-        transactionId,
-        mpContractId,
-        mpListingId,
-        contractId,
-        tokenId,
-        seller,
-        price,
-        currency,
-        createRound,
-        createTimestamp,
-        endTimestamp,
-        royalty,
-        delete_id,
-        sales_id: transactionId,
+	      transactionId: listing.transactionId,
+	      mpContractId: listing.mpContractId,
+	      mpListingId: listing.mpListingId,
+	      tokenId: listing.tokenId,
+	      contractId: listing.contractId,
+	      seller: listing.seller,
+	      price: listing.price,
+	      currency: listing.currency,
+	      createRound: listing.createRound,
+	      createTimestamp: listing.createTimestamp,
+	      endTimestamp: listing.endTimestamp,
+	      royalty: listing.royalty,
+	      sales_id: transactionId,
+	      delete_id: listing.delete_id,
       };
       await db.insertOrUpdateMarketSale(mpSale);
       await db.insertOrUpdateMarketListing(mpListing);
@@ -138,10 +124,10 @@ const onBuy = async (ci, events) => {
 const onDelete = async (ci, events) => {
   const contractId = ci.getContractId();
   const deleteEvents = events.find(
-    (el = el.name === "e_sale_DeleteListingEvent")
-  );
+    el => el.name === "e_sale_DeleteListingEvent"
+  ).events;
   console.log(
-    `Processing ${deleteEvents.length} delete events for contract ${contractId} from round ${lastSyncRound} to ${rnd}`
+    `Processing ${deleteEvents.length} delete events for contract ${contractId}`
   );
   // for each event, record a transaction in the database
   for await (const event of deleteEvents) {
@@ -150,46 +136,31 @@ const onDelete = async (ci, events) => {
     // get market listing
     const listing = await db.getMarketListing(contractId, listingId);
     if (listing) {
-      const {
-        transactionId: listingTxId,
-        mpContractId,
-        mpListingId,
-        contractId,
-        tokenId,
-        seller,
-        currency,
-        price,
-        royalty,
-        createRound,
-        createTimestamp,
-        endTimestamp,
-        sales_id,
-      } = listing;
       const mpDelete = {
-        transactionId,
-        mpContractId,
-        mpListingId,
-        contractId,
-        tokenId,
-        owner,
-        round,
-        timestamp,
+	      transactionId, 
+	      mpContractId: listing.mpContractId,
+	      mpListingId: listing.mpListingId,
+	      contractId: listing.contractId,
+	      tokenId: listing.tokenId,
+	      owner: listing.seller,
+	      round,
+	      timestamp
       };
       const mpListing = {
-        transactionId: listingTxId,
-        mpContractId,
-        mpListingId,
-        contractId,
-        tokenId,
-        seller,
-        price,
-        currency,
-        createRound,
-        createTimestamp,
-        endTimestamp,
-        royalty,
-        sales_id,
-        delete_id: transactionId,
+	      transactionId: listing.transactionId, 
+	      mpContractId: listing.mpContractId, 
+	      mpListingId: listing.mpListingId, 
+	      tokenId: listing.tokenId, 
+	      contractId: listing.contractId,
+	      seller: listing.seller,
+	      price: listing.price, 
+	      currency: listing.currency, 
+	      createRound: listing.createRound, 
+	      createTimestamp: listing.createTimestamp,
+	      endTimestamp: listing.endTimestamp,
+	      royalty: listing.royalty,
+	      sales_id: listing.sales_id,
+	      delete_id: transactionId,
       };
       await db.insertOrUpdateMarketDelete(mpDelete);
       await db.insertOrUpdateMarketListing(mpListing);
@@ -210,11 +181,12 @@ const updateLastSync = async (contractId, round) => {
 const doIndex = async (app, round) => {
   const contractId = app.apid;
   const ci = makeContract(contractId);
+  let lastSyncRound;
   if (app.isCreate) {
+    lastSyncRound = round;
     console.log(`Adding new contract ${contractId} to markets table`);
     const escrowAddr = algosdk.getApplicationAddress(Number(contractId));
     const createRound = round;
-    const lastSyncRound = round;
     const isBlacklisted = 0;
     const market = {
       contractId,
@@ -227,14 +199,14 @@ const doIndex = async (app, round) => {
   } else {
     lastSyncRound = await db.getMarketLastSync(contractId);
     console.log(
-      `Updating contract ${contractId} in markets table from round ${lastSyncRound} to ${rnd}`
+      `Updating contract ${contractId} in markets table from round ${lastSyncRound} to ${round}`
     );
     // TODO update contract in market table
   }
   if (lastSyncRound <= round) {
     const events = await ci.getEvents({
       minRound: lastSyncRound,
-      maxRound: rnd,
+      maxRound: round,
     });
     await onListing(ci, events);
     await onBuy(ci, events);

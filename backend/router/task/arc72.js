@@ -1,5 +1,5 @@
-import { arc72 as Contract } from "ulujs";
-import { algodClient, indexerClient } from "../../utils.js";
+import { CONTRACT, abi } from "ulujs";
+import { algodClient, indexerClient, decodeGlobalState } from "../../utils.js";
 import { ZERO_ADDRESS } from "../../constants.js";
 import Database from "../../database.js";
 
@@ -7,7 +7,7 @@ const DB_PATH = process.env.DB_PATH || "../../../db/db.sqlite";
 const db = new Database(DB_PATH);
 
 const makeContract = (contractId) =>
-  new Contract(contractId, algodClient, indexerClient);
+  new CONTRACT(contractId, algodClient, indexerClient, abi.arc72);
 
 const getTransferEvent = (event) => {
   const [transactionId, round, timestamp, from, to, tokenId] = event;
@@ -52,7 +52,7 @@ const getCollection = async (ci, contractId) => {
 };
 
 const onMint = async (ci, event) => {
-  const contractId = ci.getContractId();
+  const contractId = ci.getContractId()
   const { round, to, tokenId } = getTransferEvent(event);
   const tokenIndex = 0;
   const owner = to;
@@ -79,10 +79,10 @@ const onMint = async (ci, event) => {
 };
 
 const onAssetTransfer = async (ci, event) => {
-  const contractId = ci.getContractId();
+  const contractId = ci.getContractId()
   await db.updateTokenOwner(contractId, tokenId, to);
   // check token approval
-  const approved = (await ctc.arc72_getApproved(tokenId)).returnValue ?? null;
+  const approved = (await ci.arc72_getApproved(tokenId)).returnValue ?? null;
   // TODO set approved to zero address
   await db.updateTokenApproved(contractId, tokenId, approved);
   console.log(
@@ -106,9 +106,10 @@ const saveTransaction = async (ci, event) => {
 };
 
 const onTransfer = async (ci, events) => {
-  const transferEvents = events.find((el) => el.name === "arc72_Transfer");
+  const contractId = ci.getContractId();
+  const transferEvents = events.find((el) => el.name === "arc72_Transfer").events;
   console.log(
-    `Processing ${transferEvents.length} arc72_Transfer events for contract ${contractId} from round ${lastSyncRound} to ${rnd}`
+    `Processing ${transferEvents.length} arc72_Transfer events for contract ${contractId}`
   );
   // for each event, record a transaction in the database
   for await (const event of transferEvents) {
@@ -123,14 +124,15 @@ const onTransfer = async (ci, events) => {
 };
 
 const onApproval = async (ci, events) => {
-  const approvalEvents = events.find((el) => el.name === "arc72_Approval");
+  const contractId = ci.getContractId()
+  const approvalEvents = events.find((el) => el.name === "arc72_Approval").events;
   console.log(
-    `Processing ${approvalEvents.length} arc72_Approval events for contract ${contractId} from round ${lastSyncRound} to ${rnd}`
+    `Processing ${approvalEvents.length} arc72_Approval events for contract ${contractId}`
   );
   // for each event, record a transaction in the database
   for await (const event of approvalEvents) {
     const { tokenId } = getApprovalEvent(event);
-    const approved = (await ctc.arc72_getApproved(tokenId)).returnValue ?? null;
+    const approved = (await ci.arc72_getApproved(tokenId)).returnValue ?? null;
     await db.updateTokenApproved(contractId, tokenId, approved);
     console.log(`Updated token ${tokenId} approved to ${approved}`);
   }
@@ -167,7 +169,7 @@ const doIndex = async (app, round) => {
   }
   if (lastSyncRound <= round) {
     // get transaction history since lastSyncRound
-    const events = await ci.arc72.getEvents({
+    const events = await ci.getEvents({
       minRound: lastSyncRound,
       maxRound: round,
     });

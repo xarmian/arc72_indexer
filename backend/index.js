@@ -115,13 +115,15 @@ while (true) {
     // for each app, run contract specific indexer task
     for (const app of apps) {
       const contractId = app.apid;
-      const contractType = getContractType(contractId);
+      const contractType = await getContractType(contractId);
       switch (contractType) {
         case CONTRACT_TYPE_ARC72: {
           await onARC72(app, rnd);
+          break;
         }
         case CONTRACT_TYPE_MP /*206*/: {
           await onMP206(app, rnd);
+	  break;
         }
         case CONTRACT_TYPE_UNKNOWN:
         default: {
