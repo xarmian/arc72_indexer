@@ -86,33 +86,33 @@ const onBuy = async (ci, events) => {
     const listing = await db.getMarketListing(contractId, listingId);
     if (listing) {
       const mpSale = {
-	      transactionId,
-	      mpContractId: listing.mpContractId,
-	      mpListingId: listing.mpListingId,
-	      contractId: listing.contractId,
-	      tokenId: listing.tokenId,
-	      seller: listing.seller,
-	      buyer,
-	      currency: listing.currency,
-	      price: listing.price,
-	      round,
-	      timestamp
+        transactionId,
+        mpContractId: listing.mpContractId,
+        mpListingId: listing.mpListingId,
+        contractId: listing.contractId,
+        tokenId: listing.tokenId,
+        seller: listing.seller,
+        buyer,
+        currency: listing.currency,
+        price: listing.price,
+        round,
+        timestamp
       };
       const mpListing = {
-	      transactionId: listing.transactionId,
-	      mpContractId: listing.mpContractId,
-	      mpListingId: listing.mpListingId,
-	      tokenId: listing.tokenId,
-	      contractId: listing.contractId,
-	      seller: listing.seller,
-	      price: listing.price,
-	      currency: listing.currency,
-	      createRound: listing.createRound,
-	      createTimestamp: listing.createTimestamp,
-	      endTimestamp: listing.endTimestamp,
-	      royalty: listing.royalty,
-	      sales_id: transactionId,
-	      delete_id: listing.delete_id,
+        transactionId: listing.transactionId,
+        mpContractId: listing.mpContractId,
+        mpListingId: listing.mpListingId,
+        tokenId: listing.tokenId,
+        contractId: listing.contractId,
+        seller: listing.seller,
+        price: listing.price,
+        currency: listing.currency,
+        createRound: listing.createRound,
+        createTimestamp: listing.createTimestamp,
+        endTimestamp: listing.endTimestamp,
+        royalty: listing.royalty,
+        sales_id: transactionId,
+        delete_id: listing.delete_id,
       };
       await db.insertOrUpdateMarketSale(mpSale);
       await db.insertOrUpdateMarketListing(mpListing);
@@ -138,30 +138,30 @@ const onDelete = async (ci, events) => {
     const listing = await db.getMarketListing(contractId, listingId);
     if (listing) {
       const mpDelete = {
-	      transactionId, 
-	      mpContractId: listing.mpContractId,
-	      mpListingId: listing.mpListingId,
-	      contractId: listing.contractId,
-	      tokenId: listing.tokenId,
-	      owner: listing.seller,
-	      round,
-	      timestamp
+        transactionId,
+        mpContractId: listing.mpContractId,
+        mpListingId: listing.mpListingId,
+        contractId: listing.contractId,
+        tokenId: listing.tokenId,
+        owner: listing.seller,
+        round,
+        timestamp
       };
       const mpListing = {
-	      transactionId: listing.transactionId, 
-	      mpContractId: listing.mpContractId, 
-	      mpListingId: listing.mpListingId, 
-	      tokenId: listing.tokenId, 
-	      contractId: listing.contractId,
-	      seller: listing.seller,
-	      price: listing.price, 
-	      currency: listing.currency, 
-	      createRound: listing.createRound, 
-	      createTimestamp: listing.createTimestamp,
-	      endTimestamp: listing.endTimestamp,
-	      royalty: listing.royalty,
-	      sales_id: listing.sales_id,
-	      delete_id: transactionId,
+        transactionId: listing.transactionId,
+        mpContractId: listing.mpContractId,
+        mpListingId: listing.mpListingId,
+        tokenId: listing.tokenId,
+        contractId: listing.contractId,
+        seller: listing.seller,
+        price: listing.price,
+        currency: listing.currency,
+        createRound: listing.createRound,
+        createTimestamp: listing.createTimestamp,
+        endTimestamp: listing.endTimestamp,
+        royalty: listing.royalty,
+        sales_id: listing.sales_id,
+        delete_id: transactionId,
       };
       await db.insertOrUpdateMarketDelete(mpDelete);
       await db.insertOrUpdateMarketListing(mpListing);

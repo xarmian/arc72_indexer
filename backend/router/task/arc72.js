@@ -79,7 +79,7 @@ const onAssetTransfer = async (ci, event) => {
   const contractId = ci.getContractId()
   const { tokenId, to } = getTransferEvent(event)
   await db.updateTokenOwner(contractId, tokenId, to);
-  
+
   // check token approval
   //const approved = (await ci.arc72_getApproved(tokenId)).returnValue ?? null;
   const approved = ZERO_ADDRESS;

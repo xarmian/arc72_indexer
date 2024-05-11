@@ -45,8 +45,8 @@ const args = minimist(process.argv.slice(2));
 
 const isDebugMode = args.debug;
 
-if(isDebugMode) {
-  console.log("Debug mode enabled");
+if (isDebugMode) {
+    console.log("Debug mode enabled");
 }
 
 const getEndBlock = async () => {
@@ -133,9 +133,9 @@ while (true) {
             }
         }
     } catch (error) {
-	if(isDebugMode) {
-		console.log(error);
-	}
+        if (isDebugMode) {
+            console.log(error);
+        }
         if (error.message === "Request timed out") {
             output(
                 `Error retrieving block ${i} from API: request timed out, retrying.`,
