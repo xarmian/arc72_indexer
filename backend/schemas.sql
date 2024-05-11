@@ -177,6 +177,8 @@ CREATE TABLE IF NOT EXISTS contracts_0200 (
     creator TEXT,
     metadata BLOB,
     createRound INTEGER,
+    lastSyncRound INTEGER,
+    isBlacklisted INTEGER,
     PRIMARY KEY (contractId)
 );
 

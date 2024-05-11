@@ -95,6 +95,8 @@ export default class Database {
         );
     }
 
+    // ARC-0072
+
     async getCollections() {
         return await this.all("SELECT * FROM collections");
     }
@@ -195,7 +197,8 @@ export default class Database {
         return await this.run("UPDATE tokens SET approved = ? WHERE contractId = ? AND tokenId = ?", [approved, contractId, String(tokenId)]);
     }
 
-    // marketplace queries
+    // MP-0206
+	
     async marketExists(contractId) {
         const market = await this.get("SELECT mpContractId FROM markets WHERE mpContractId = ?", [contractId]);
         return (market) ? true : false;
@@ -315,6 +318,33 @@ export default class Database {
         return await this.get("SELECT * FROM deletes WHERE mpContractId = ? AND mpListingId = ?", [String(mpContractId), String(mpListingId)]);
     }
 
+    // ARC-0200
+ 
+
+    async insertOrUpdateContract0200({contractId, name, symbol, decimals, totalSupply, createRound, lastSyncRound, creator, tokenId, metadata}) {
+        const result = await this.run(
+            `
+            UPDATE contracts_0200
+            SET totalSupply = ?, lastSyncRound = ?, creator = ?, metadata = ?
+            WHERE contractId = ?
+            `,
+            [Number(totalSupply), lastSyncRound, creator, globalState, contractId]
+        );
+
+        if (result.changes === 0) {
+            return await this.run(
+                `
+                INSERT INTO contracts_0200 (contractId, tokenId, name, symbol, decimals, totalSupply, creator, metadata, createRound, lastSyncRound, isBlacklisted) VALUES (?, ?, ?. ?, ?, ?, ?, ?, ?)
+                `,
+                [contractId, Number(totalSupply), createRound, lastSyncRound, 0, creator, globalState]
+            );
+        }
+        return result;
+    }
+
+    
+
+    // TODO add arc-0200 
     async initDB() {
         const tables = [
             `
@@ -468,6 +498,4 @@ CREATE INDEX idx_tokens_contractId ON tokens(contractId, tokenId);
 CREATE INDEX idx_tokens_owner ON tokens(owner);
 CREATE INDEX idx_tokens_approved ON tokens(approved);
 CREATE INDEX idx_tokens_mintRound ON tokens(mintRound);
-
-
 */
