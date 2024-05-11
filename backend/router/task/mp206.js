@@ -64,6 +64,7 @@ const makeContract = (contractId) =>
 const onListing = async (ci, events) => {
   const contractId = ci.getContractId();
   const listEvents = events.find(el => el.name === "e_sale_ListEvent").events;
+  console.log(listEvents)
   console.log(
     `Processing ${listEvents.length} listing events for contract ${contractId}`
   );
@@ -76,6 +77,7 @@ const onListing = async (ci, events) => {
 const onBuy = async (ci, events) => {
   const contractId = ci.getContractId();
   const buyEvents = events.find(el => el.name === "e_sale_BuyEvent").events;
+  console.log(buyEvents)
   console.log(
     `Processing ${buyEvents.length} buy events for contract ${contractId}`
   );
@@ -126,6 +128,7 @@ const onDelete = async (ci, events) => {
   const deleteEvents = events.find(
     el => el.name === "e_sale_DeleteListingEvent"
   ).events;
+  console.log(deleteEvents)
   console.log(
     `Processing ${deleteEvents.length} delete events for contract ${contractId}`
   );
@@ -208,6 +211,7 @@ const doIndex = async (app, round) => {
       minRound: lastSyncRound,
       maxRound: round,
     });
+    console.log(events)
     await onListing(ci, events);
     await onBuy(ci, events);
     await onDelete(ci, events);

@@ -108,6 +108,7 @@ const saveTransaction = async (ci, event) => {
 const onTransfer = async (ci, events) => {
   const contractId = ci.getContractId();
   const transferEvents = events.find((el) => el.name === "arc72_Transfer").events;
+  console.log(transferEvents)
   console.log(
     `Processing ${transferEvents.length} arc72_Transfer events for contract ${contractId}`
   );
@@ -126,6 +127,7 @@ const onTransfer = async (ci, events) => {
 const onApproval = async (ci, events) => {
   const contractId = ci.getContractId()
   const approvalEvents = events.find((el) => el.name === "arc72_Approval").events;
+  console.log(approvalEvents)
   console.log(
     `Processing ${approvalEvents.length} arc72_Approval events for contract ${contractId}`
   );
@@ -173,6 +175,7 @@ const doIndex = async (app, round) => {
       minRound: lastSyncRound,
       maxRound: round,
     });
+    console.log(events)
     await onTransfer(ci, events);
     await onApproval(ci, events);
     // TODO add support for arc72_ApprovalForAll
