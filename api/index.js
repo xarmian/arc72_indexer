@@ -5,7 +5,7 @@ import https from 'https';
 import { swaggerOptions } from './swagger.js';
 import minimist from 'minimist'; // import minimist to parse command line arguments
 import fs from 'fs';
-import Database from '../backend/database.js';
+import { db } from "../backend/utils.js";
 import { tokensEndpoint } from './endpoints/arc72/tokens.js';
 import { transfersEndpoint } from './endpoints/arc72/transfers.js';
 import { collectionsEndpoint } from './endpoints/arc72/collections.js';
@@ -16,9 +16,6 @@ import { deletesEndpoint } from './endpoints/mp/deletes.js';
 import { statsEndpoint } from './endpoints/stats.js';
 import dotenv from 'dotenv';
 dotenv.config();
-
-const DB_PATH = process.env.DB_PATH || '../db/db.sqlite';
-const db = new Database(DB_PATH);
 
 const app = express();
 

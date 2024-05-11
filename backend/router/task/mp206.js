@@ -1,9 +1,6 @@
 import { CONTRACT, abi } from "ulujs";
-import { algodClient, indexerClient, decodeMpCurrencyData } from "../../utils.js";
+import { algodClient, indexerClient, decodeMpCurrencyData, db } from "../../utils.js";
 import Database from "../../database.js";
-
-const DB_PATH = process.env.DB_PATH || "../../../db/db.sqlite";
-const db = new Database(DB_PATH);
 
 const getListingEvent = (event) => {
   const [
@@ -21,18 +18,16 @@ const getListingEvent = (event) => {
   const { currency, price } = decodeMpCurrencyData(currencyData);
   const listing = {
     transactionId,
-    createRound,
-    createTimestamp,
-    mpListingId,
-    collectionId,
-    tokenId,
+    createRound: Number(createRound),
+    createTimestamp: Number(createTimestamp),
+    mpListingId: Number(mpListingId),
+    contractId: Number(collectionId),
+    tokenId: Number(tokenId),
     seller,
-    endTimestamp,
-    royalty,
+    endTimestamp: Number(endTimestamp),
+    royalty: Number(royalty),
     currency,
     price,
-    sales_id: null,
-    delete_id: null,
   };
   return listing;
 };
@@ -64,20 +59,24 @@ const makeContract = (contractId) =>
 const onListing = async (ci, events) => {
   const contractId = ci.getContractId();
   const listEvents = events.find(el => el.name === "e_sale_ListEvent").events;
-  console.log(listEvents)
   console.log(
     `Processing ${listEvents.length} listing events for contract ${contractId}`
   );
   for await (const event of listEvents) {
-    const listing = getListingEvent(event);
-    await db.insertOrUpdateMarketListing(listing);
+    const listingEvent = getListingEvent(event);
+    const listing = {
+      ...listingEvent,
+      mpContractId: contractId,
+      sales_id: null,
+      delete_id: null,
+    }
+    await db.insertOrUpdateMarketListing(listing)
   }
 };
 
 const onBuy = async (ci, events) => {
   const contractId = ci.getContractId();
   const buyEvents = events.find(el => el.name === "e_sale_BuyEvent").events;
-  console.log(buyEvents)
   console.log(
     `Processing ${buyEvents.length} buy events for contract ${contractId}`
   );
@@ -128,7 +127,6 @@ const onDelete = async (ci, events) => {
   const deleteEvents = events.find(
     el => el.name === "e_sale_DeleteListingEvent"
   ).events;
-  console.log(deleteEvents)
   console.log(
     `Processing ${deleteEvents.length} delete events for contract ${contractId}`
   );
@@ -211,7 +209,6 @@ const doIndex = async (app, round) => {
       minRound: lastSyncRound,
       maxRound: round,
     });
-    console.log(events)
     await onListing(ci, events);
     await onBuy(ci, events);
     await onDelete(ci, events);

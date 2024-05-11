@@ -17,6 +17,7 @@
         - for each approval, set token approved = approvedAddr
 */
 
+import minimist from 'minimist'; // import minimist to parse command line arguments
 import {
     db,
     getAllAppIdsIdx,
@@ -40,6 +41,14 @@ import Database from "./database.js";
 import dotenv from "dotenv";
 dotenv.config();
 
+const args = minimist(process.argv.slice(2));
+
+const isDebugMode = args.debug;
+
+if(isDebugMode) {
+  console.log("Debug mode enabled");
+}
+
 const getEndBlock = async () => {
     // end_block = (await algodClient.status().do())['last-round'];
     // end_block = (await indexerClient.lookupAccountByID(ZERO_ADDRESS).do())['current-round'];
@@ -50,14 +59,15 @@ const getEndBlock = async () => {
 let last_block; // last block in table
 let end_block; // end of chain
 
-console.log(
-    `Database Synced to round: ${last_block}. Current round: ${end_block}`
-);
 
 // get last sync round from info table, otherwise start from block zero
 last_block = Number((await db.getInfo("syncRound"))?.value ?? 1) - 1;
 
 end_block = await getEndBlock();
+
+console.log(
+    `Database Synced to round: ${last_block}. Current round: ${end_block}`
+);
 
 while (true) {
     if (last_block >= end_block) {
@@ -123,6 +133,9 @@ while (true) {
             }
         }
     } catch (error) {
+	if(isDebugMode) {
+		console.log(error);
+	}
         if (error.message === "Request timed out") {
             output(
                 `Error retrieving block ${i} from API: request timed out, retrying.`,
