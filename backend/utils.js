@@ -1,6 +1,6 @@
 import algosdk from "algosdk";
 import readline from "readline";
-import { arc200 as a200Contract, CONTRACT } from "ulujs";
+import { arc200 as a200Contract, CONTRACT, abi } from "ulujs";
 import {
     CONTRACT_TYPE_UNKNOWN,
     CONTRACT_TYPE_ARC72,
@@ -38,6 +38,15 @@ export const db = new Database(DB_PATH);
 
 export const trim = (str) => str.replace(/\0/g, "");
 
+export const prepareString = (str) => {
+  const index = str.indexOf("\x00");
+  if (index > 0) {
+    return str.slice(0, str.indexOf("\x00"));
+  } else {
+    return str;
+  }
+};
+
 // function to convert hex to bytes, modeled after ethers arrayify function
 export function bytesFromHex(hex) {
     hex = hex.replace(/^0x/i, "");
@@ -51,21 +60,31 @@ const INTERFACE_SELECTOR_ARC200 = "0xc7bea040";
 
 async function isSupported(contractId, interfaceSelector) {
     try {
-        const ci = new CONTRACT(contractId, algodClient, indexerClient, {
+	const makeABI = (method) => ({
             name: "",
             desc: "",
-            methods: [
+            methods: [method],
+            events: [],
+        })
+        const ci = new CONTRACT(contractId, algodClient, indexerClient, makeABI(
                 {
                     name: "supportsInterface",
                     args: [{ type: "byte[4]" }],
                     returns: { type: "bool" },
                     readonly: true,
-                },
-            ],
-            events: [],
-        });
+                }
+	))
+	const ci2 = new CONTRACT(contractId, algodClient, indexerClient, makeABI(
+        	{
+                    name: "supportsInterface",
+                    args: [{ type: "byte[4]" }],
+                    returns: { type: "byte" },
+                    readonly: true,
+                }
+        ))
         const sim = await ci.supportsInterface(bytesFromHex(interfaceSelector));
-        if (sim.success) {
+        const sim2 = await ci2.supportsInterface(bytesFromHex(interfaceSelector));
+        if (sim.success || sim2.success) {
             return sim.returnValue;
         }
         return false;
@@ -83,21 +102,22 @@ export async function isMP(contractId) {
 }
 
 export async function isARC200(contractId) {
-    return isSupported(contractId, INTERFACE_SELECTOR_ARC200);
-    // try {
-    //     const contractId = contract.contractInstance.contractId;
-    //     const c = new a200Contract(contractId, algodClient, indexerClient);
-    //     const metaData = await c.getMetadata();
-    //     if (metaData.success) {
-    //         return metaData.returnValue;
-    //     }
-    //     return false;
-    // } catch (err) {
-    //     console.log(err);
-    //     return false;
-    // }
+     //const res2 = await isSupported(contractId, INTERFACE_SELECTOR_ARC200);
+     //console.log(res2)
+     try {
+         const ci = new CONTRACT(contractId, algodClient, indexerClient, abi.arc200);
+         const res = await ci.arc200_name();
+         if (res.success) {
+             return true;
+         }
+         return false;
+     } catch (err) {
+         console.log(err);
+         return false;
+     }
 }
 
+// TODO support multiple contract types
 export async function getContractType(contract) {
     if (await isARC72(contract)) return CONTRACT_TYPE_ARC72;
     else if (await isMP(contract)) return CONTRACT_TYPE_MP;

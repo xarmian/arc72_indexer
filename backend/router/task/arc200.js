@@ -1,9 +1,8 @@
 import { CONTRACT, abi } from "ulujs";
-import { algodClient, indexerClient, decodeGlobalState, db } from "../../utils.js";
+import { algodClient, indexerClient, decodeGlobalState, db, prepareString } from "../../utils.js";
 import { ZERO_ADDRESS } from "../../constants.js";
 
-const makeContract = (contractId) =>
-  new CONTRACT(contractId, algodClient, indexerClient, abi.arc200);
+const makeContract = (contractId) => new CONTRACT(contractId, algodClient, indexerClient, abi.arc200,);
 
 // From, To, Amt
 const getTransferEvent = (event) => {
@@ -14,7 +13,7 @@ const getTransferEvent = (event) => {
     timestamp,
     from,
     to,
-    amount
+    amount: String(amount)
   };
 };
 
@@ -27,7 +26,7 @@ const getApprovalEvent = (event) => {
     timestamp,
     from,
     to,
-    amount,
+    amount: String(amount)
   };
 };
 
@@ -45,10 +44,10 @@ const getToken = async (ci, contractId) => {
   //const decodedState = JSON.stringify(decodeGlobalState(globalState));
   return {
     contractId,
-    name,
-    symbol,
-    decimals,
-    totalSupply,
+    name: prepareString(name),
+    symbol: prepareString(symbol),
+    decimals: Number(decimals),
+    totalSupply: String(totalSupply),
     createRound,
     creator,
     //globalState: decodedState,
@@ -56,43 +55,24 @@ const getToken = async (ci, contractId) => {
 };
 
 const onMint = async (ci, event) => {
-  // const contractId = ci.getContractId()
-  // const { round, to, tokenId } = getTransferEvent(event);
-  // const tokenIndex = 0;
-  // const owner = to;
-  // const metadataURI = (await ci.arc72_tokenURI(tokenId)).returnValue; // TODO strip null bytes ???
-  // const metadata = JSON.stringify(
-  //   await fetch(metadataURI).then((res) => res.json())
-  // );
-  // const totalSupply = (await ci.arc72_totalSupply()).returnValue;
-  // const approved = ZERO_ADDRESS;
-  // const mintRound = round;
-  // const token = {
-  //   contractId,
-  //   tokenId,
-  //   tokenIndex,
-  //   owner,
-  //   metadataURI,
-  //   metadata,
-  //   approved,
-  //   mintRound,
-  // };
+  const contractId = ci.getContractId()
+  const { round, to } = getTransferEvent(event);
+  const token = await getToken(ci, contractId);
+  // TODO save token
+  // TODO save to balance
   // await db.insertOrUpdateToken(token);
   // await db.updateCollectionTotalSupply(contractId, totalSupply);
-  // console.log(`Minted token ${tokenId} for contract ${contractId}`);
+  console.log(`Minted token ${contractId} by ${to} on round ${round}`);
 };
 
 const onAssetTransfer = async (ci, event) => {
-  // const contractId = ci.getContractId()
-  // const { tokenId, to } = getTransferEvent(event)
-  //await db.updateTokenOwner(contractId, tokenId, to);
-  // check token approval
-  //const approved = (await ci.arc72_getApproved(tokenId)).returnValue ?? null;
-  // const approved = ZERO_ADDRESS;
+  const contractId = ci.getContractId()
+  const { to, from, amount } = getTransferEvent(event)
   // await db.updateTokenApproved(contractId, tokenId, approved);
-  // console.log(
-  //   `Updated token ${tokenId} owner to ${to}, approval to ${approved}`
-  // );
+   console.log(
+     `Updated ${to} token ${contractId} balance to ${to}`,
+     `Updated ${to} token ${contractId} balance to ${to}`,
+   );
 };
 
 const saveTransaction = async (ci, event) => {
@@ -114,36 +94,39 @@ const saveTransaction = async (ci, event) => {
 };
 
 const onTransfer = async (ci, events) => {
-  // const contractId = ci.getContractId();
-  // const transferEvents = events.find((el) => el.name === "arc200_Transfer").events;
-  // console.log(
-  //   `Processing ${transferEvents.length} arc200_Transfer events for contract ${contractId}`
-  // );
+  const contractId = ci.getContractId();
+  const transferEvents = events.find((el) => el.name === "arc200_Transfer").events;
+  console.log(
+    `Processing ${transferEvents.length} arc200_Transfer events for contract ${contractId}`
+  );
   // for each event, record a transaction in the database
-  // for await (const event of transferEvents) {
-  //   const { from } = getTransferEvent(event);
-  //   if (from == ZERO_ADDRESS) {
-  //     await onMint(ci, event);
-  //   } else {
-  //     await onAssetTransfer(ci, event);
-  //   }
-  //   await saveTransaction(ci, event);
-  // }
-};
+  for await (const event of transferEvents) {
+    const { transactionId, round, timestamp, from, to, amount } = getTransferEvent(event);
+    console.log({
+      transactionId, round, timestamp, from, to, amount
+    })
+    if (from == ZERO_ADDRESS) {
+      await onMint(ci, event);
+    } else {
+      await onAssetTransfer(ci, event);
+    }
+    await saveTransaction(ci, event);
+  }
+}
 
 const onApproval = async (ci, events) => {
-  // const contractId = ci.getContractId()
-  // const approvalEvents = events.find((el) => el.name === "arc200_Approval").events;
-  // console.log(
-  //   `Processing ${approvalEvents.length} arc200_Approval events for contract ${contractId}`
-  // );
-  // for each event, record a transaction in the database
-  // for await (const event of approvalEvents) {
-  //   const { tokenId } = getApprovalEvent(event);
-  //   const approved = (await ci.arc200_getApproved(tokenId)).returnValue ?? null;
-  //   await db.updateTokenApproved(contractId, tokenId, approved);
-  //   console.log(`Updated token ${tokenId} approved to ${approved}`);
-  // }
+  const contractId = ci.getContractId()
+  const approvalEvents = events.find((el) => el.name === "arc200_Approval").events;
+  console.log(
+    `Processing ${approvalEvents.length} arc200_Approval events for contract ${contractId}`
+  );
+  for await (const event of approvalEvents) {
+     const approvalEvent = getApprovalEvent(event);
+     console.log(approvalEvent)
+     // TODO save account approval here 
+     //await db.updateTokenApproved(contractId, tokenId, approved);
+     //console.log(`Updated token ${tokenId} approved to ${approved}`);
+  }
 };
 
 // TODO add support for arc72_ApprovalForAll
@@ -163,6 +146,7 @@ const doIndex = async (app, round) => {
     console.log(`Adding new contract ${contractId} to tokens table`);
     const token = await getToken(ci, contractId);
     console.log({ token })
+    // TODO update token
     /*
     await db.insertOrUpdateCollection({
       ...collection,
@@ -175,6 +159,7 @@ const doIndex = async (app, round) => {
     console.log(`Updating contract ${contractId} in tokens table`);
     const token = await getToken(ci, contractId);
     console.log({ token })
+    // TODO update token
     /*
     await db.insertOrUpdateCollection({
       ...collection,
