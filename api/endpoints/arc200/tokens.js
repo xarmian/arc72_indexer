@@ -130,7 +130,15 @@ export const contracts0200Endpoint = async (req, res, db) => {
     query += "SELECT contracts_0200.* "
     prefixes.forEach(prefix => {
       if (includes.some(str => [prefix, 'all'].includes(str))) {
-        query += `, COUNT(${prefix}_0200.contractId) AS ${prefix} `
+        switch(prefix) {
+          case 'accounts':
+            query += `, COUNT(${prefix}_0200.accountId) AS ${prefix} `
+            break;
+          case 'transfers':
+          case 'approvals':
+            query += `, COUNT(${prefix}_0200.transactionId) AS ${prefix} `
+            break;
+        }
       }
     })
     query += " FROM contracts_0200 "
