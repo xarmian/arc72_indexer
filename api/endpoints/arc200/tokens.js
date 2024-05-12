@@ -129,14 +129,14 @@ export const contracts0200Endpoint = async (req, res, db) => {
   } else {
     query += "SELECT contracts_0200.* "
     prefixes.forEach(prefix => {
-      if (includes.some(str => [el, 'all'].includes(str))) {
-        query += `, COUNT(${prefix}_0200.contractId) AS ${prefix}`
+      if (includes.some(str => [prefix, 'all'].includes(str))) {
+        query += `, COUNT(${prefix}_0200.contractId) AS ${prefix} `
       }
     })
-    query += "FROM contracts_0200 "
+    query += " FROM contracts_0200 "
     prefixes.forEach(prefix => {
-      if (includes.some(str => [el, 'all'].includes(str))) {
-        query += `LEFT JOIN ${prefix}_0200 ON contracts_0200.contractId = ${prefix}_0200.contractId`
+      if (includes.some(str => [prefix, 'all'].includes(str))) {
+        query += ` LEFT JOIN ${prefix}_0200 ON contracts_0200.contractId = ${prefix}_0200.contractId `
       }
     })
   }
