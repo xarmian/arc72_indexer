@@ -77,8 +77,8 @@ const onMint = async (ci, event) => {
 const onAssetTransfer = async (ci, event) => {
   const contractId = ci.getContractId();
   const { to, from } = getTransferEvent(event);
-  const balanceTo = (await ci.arc200_balanceOf(to)).returnValue;
-  const balanceFrom = (await ci.arc200_balanceOf(from)).returnValue;
+  const balanceTo = String((await ci.arc200_balanceOf(to)).returnValue);
+  const balanceFrom = String((await ci.arc200_balanceOf(from)).returnValue);
   await db.insertOrUpdateAccount0200({
     accountId: from,
     contractId,

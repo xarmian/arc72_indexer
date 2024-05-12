@@ -62,8 +62,7 @@ let end_block; // end of chain
 
 
 // get last sync round from info table, otherwise start from block zero
-//last_block = Number((await db.getInfo("syncRound"))?.value ?? 1) - 1;
-last_block = 1519103
+last_block = args.block ? Number(args.block) : Number((await db.getInfo("syncRound"))?.value ?? 1) - 1;
 
 end_block = await getEndBlock();
 
