@@ -320,6 +320,10 @@ export default class Database {
 
     // ARC-0200
 
+    async getContracts0200() {
+	return await this.all("SELECT * from contracts_0200");
+    }
+
     async getContract0200LastSync(contractId) {
         const contract = await this.get("SELECT lastSyncRound FROM contracts_0200 WHERE contractId = ?", [contractId]);
         return (contract) ? contract.lastSyncRound : 0;
@@ -350,7 +354,7 @@ export default class Database {
         return result;
     }
 
-    async insertOrUpdateAccountBalances0200({ accountId, contractId, balance }) {
+    async insertOrUpdateAccountBalance0200({ accountId, contractId, balance }) {
         const result = await this.run(
             `
             UPDATE account_balances_0200
@@ -371,22 +375,22 @@ export default class Database {
         return result;
     }
 
-    async insertOrUpdateAccountApprovals0200({ contractId, owner, spender }) {
+    async insertOrUpdateAccountApproval0200({ contractId, owner, spender, approval }) {
         const result = await this.run(
             `
-            UPDATE account_balances_0200
-            SET owner = ?, spender = ?
-            WHERE contractId = ?
+            UPDATE account_approvals_0200
+            SET approval = ?
+            WHERE contractId = ? AND owner = ? AND spender = ?
             `,
-            [owner, spender, contractId]
+            [approval, contractId, owner, spender]
         );
 
         if (result.changes === 0) {
             return await this.run(
                 `
-                INSERT INTO account_balances_0200 (contractId, owner, spender) VALUES (?, ?, ?)
+                INSERT INTO account_approvals_0200 (contractId, owner, spender, approval) VALUES (?, ?, ?, ?)
                 `,
-                [contractId, owner, spender]
+                [contractId, owner, spender, approval]
             );
         }
         return result;
@@ -401,12 +405,12 @@ export default class Database {
         );
     }
 
-    async insertApproval0200({ transactionId, contractId, timestamp, round, sender, receiver, amount }) {
+    async insertApproval0200({ transactionId, contractId, timestamp, round, owner, spender, amount }) {
         return await this.run(
             `
-            INSERT OR IGNORE INTO approvals_0200 (transactionId, contractId, timestamp, round, sender, receiver, amount) VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT OR IGNORE INTO approvals_0200 (transactionId, contractId, timestamp, round, owner, spender, amount) VALUES (?, ?, ?, ?, ?, ?, ?)
             `,
-            [transactionId, contractId, timestamp, round, sender, receiver, amount]
+            [transactionId, contractId, timestamp, round, owner, spender, amount]
         );
     }
 
@@ -538,10 +542,11 @@ export default class Database {
             )
             `,
             `
-            CREATE TABLE IF NOT EXISTS account_allowances_0200 (
+            CREATE TABLE IF NOT EXISTS account_approvals_0200 (
                 contractId TEXT,
                 owner TEXT,
                 spender TEXT,
+		approval TEXT,
                 PRIMARY KEY (contractId, owner, spender)
             )
             `,

@@ -157,4 +157,8 @@ while (true) {
     }
     last_block = i;
     await db.setInfo("syncRound", last_block);
+
+    if(args.once) {
+	break;
+    }
 }

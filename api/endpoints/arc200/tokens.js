@@ -122,7 +122,7 @@ export const contracts0200Endpoint = async (req, res, db) => {
       if (includes.some(str => [prefix, 'all'].includes(str))) {
         switch(prefix) {
           case 'account_balances':
-            query += `, COUNT(DISTINCT ${prefix}_0200.accountId) AS ${prefix} `
+            query += `, COUNT(DISTINCT ${prefix}_0200.accountId) AS holders `
             break;
           case 'transfers':
           case 'approvals':

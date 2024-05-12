@@ -65,7 +65,7 @@ const onMint = async (ci, event) => {
   const contractId = ci.getContractId();
   const { round, to } = getTransferEvent(event);
   const token = await getToken(ci, contractId);
-  await db.insertOrUpdateAccount0200({
+  await db.insertOrUpdateAccountBalance0200({
     contractId: String(contractId),
     accountId: to,
     balance: token.totalSupply,
@@ -79,12 +79,12 @@ const onAssetTransfer = async (ci, event) => {
   const { to, from } = getTransferEvent(event);
   const balanceTo = String((await ci.arc200_balanceOf(to)).returnValue);
   const balanceFrom = String((await ci.arc200_balanceOf(from)).returnValue);
-  await db.insertOrUpdateAccount0200({
+  await db.insertOrUpdateAccountBalance0200({
     contractId,
     accountId: from,
     balance: balanceFrom,
   });
-  await db.insertOrUpdateAccount0200({
+  await db.insertOrUpdateAccountBalance0200({
     contractId,
     accountId: to,
     balance: balanceTo,
@@ -151,6 +151,15 @@ const onApproval = async (ci, events) => {
     const {
       transactionId, round, timestamp, from, to, amount
     } = getApprovalEvent(event);
+    await db.insertOrUpdateAccountApproval0200({
+      contractId,
+      owner: from,
+      spender: to,
+      amount
+    });
+    console.log(
+    `[${contractId}] Updated approval${from}:${to} to ${amount}`
+    );
     db.insertApproval0200({
       contractId,
       transactionId,
@@ -180,13 +189,8 @@ const doIndex = async (app, round) => {
     console.log(`Adding new contract ${contractId} to tokens table`);
     const token = await getToken(ci, contractId);
     console.log({ token });
-    // TODO update token
-    /*
-    await db.insertOrUpdateCollection({
-      ...collection,
-      lastSyncRound,
-    });
-    */
+    await db.insertOrUpdateContract0200(token);
+    console.log(`Minted token ${contractId} by ${token.creator} on round ${round}`);
   } else {
     //lastSyncRound = await db.getTokenLastSync(contractId);
     lastSyncRound = round;

@@ -195,6 +195,7 @@ CREATE TABLE IF NOT EXISTS account_approvals_0200 (
     contractId TEXT,
     owner TEXT,
     spender TEXT,
+    approval TEXT,
     PRIMARY KEY (contractId, owner, spender)
 );
 
