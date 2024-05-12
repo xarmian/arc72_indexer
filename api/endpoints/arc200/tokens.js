@@ -1,6 +1,11 @@
 const zeroAddress =
   "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ";
 
+function intersect(a, b) {
+  var setB = new Set(b);
+  return [...new Set(a)].filter(x => setB.has(x));
+}
+
 /**
  * @swagger
  * /nft-indexer/v1/arc200/tokens:
@@ -69,6 +74,17 @@ const zeroAddress =
  *     500:
  *       description: Server error
  */
+
+// SELECT contracts_0200.*, 
+//   COUNT(accounts_0200.accountId) AS accounts,
+//   COUNT(transfers_0200.transactionId) AS transfers,
+//   COUNT(approvals_0200.transactionId) AS approvals
+// FROM contracts_0200
+// LEFT JOIN accounts_0200 ON contracts_0200.contractId = accounts_0200.contractId
+// LEFT JOIN transfers_0200 ON contracts_0200.contractId = transfers_0200.contractId
+// LEFT JOIN approvals_0200 ON contracts_0200.contractId = approvals_0200.contractId
+// GROUP BY contracts_0200.contractId;
+
 export const contracts0200Endpoint = async (req, res, db) => {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Response-Type", "application/json");
@@ -100,12 +116,30 @@ export const contracts0200Endpoint = async (req, res, db) => {
   // "includes" is a query parameter that can be used to include additional data in the response
   const includes = req.query.includes?.split(",") ?? [];
 
+  const prefixes = ['accounts', 'transfers', 'approvals'];
+
   // Construct SQL query
 
-  let query;
-  query = `SELECT * FROM contracts_0200`;
+  let query = "";
   let conditions = [];
   let params = {};
+
+  if (!intersect(includes, prefixes)) {
+    query += `SELECT * FROM contracts_0200 `;
+  } else {
+    query += "SELECT contracts_0200.* "
+    prefixes.forEach(prefix => {
+      if (includes.some(str => [el, 'all'].includes(str))) {
+        query += `, COUNT(${prefix}_0200.contractId) AS ${prefix}`
+      }
+    })
+    query += "FROM contracts_0200 "
+    prefixes.forEach(prefix => {
+      if (includes.some(str => [el, 'all'].includes(str))) {
+        query += `LEFT JOIN ${prefix}_0200 ON contracts_0200.contractId = ${prefix}_0200.contractId`
+      }
+    })
+  }
 
   if (contractId) {
     conditions.push(`contractId = $contractId`);
@@ -143,6 +177,10 @@ export const contracts0200Endpoint = async (req, res, db) => {
     query += ` WHERE ` + conditions.join(" AND ");
   }
 
+  if (intersect(includes, prefixes)) {
+    query += ` GROUP BY contracts_0200.contractId`;
+  }
+
   query += ` ORDER BY createRound ASC`;
 
   if (limit) {
@@ -161,14 +199,6 @@ export const contracts0200Endpoint = async (req, res, db) => {
     row.globalState = JSON.parse(row?.globalState ?? "{}");
     delete row.lastSyncRound;
     delete row.createRound;
-
-    // if (includes.includes('unique-owners')) {
-    //     const uniqueOwners = await db.get(`SELECT COUNT(DISTINCT owner) as uniqueOwners FROM tokens
-    //                                         WHERE contractId = ?
-    //                                         AND owner != ?
-    //                                         AND approved != ?`, [row.contractId, zeroAddress, zeroAddress]);
-    //     row.uniqueOwners = uniqueOwners.uniqueOwners;
-    // }
   }
 
   // get round of last row
