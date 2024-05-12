@@ -66,8 +66,8 @@ const onMint = async (ci, event) => {
   const { round, to } = getTransferEvent(event);
   const token = await getToken(ci, contractId);
   await db.insertOrUpdateAccount0200({
+    contractId: String(contractId),
     accountId: to,
-    contractId,
     balance: token.totalSupply,
   });
   await db.insertOrUpdateContract0200(token);
@@ -75,18 +75,18 @@ const onMint = async (ci, event) => {
 };
 
 const onAssetTransfer = async (ci, event) => {
-  const contractId = ci.getContractId();
+  const contractId = String(ci.getContractId());
   const { to, from } = getTransferEvent(event);
   const balanceTo = String((await ci.arc200_balanceOf(to)).returnValue);
   const balanceFrom = String((await ci.arc200_balanceOf(from)).returnValue);
   await db.insertOrUpdateAccount0200({
-    accountId: from,
     contractId,
+    accountId: from,
     balance: balanceFrom,
   });
   await db.insertOrUpdateAccount0200({
-    accountId: to,
     contractId,
+    accountId: to,
     balance: balanceTo,
   });
   console.log(
