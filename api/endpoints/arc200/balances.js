@@ -74,7 +74,6 @@ export const accounts0200Endpoint = async (req, res, db) => {
   // Construct SQL query
 
   let query;
-  if (!holder) {
     query = `SELECT * FROM accounts_0200`;
     let conditions = [];
     let params = {};
@@ -93,36 +92,12 @@ export const accounts0200Endpoint = async (req, res, db) => {
       query += ` WHERE ` + conditions.join(" AND ");
     }
 
-    query += ` ORDER BY (CAST contractid AS INTEGER) ASC`;
+    query += ` ORDER BY contractId ASC`;
 
     if (limit) {
       query += ` LIMIT $limit`;
       params.$limit = limit;
     }
-  } else {
-    query = `SELECT * FROM accounts_0200`;
-    let conditions = [];
-    let params = {};
-
-    if (contractId) {
-      conditions.push(`contractId = $contractId`);
-      params.$contractId = contractId;
-    }
-
-    if (accountId) {
-      conditions.push(`accountId = $accountId`);
-      params.$accountId = accountId;
-    }
-
-    if (conditions.length > 0) {
-      query += ` WHERE ` + conditions.join(" AND ");
-    }
-
-    if (limit) {
-      query += ` LIMIT $limit`;
-      params.$limit = limit;
-    }
-  }
 
   // Execute query
   const rows = await db.all(query, params);
