@@ -3,9 +3,9 @@ const zeroAddress =
 
 /**
  * @swagger
- * /nft-indexer/v1/arc200/tokens:
+ * /nft-indexer/v1/arc200/balances:
  *  get:
- *   summary: Retrieves arc200 token data
+ *   summary: Retrieves arc200 token balance data
  *   description: Fetch arc200 token details based on query parameters (this is a NON-STANDARD endpoint)
  *   parameters:
  *     - in: query
@@ -14,40 +14,15 @@ const zeroAddress =
  *         type: integer
  *         description: Limit to only results with the given contractId
  *     - in: query
- *       name: holder
+ *       name: accountId
  *       schema:
  *         type: string
  *         description: Include results where the given wallet address is the holder of the token
- *     - in: query
- *       name: mint-min-round
- *       schema:
- *         type: integer
- *         description: Include results minted on or after the given round.
- *     - in: query
- *       name: mint-min-round
- *       schema:
- *         type: integer
- *         description: Include results minted on or before the given round.
- *     - in: query
- *       name: next
- *       schema:
- *         type: string
- *         description: Token for the next page of results. Use the next-token provided by the previous page of results.
- *     - in: query
- *       name: limit
- *       schema:
- *         type: integer
- *         description: Maximum number of results to return. There could be additional pages even if the limit is not reached.
  *     - in: query
  *       name: includes
  *       schema:
  *         type: string
  *         description: Comma separated list of additional properties to include in the response.
- *     - in: query
- *       name: creator
- *       schema:
- *         type: string
- *         description: Wallet address of the creator of the collection
  *   responses:
  *     200:
  *       description: A successful response
@@ -69,7 +44,7 @@ const zeroAddress =
  *     500:
  *       description: Server error
  */
-export const contracts0200Endpoint = async (req, res, db) => {
+export const accounts0200Endpoint = async (req, res, db) => {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Response-Type", "application/json");
 
@@ -89,11 +64,7 @@ export const contracts0200Endpoint = async (req, res, db) => {
 
   // Extract query parameters
   const contractId = req.query.contractId;
-  const holder = req.query.holder;
-  const mintRound = req.query["mint-round"];
-  const mintMinRound = req.query["mint-min-round"] ?? 0;
-  const mintMaxRound = req.query["mint-max-round"];
-  const creator = req.query.creator;
+  const accountId = req.query.accountId;
   const next = req.query.next ?? 0;
   const limit = req.query.limit;
 
@@ -103,51 +74,54 @@ export const contracts0200Endpoint = async (req, res, db) => {
   // Construct SQL query
 
   let query;
-  query = `SELECT * FROM contracts_0200`;
-  let conditions = [];
-  let params = {};
+  if (!holder) {
+    query = `SELECT * FROM accounts_0200`;
+    let conditions = [];
+    let params = {};
 
-  if (contractId) {
-    conditions.push(`contractId = $contractId`);
-    params.$contractId = contractId;
-  }
+    if (contractId) {
+      conditions.push(`contractId = $contractId`);
+      params.$contractId = contractId;
+    }
 
-  if (mintRound) {
-    conditions.push(`createRound = $mintRound`);
-    params.$mintRound = mintRound;
-  }
+    if (accountId) {
+      conditions.push(`accountId = $accountId`);
+      params.$accountId = accountId;
+    }
 
-  if (mintMinRound > 0) {
-    conditions.push(`createRound >= $mintMinRound`);
-    params.$mintMinRound = mintMinRound;
-  }
+    if (conditions.length > 0) {
+      query += ` WHERE ` + conditions.join(" AND ");
+    }
 
-  if (mintMaxRound) {
-    conditions.push(`createRound <= $mintMaxRound`);
-    params.$mintMaxRound = mintMaxRound;
-  }
+    query += ` ORDER BY (CAST contractid AS INTEGER) ASC`;
 
-  if (creator) {
-    conditions.push(`creator = $creator`);
-    params.$creator = creator;
-  }
+    if (limit) {
+      query += ` LIMIT $limit`;
+      params.$limit = limit;
+    }
+  } else {
+    query = `SELECT * FROM accounts_0200`;
+    let conditions = [];
+    let params = {};
 
-  if (next) {
-    conditions.push(`createRound >= $next`);
-    params.$next = next;
-  }
+    if (contractId) {
+      conditions.push(`contractId = $contractId`);
+      params.$contractId = contractId;
+    }
 
-  conditions.push(`isBlacklisted = '0'`);
+    if (accountId) {
+      conditions.push(`accountId = $accountId`);
+      params.$accountId = accountId;
+    }
 
-  if (conditions.length > 0) {
-    query += ` WHERE ` + conditions.join(" AND ");
-  }
+    if (conditions.length > 0) {
+      query += ` WHERE ` + conditions.join(" AND ");
+    }
 
-  query += ` ORDER BY createRound ASC`;
-
-  if (limit) {
-    query += ` LIMIT $limit`;
-    params.$limit = limit;
+    if (limit) {
+      query += ` LIMIT $limit`;
+      params.$limit = limit;
+    }
   }
 
   // Execute query
@@ -157,10 +131,6 @@ export const contracts0200Endpoint = async (req, res, db) => {
     const row = rows[i];
 
     row.contractId = Number(row.contractId);
-    row.mintRound = Number(row.createRound);
-    row.globalState = JSON.parse(row?.globalState ?? "{}");
-    delete row.lastSyncRound;
-    delete row.createRound;
 
     // if (includes.includes('unique-owners')) {
     //     const uniqueOwners = await db.get(`SELECT COUNT(DISTINCT owner) as uniqueOwners FROM tokens
@@ -177,7 +147,7 @@ export const contracts0200Endpoint = async (req, res, db) => {
     maxRound = rows[rows.length - 1].mintRound;
   }
 
-  response["tokens"] = rows;
+  response["balances"] = rows;
   response["next-token"] = maxRound + 1;
   res.status(200).json(response);
 

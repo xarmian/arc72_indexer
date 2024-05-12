@@ -16,6 +16,7 @@ import { deletesEndpoint } from "./endpoints/mp/deletes.js";
 import { statsEndpoint } from "./endpoints/stats.js";
 import { contracts0200Endpoint } from "./endpoints/arc200/tokens.js";
 import dotenv from "dotenv";
+import { accounts0200Endpoint } from "./endpoints/arc200/balances.js";
 dotenv.config();
 
 const app = express();
@@ -56,6 +57,10 @@ const endpoints = [
   {
     path: "/nft-indexer/v1/arc200/tokens",
     handler: contracts0200Endpoint,
+  },
+  {
+    path: "/nft-indexer/v1/arc200/balances",
+    handler: accounts0200Endpoint,
   },
   {
     path: "/stats",
