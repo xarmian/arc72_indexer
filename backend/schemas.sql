@@ -183,11 +183,19 @@ CREATE TABLE IF NOT EXISTS contracts_0200 (
 );
 
 -- map of account balances for arc-0200 contracts
-CREATE TABLE IF NOT EXISTS accounts_0200 (
+CREATE TABLE IF NOT EXISTS account_balances_0200 (
     accountId TEXT,
     contractId TEXT,
     balance TEXT,
     PRIMARY KEY (accountId, contractId)
+);
+
+-- map of account approvals for arc-0200 contracts
+CREATE TABLE IF NOT EXISTS account_approvals_0200 (
+    contractId TEXT,
+    owner TEXT,
+    spender TEXT,
+    PRIMARY KEY (contractId, owner, spender)
 );
 
 -- transfer history for arc-0200 contracts

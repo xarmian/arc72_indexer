@@ -148,11 +148,18 @@ const onApproval = async (ci, events) => {
     `Processing ${approvalEvents.length} arc200_Approval events for contract ${contractId}`
   );
   for await (const event of approvalEvents) {
-    const approvalEvent = getApprovalEvent(event);
-    console.log(approvalEvent);
-    // TODO save account approval here
-    //await db.updateTokenApproved(contractId, tokenId, approved);
-    //console.log(`Updated token ${tokenId} approved to ${approved}`);
+    const {
+      transactionId, round, timestamp, from, to, amount
+    } = getApprovalEvent(event);
+    db.insertApproval0200({
+      contractId,
+      transactionId,
+      round,
+      timestamp,
+      owner: from,
+      spender: to,
+      amount,
+    })
   }
 };
 

@@ -75,16 +75,6 @@ function intersect(a, b) {
  *       description: Server error
  */
 
-// SELECT contracts_0200.*, 
-//   COUNT(accounts_0200.accountId) AS accounts,
-//   COUNT(transfers_0200.transactionId) AS transfers,
-//   COUNT(approvals_0200.transactionId) AS approvals
-// FROM contracts_0200
-// LEFT JOIN accounts_0200 ON contracts_0200.contractId = accounts_0200.contractId
-// LEFT JOIN transfers_0200 ON contracts_0200.contractId = transfers_0200.contractId
-// LEFT JOIN approvals_0200 ON contracts_0200.contractId = approvals_0200.contractId
-// GROUP BY contracts_0200.contractId;
-
 export const contracts0200Endpoint = async (req, res, db) => {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Response-Type", "application/json");
@@ -116,7 +106,7 @@ export const contracts0200Endpoint = async (req, res, db) => {
   // "includes" is a query parameter that can be used to include additional data in the response
   const includes = req.query.includes?.split(",") ?? [];
 
-  const prefixes = ['accounts', 'transfers', 'approvals'];
+  const prefixes = ['account_balances', 'transfers', 'approvals'];
 
   // Construct SQL query
 
@@ -131,7 +121,7 @@ export const contracts0200Endpoint = async (req, res, db) => {
     prefixes.forEach(prefix => {
       if (includes.some(str => [prefix, 'all'].includes(str))) {
         switch(prefix) {
-          case 'accounts':
+          case 'account_balances':
             query += `, COUNT(DISTINCT ${prefix}_0200.accountId) AS ${prefix} `
             break;
           case 'transfers':

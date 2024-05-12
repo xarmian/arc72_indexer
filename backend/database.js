@@ -101,7 +101,7 @@ export default class Database {
         return await this.all("SELECT * FROM collections");
     }
 
-    async insertOrUpdateToken({contractId, tokenId, tokenIndex, owner, metadataURI, metadata, approved, mintRound}) {
+    async insertOrUpdateToken({ contractId, tokenId, tokenIndex, owner, metadataURI, metadata, approved, mintRound }) {
         let result = undefined;
         if (metadataURI) {
             result = await this.run(
@@ -137,7 +137,7 @@ export default class Database {
         return result;
     }
 
-    async insertOrUpdateCollection({contractId, totalSupply, createRound, lastSyncRound, creator, globalState}) {
+    async insertOrUpdateCollection({ contractId, totalSupply, createRound, lastSyncRound, creator, globalState }) {
         const result = await this.run(
             `
             UPDATE collections 
@@ -180,7 +180,7 @@ export default class Database {
         return await this.run("UPDATE collections SET createRound = ? WHERE contractId = ?", [createRound, contractId]);
     }
 
-    async insertTransaction({transactionId, contractId, tokenId, round, fromAddr, toAddr, timestamp}) {
+    async insertTransaction({ transactionId, contractId, tokenId, round, fromAddr, toAddr, timestamp }) {
         return await this.run("INSERT OR IGNORE INTO transfers (transactionId, contractId, tokenId, round, fromAddr, toAddr, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?)", [transactionId, contractId, String(tokenId), round, fromAddr, toAddr, timestamp]);
     }
 
@@ -198,7 +198,7 @@ export default class Database {
     }
 
     // MP-0206
-	
+
     async marketExists(contractId) {
         const market = await this.get("SELECT mpContractId FROM markets WHERE mpContractId = ?", [contractId]);
         return (market) ? true : false;
@@ -217,7 +217,7 @@ export default class Database {
         return await this.all("SELECT * FROM markets");
     }
 
-    async insertOrUpdateMarket({contractId, escrowAddr, createRound, lastSyncRound, isBlacklisted}) {
+    async insertOrUpdateMarket({ contractId, escrowAddr, createRound, lastSyncRound, isBlacklisted }) {
         const result = await this.run(
             `
             UPDATE markets
@@ -238,7 +238,7 @@ export default class Database {
         return result;
     }
 
-    async insertOrUpdateMarketListing({transactionId, mpContractId, mpListingId, contractId, tokenId, seller, price, currency, createRound, createTimestamp, endTimestamp, royalty, sales_id, delete_id}) {
+    async insertOrUpdateMarketListing({ transactionId, mpContractId, mpListingId, contractId, tokenId, seller, price, currency, createRound, createTimestamp, endTimestamp, royalty, sales_id, delete_id }) {
         const updateSQL = `UPDATE listings
                             SET mpContractId = ?, mpListingId = ?, contractId = ?, tokenId = ?, seller = ?, price = ?, currency = ?, createRound = ?, createTimestamp = ?, endTimestamp = ?, royalty = ?, sales_id = ?, delete_id = ?
                             WHERE transactionId = ?`;
@@ -248,7 +248,7 @@ export default class Database {
             updateSQL,
             [String(mpContractId), String(mpListingId), String(contractId), String(tokenId), seller, price, currency, createRound, createTimestamp, endTimestamp, royalty, sales_id, delete_id, transactionId]
         );
-    
+
         if (result.changes === 0) {
             const insertSQL = `INSERT INTO listings (transactionId, mpContractId, mpListingId, contractId, tokenId, seller, price, currency, createRound, createTimestamp, endTimestamp, royalty, sales_id, delete_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
             // console.log(`insertOrUpdateMarketListing insertSQL: ${insertSQL}`);
@@ -260,7 +260,7 @@ export default class Database {
         return result;
     }
 
-    async insertOrUpdateMarketSale({transactionId, mpContractId, mpListingId, contractId, tokenId, seller, buyer, currency, price, round, timestamp}) {
+    async insertOrUpdateMarketSale({ transactionId, mpContractId, mpListingId, contractId, tokenId, seller, buyer, currency, price, round, timestamp }) {
         const result = await this.run(
             `
             UPDATE sales
@@ -282,7 +282,7 @@ export default class Database {
         return result;
     }
 
-    async insertOrUpdateMarketDelete({transactionId, mpContractId, mpListingId, contractId, tokenId, owner, round, timestamp}) {
+    async insertOrUpdateMarketDelete({ transactionId, mpContractId, mpListingId, contractId, tokenId, owner, round, timestamp }) {
         const result = await this.run(
             `
             UPDATE deletes
@@ -319,7 +319,7 @@ export default class Database {
     }
 
     // ARC-0200
- 
+
     async getContract0200LastSync(contractId) {
         const contract = await this.get("SELECT lastSyncRound FROM contracts_0200 WHERE contractId = ?", [contractId]);
         return (contract) ? contract.lastSyncRound : 0;
@@ -329,7 +329,7 @@ export default class Database {
         return await this.run("UPDATE contracts_0200 SET lastSyncRound = ? WHERE contractId = ?", [lastSyncRound, contractId]);
     }
 
-    async insertOrUpdateContract0200({contractId, name, symbol, decimals, totalSupply, createRound, lastSyncRound, creator, tokenId, metadata}) {
+    async insertOrUpdateContract0200({ contractId, name, symbol, decimals, totalSupply, createRound, lastSyncRound, creator, tokenId, metadata }) {
         const result = await this.run(
             `
             UPDATE contracts_0200
@@ -350,10 +350,10 @@ export default class Database {
         return result;
     }
 
-    async insertOrUpdateAccount0200({accountId, contractId, balance}) {
+    async insertOrUpdateAccountBalances0200({ accountId, contractId, balance }) {
         const result = await this.run(
             `
-            UPDATE accounts_0200
+            UPDATE account_balances_0200
             SET balance = ?
             WHERE accountId = ? AND contractId = ?
             `,
@@ -363,7 +363,7 @@ export default class Database {
         if (result.changes === 0) {
             return await this.run(
                 `
-                INSERT INTO accounts_0200 (accountId, contractId, balance) VALUES (?, ?, ?)
+                INSERT INTO account_balances_0200 (accountId, contractId, balance) VALUES (?, ?, ?)
                 `,
                 [accountId, contractId, balance]
             );
@@ -371,7 +371,28 @@ export default class Database {
         return result;
     }
 
-    async insertTransfer0200({transactionId, contractId, timestamp, round, sender, receiver, amount}) {
+    async insertOrUpdateAccountApprovals0200({ contractId, owner, spender }) {
+        const result = await this.run(
+            `
+            UPDATE account_balances_0200
+            SET owner = ?, spender = ?
+            WHERE contractId = ?
+            `,
+            [owner, spender, contractId]
+        );
+
+        if (result.changes === 0) {
+            return await this.run(
+                `
+                INSERT INTO account_balances_0200 (contractId, owner, spender) VALUES (?, ?, ?)
+                `,
+                [contractId, owner, spender]
+            );
+        }
+        return result;
+    }
+
+    async insertTransfer0200({ transactionId, contractId, timestamp, round, sender, receiver, amount }) {
         return await this.run(
             `
             INSERT OR IGNORE INTO transfers_0200 (transactionId, contractId, timestamp, round, sender, receiver, amount) VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -380,7 +401,7 @@ export default class Database {
         );
     }
 
-    async insertApproval0200({transactionId, contractId, timestamp, round, sender, receiver, amount}) {
+    async insertApproval0200({ transactionId, contractId, timestamp, round, sender, receiver, amount }) {
         return await this.run(
             `
             INSERT OR IGNORE INTO approvals_0200 (transactionId, contractId, timestamp, round, sender, receiver, amount) VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -509,11 +530,19 @@ export default class Database {
                 isBlacklisted INTEGER
             )`,
             `
-            CREATE TABLE IF NOT EXISTS accounts_0200 (
+            CREATE TABLE IF NOT EXISTS account_balances_0200 (
                 accountId TEXT,
                 contractId TEXT,
                 balance TEXT,
                 PRIMARY KEY (accountId, contractId)
+            )
+            `,
+            `
+            CREATE TABLE IF NOT EXISTS account_allowances_0200 (
+                contractId TEXT,
+                owner TEXT,
+                spender TEXT,
+                PRIMARY KEY (contractId, owner, spender)
             )
             `,
             `

@@ -74,7 +74,7 @@ export const accounts0200Endpoint = async (req, res, db) => {
   // Construct SQL query
 
   let query;
-    query = `SELECT * FROM accounts_0200`;
+    query = `SELECT * FROM account_balances_0200`;
     let conditions = [];
     let params = {};
 
