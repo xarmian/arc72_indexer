@@ -113,9 +113,12 @@ export const contracts0200Endpoint = async (req, res, db) => {
   let query = "";
   let conditions = [];
   let params = {};
-
+ 
+  /*
   if (!intersect(includes, prefixes)) {
+  */
     query += `SELECT * FROM contracts_0200 `;
+  /*
   } else {
     query += "SELECT contracts_0200.* "
     prefixes.forEach(prefix => {
@@ -138,34 +141,35 @@ export const contracts0200Endpoint = async (req, res, db) => {
       }
     })
   }
+  */
 
   if (contractId) {
-    conditions.push(`contractId = $contractId`);
+    conditions.push(`contracts_0200.contractId = $contractId`);
     params.$contractId = contractId;
   }
 
   if (mintRound) {
-    conditions.push(`createRound = $mintRound`);
+    conditions.push(`contracts_0200.createRound = $mintRound`);
     params.$mintRound = mintRound;
   }
 
   if (mintMinRound > 0) {
-    conditions.push(`createRound >= $mintMinRound`);
+    conditions.push(`contracts_0200.createRound >= $mintMinRound`);
     params.$mintMinRound = mintMinRound;
   }
 
   if (mintMaxRound) {
-    conditions.push(`createRound <= $mintMaxRound`);
+    conditions.push(`contracts_0200.createRound <= $mintMaxRound`);
     params.$mintMaxRound = mintMaxRound;
   }
 
   if (creator) {
-    conditions.push(`creator = $creator`);
+    conditions.push(`contracts_0200.creator = $creator`);
     params.$creator = creator;
   }
 
   if (next) {
-    conditions.push(`createRound >= $next`);
+    conditions.push(`contracts_0200.createRound >= $next`);
     params.$next = next;
   }
 
@@ -175,9 +179,11 @@ export const contracts0200Endpoint = async (req, res, db) => {
     query += ` WHERE ` + conditions.join(" AND ");
   }
 
+  /*
   if (intersect(includes, prefixes)) {
     query += ` GROUP BY contracts_0200.contractId`;
   }
+  */
 
   query += ` ORDER BY createRound ASC`;
 
