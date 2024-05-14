@@ -333,6 +333,10 @@ export default class Database {
         return await this.run("UPDATE contracts_0200 SET lastSyncRound = ? WHERE contractId = ?", [lastSyncRound, contractId]);
     }
 
+    async updateContract0200TokenId(contractId, tokenId) {
+        return await this.run("UPDATE contracts_0200 SET tokenId = ? WHERE contractId = ?", [tokenId, contractId]);
+    }
+
     async insertOrUpdateContract0200({ contractId, name, symbol, decimals, totalSupply, createRound, lastSyncRound, creator, tokenId, metadata }) {
         const result = await this.run(
             `
