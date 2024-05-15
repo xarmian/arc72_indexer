@@ -341,10 +341,10 @@ export default class Database {
         const result = await this.run(
             `
             UPDATE contracts_0200
-            SET totalSupply = ?, lastSyncRound = ?, creator = ?, metadata = ?
+            SET totalSupply = ?, lastSyncRound = ?, creator = ?, metadata = ?, tokenId = ?
             WHERE contractId = ?
             `,
-            [totalSupply, lastSyncRound, creator, metadata, contractId]
+            [totalSupply, lastSyncRound, creator, metadata, tokenId, contractId]
         );
 
         if (result.changes === 0) {

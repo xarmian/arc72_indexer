@@ -1,3 +1,4 @@
+import algosdk from "algosdk";
 import { CONTRACT, abi } from "ulujs";
 import {
   algodClient,
@@ -47,8 +48,8 @@ const getToken = async (ci, contractId) => {
   const app = await indexerClient.lookupApplications(contractId).do();
   const creator = app.application.params.creator;
   const createRound = app.application["created-at-round"];
-  //const globalState = app.application.params["global-state"];
-  //const decodedState = JSON.stringify(decodeGlobalState(globalState));
+  const accountAssets = await indexerClient.lookupAccountAssets(algosdk.getApplicationAddress(contractId)).do();
+  const tokenId = accountAssets.assets.map(el => String(el["asset-id"])).join(",")
   return {
     contractId,
     name: prepareString(name),
@@ -57,7 +58,7 @@ const getToken = async (ci, contractId) => {
     totalSupply: String(totalSupply),
     createRound,
     creator,
-    //globalState: decodedState,
+    tokenId
   };
 };
 
