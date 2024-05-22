@@ -1,11 +1,12 @@
 import algosdk from "algosdk";
 import readline from "readline";
-import { arc200 as a200Contract, CONTRACT, abi } from "ulujs";
+import { CONTRACT, abi } from "ulujs";
 import {
     CONTRACT_TYPE_UNKNOWN,
     CONTRACT_TYPE_ARC72,
     CONTRACT_TYPE_ARC200,
     CONTRACT_TYPE_MP,
+    CONTRACT_TYPE_LPT,
 } from "./constants.js";
 import Database from "./database.js";
 import dotenv from "dotenv";
@@ -117,11 +118,27 @@ export async function isARC200(contractId) {
      }
 }
 
+export async function isLPT(contractId) {
+  const app = await indexerClient.lookupApplications(contractId).do();
+  const appGlobalState = app.application.params["global-state"];
+  const ciSwap = new swap(contractId, algodClient, indexerClient)
+  const infoR = await ciSwap.Info();
+  const isARC200LT = infoR.success;
+  const isLPT = appGlobalState.find(el => el.key === "cmF0aW8=" /*ratio*/) && accountAssets.assets.length === 0;
+  if(isARC200LT || isLPT) return true;
+  return false;
+}
+
 // TODO support multiple contract types
 export async function getContractType(contract) {
     if (await isARC72(contract)) return CONTRACT_TYPE_ARC72;
     else if (await isMP(contract)) return CONTRACT_TYPE_MP;
-    else if (await isARC200(contract)) return CONTRACT_TYPE_ARC200;
+    else if (await isARC200(contract)) {
+        if(await isLPT(contract)) {
+            return CONTRACT_TYPE_LPT;
+        }
+        return CONTRACT_TYPE_ARC200;
+    }
     return CONTRACT_TYPE_UNKNOWN;
 }
 

@@ -35,10 +35,12 @@ import {
     CONTRACT_TYPE_ARC72,
     CONTRACT_TYPE_MP,
     CONTRACT_TYPE_ARC200,
+    CONTRACT_TYPE_LPT,
 } from "./constants.js";
 import onARC72 from "./router/task/arc72.js";
 import onMP206 from "./router/task/mp206.js";
 import onARC200 from "./router/task/arc200.js";
+import onDex from "./router/task/dex.js";
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -130,6 +132,11 @@ while (true) {
                 }
                 case CONTRACT_TYPE_ARC200: {
                     await onARC200(app, rnd);
+                    break;
+                }
+                case CONTRACT_TYPE_LPT: {
+                    //await onDex(app, rnd);
+                    console.log(app, rnd);
                     break;
                 }
                 case CONTRACT_TYPE_UNKNOWN:
