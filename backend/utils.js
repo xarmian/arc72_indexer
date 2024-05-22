@@ -1,6 +1,6 @@
 import algosdk from "algosdk";
 import readline from "readline";
-import { CONTRACT, abi } from "ulujs";
+import { CONTRACT, abi, swap } from "ulujs";
 import {
     CONTRACT_TYPE_UNKNOWN,
     CONTRACT_TYPE_ARC72,
@@ -119,6 +119,7 @@ export async function isARC200(contractId) {
 }
 
 export async function isLPT(contractId) {
+  const accountAssets = await indexerClient.lookupAccountAssets(algosdk.getApplicationAddress(contractId)).do();
   const app = await indexerClient.lookupApplications(contractId).do();
   const appGlobalState = app.application.params["global-state"];
   const ciSwap = new swap(contractId, algodClient, indexerClient)

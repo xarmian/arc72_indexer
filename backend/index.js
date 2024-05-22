@@ -123,20 +123,23 @@ while (true) {
             const contractType = await getContractType(contractId);
             switch (contractType) {
                 case CONTRACT_TYPE_ARC72: {
+                    console.log("ARC72", app, rnd);
                     await onARC72(app, rnd);
                     break;
                 }
                 case CONTRACT_TYPE_MP /*206*/: {
+                    console.log("MP206", app, rnd);
                     await onMP206(app, rnd);
                     break;
                 }
                 case CONTRACT_TYPE_ARC200: {
+                    console.log("ARC200", app, rnd);
                     await onARC200(app, rnd);
                     break;
                 }
                 case CONTRACT_TYPE_LPT: {
-                    //await onDex(app, rnd);
-                    console.log(app, rnd);
+                    console.log("LPT", app, rnd);
+                    await onDex(app, rnd);
                     break;
                 }
                 case CONTRACT_TYPE_UNKNOWN:
