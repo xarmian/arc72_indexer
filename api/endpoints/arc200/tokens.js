@@ -117,7 +117,16 @@ export const contracts0200Endpoint = async (req, res, db) => {
   /*
   if (!intersect(includes, prefixes)) {
   */
-    query += `SELECT * FROM contracts_0200 `;
+    query += `SELECT 
+    	c.*,
+	p.price
+    FROM
+    	contracts_0200 c
+    LEFT JOIN
+    	prices_0200 p
+    ON
+    	c.contractId = p.contractId 
+    `;
   /*
   } else {
     query += "SELECT contracts_0200.* "
@@ -144,32 +153,32 @@ export const contracts0200Endpoint = async (req, res, db) => {
   */
 
   if (contractId) {
-    conditions.push(`contracts_0200.contractId = $contractId`);
+    conditions.push(`c.contractId = $contractId`);
     params.$contractId = contractId;
   }
 
   if (mintRound) {
-    conditions.push(`contracts_0200.createRound = $mintRound`);
+    conditions.push(`c.createRound = $mintRound`);
     params.$mintRound = mintRound;
   }
 
   if (mintMinRound > 0) {
-    conditions.push(`contracts_0200.createRound >= $mintMinRound`);
+    conditions.push(`c.createRound >= $mintMinRound`);
     params.$mintMinRound = mintMinRound;
   }
 
   if (mintMaxRound) {
-    conditions.push(`contracts_0200.createRound <= $mintMaxRound`);
+    conditions.push(`c.createRound <= $mintMaxRound`);
     params.$mintMaxRound = mintMaxRound;
   }
 
   if (creator) {
-    conditions.push(`contracts_0200.creator = $creator`);
+    conditions.push(`c.creator = $creator`);
     params.$creator = creator;
   }
 
   if (next) {
-    conditions.push(`contracts_0200.createRound >= $next`);
+    conditions.push(`c.createRound >= $next`);
     params.$next = next;
   }
 

@@ -223,6 +223,23 @@ CREATE TABLE IF NOT EXISTS approvals_0200 (
     PRIMARY KEY (transactionId)
 );
 
+-- prices for arc-0200 contracts
+CREATE TABLE IF NOT EXISTS prices_0200 (
+    contractId TEXT,
+    price TEXT,
+    PRIMARY KEY (contractId)
+);
+
+-- price history for arc-0200 contracts
+CREATE TABLE IF NOT EXISTS price_history_0200 (
+    contractId TEXT,
+    timestamp INTEGER,
+    round INTEGER,
+    price TEXT,
+    PRIMARY KEY (contractId, round)
+);
+
+
 ------------------------------------------
 -- ARC-0200 Indexes
 ------------------------------------------

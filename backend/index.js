@@ -50,10 +50,11 @@ if (isDebugMode) {
     console.log("Debug mode enabled");
 }
 
-const getEndBlock = async () => {
+export const getEndBlock = async () => {
     // end_block = (await algodClient.status().do())['last-round'];
     // end_block = (await indexerClient.lookupAccountByID(ZERO_ADDRESS).do())['current-round'];
-    const end_block = (await indexerClient.makeHealthCheck().do())["round"];
+    const hc = await await indexerClient.makeHealthCheck().do();
+    const end_block = hc.round;
     return end_block;
 };
 

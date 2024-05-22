@@ -324,6 +324,10 @@ export default class Database {
 	return await this.all("SELECT * from contracts_0200");
     }
 
+    async getContract0200ContractIdByTokenId(tokenId) {
+	return (await this.all("SELECT contractId FROM contracts_0200 WHERE tokenId = ?", [tokenId])).map(({ contractId }) => contractId)
+    }
+
     async getContract0200LastSync(contractId) {
         const contract = await this.get("SELECT lastSyncRound FROM contracts_0200 WHERE contractId = ?", [contractId]);
         return (contract) ? contract.lastSyncRound : 0;
@@ -357,6 +361,29 @@ export default class Database {
         }
         return result;
     }
+
+    async insertOrUpdatePrice0200({ contractId, price }) {
+        const result = await this.run(
+            `
+            UPDATE prices_0200
+            SET price = ?
+            WHERE contractId = ?
+            `,
+            [price, contractId]
+        );
+
+        if (result.changes === 0) {
+            return await this.run(
+                `
+                INSERT INTO prices_0200 (contractId, price) VALUES (?, ?)
+                `,
+                [contractId, price]
+            );
+        }
+        return result;
+    }
+
+
 
     async insertOrUpdateAccountBalance0200({ accountId, contractId, balance }) {
         const result = await this.run(
