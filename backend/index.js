@@ -44,6 +44,14 @@ import onDex from "./router/task/dex.js";
 import dotenv from "dotenv";
 dotenv.config();
 
+const keypress = async () => {
+  process.stdin.setRawMode(true)
+  return new Promise(resolve => process.stdin.once('data', () => {
+    process.stdin.setRawMode(false)
+    resolve()
+  }))
+}
+
 const args = minimist(process.argv.slice(2));
 
 const isDebugMode = args.debug;
@@ -171,5 +179,9 @@ while (true) {
 
     if(args.once) {
 	break;
+    }
+
+    if(args.step) {
+	await keypress();
     }
 }

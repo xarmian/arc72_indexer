@@ -391,9 +391,9 @@ export default class Database {
     async insertOrUpdatePriceHistory0200({ contractId, price, round, timestamp }) {
         const result = await this.run(
             `
-            UPDATE prices_history_0200
+            UPDATE price_history_0200
             SET price = ?
-            WHERE contractId = ? round = ?
+            WHERE contractId = ? AND round = ?
             `,
             [price, contractId, round]
         );
@@ -401,7 +401,7 @@ export default class Database {
         if (result.changes === 0) {
             return await this.run(
                 `
-                INSERT INTO prices_history_0200 (contractId, price, round, timestamep) VALUES (?, ?, ?, ?)
+                INSERT INTO price_history_0200 (contractId, price, round, timestamp) VALUES (?, ?, ?, ?)
                 `,
                 [contractId, price, round, timestamp]
             );
@@ -476,11 +476,12 @@ export default class Database {
             INSERT OR IGNORE INTO event_dex_deposits (transactionId, contractId, timestamp, round, inBalA, inBalB, lpOut, poolBalA, poolBalB)
 	    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             `,
-            [transactionId, contractId, timestamp, round, owner, spender, amount]
+            [transactionId, contractId, timestamp, round, inBalA, inBalB, lpOut, poolBalA, poolBalB]
         );
     }
 
     async insertEventDexWithdraw({ transactionId, contractId, timestamp, round, lpIn, outBalA, outBalB, poolBalA, poolBalB }) {
+	console.log(this)
         return await this.run(
             `
             INSERT OR IGNORE INTO event_dex_withdrawals (transactionId, contractId, timestamp, round, lpIn, outBalA, outBalB, poolBalA, poolBalB)
@@ -493,7 +494,7 @@ export default class Database {
     async insertEventDexSwap({ transactionId, contractId, timestamp, round, inBalA, inBalB, outBalA, outBalB, poolBalA, poolBalB }) {
         return await this.run(
             `
-            INSERT OR IGNORE INTO event_dex_withdrawals (transactionId, contractId, timestamp, round, inBalA, inBalB, outBalA, outBalB, poolBalA, poolBalB)
+            INSERT OR IGNORE INTO event_dex_swaps (transactionId, contractId, timestamp, round, inBalA, inBalB, outBalA, outBalB, poolBalA, poolBalB)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `,
             [transactionId, contractId, timestamp, inBalA, inBalB, outBalA, outBalB, poolBalA, poolBalB]

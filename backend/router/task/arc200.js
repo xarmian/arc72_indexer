@@ -128,7 +128,7 @@ const onMint = async (ci, event) => {
     accountId: to,
     balance: token.totalSupply,
   });
-  await db.insertOrUpdateContract0200(token);
+  //await db.insertOrUpdateContract0200(token);
   console.log(`Minted token ${contractId} by ${to} on round ${round}`);
 };
 
