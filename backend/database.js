@@ -384,6 +384,27 @@ export default class Database {
     }
 
 
+    async insertOrUpdatePriceHistory0200({ contractId, price, round, timestamp }) {
+        const result = await this.run(
+            `
+            UPDATE prices_history_0200
+            SET price = ?
+            WHERE contractId = ? round = ?
+            `,
+            [price, contractId, round]
+        );
+
+        if (result.changes === 0) {
+            return await this.run(
+                `
+                INSERT INTO prices_history_0200 (contractId, price, round, timestamep) VALUES (?, ?, ?, ?)
+                `,
+                [contractId, price, round, timestamp]
+            );
+        }
+        return result;
+    }
+
 
     async insertOrUpdateAccountBalance0200({ accountId, contractId, balance }) {
         const result = await this.run(
@@ -442,6 +463,36 @@ export default class Database {
             INSERT OR IGNORE INTO approvals_0200 (transactionId, contractId, timestamp, round, owner, spender, amount) VALUES (?, ?, ?, ?, ?, ?, ?)
             `,
             [transactionId, contractId, timestamp, round, owner, spender, amount]
+        );
+    }
+
+    async insertEventDexDeposit({ transactionId, contractId, timestamp, round, inBalA, inBalB, lpOut, poolBalA, poolBalB }) {
+        return await this.run(
+            `
+            INSERT OR IGNORE INTO event_dex_deposits (transactionId, contractId, timestamp, round, inBalA, inBalB, lpOut, poolBalA, poolBalB)
+	    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `,
+            [transactionId, contractId, timestamp, round, owner, spender, amount]
+        );
+    }
+
+    async insertEventDexWithdraw({ transactionId, contractId, timestamp, round, lpIn, outBalA, outBalB, poolBalA, poolBalB }) {
+        return await this.run(
+            `
+            INSERT OR IGNORE INTO event_dex_withdrawals (transactionId, contractId, timestamp, round, lpIn, outBalA, outBalB, poolBalA, poolBalB)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `,
+            [transactionId, contractId, timestamp, round, lpIn, outBalA, outBalB, poolBalA, poolBalB
+        );
+    }
+
+    async insertEventDexSwap({ transactionId, contractId, timestamp, round, inBalA, inBalB, outBalA, outBalB, poolBalA, poolBalB }) {
+        return await this.run(
+            `
+            INSERT OR IGNORE INTO event_dex_withdrawals (transactionId, contractId, timestamp, round, inBalA, inBalB, outBalA, outBalB, poolBalA, poolBalB)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `,
+            [transactionId, contractId, timestamp, inBalA, inBalB, outBalA, outBalB, poolBalA, poolBalB]
         );
     }
 

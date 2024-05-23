@@ -239,6 +239,57 @@ CREATE TABLE IF NOT EXISTS price_history_0200 (
     PRIMARY KEY (contractId, round)
 );
 
+-- deposit activity for dex contracts
+CREATE TABLE IF NOT EXISTS event_dex_deposits (
+    transactionId TEXT,
+    contractId TEXT,
+    timestamp INTEGER,
+    round INTEGER,
+    inBalA TEXT,
+    inBalB TEXT,
+    lpOut TEXT,
+    poolBalA TEXT,
+    poolBalB TEXT,
+    PRIMARY KEY (transactionId)
+);
+
+
+-- withdraw activity for dex contracts
+CREATE TABLE IF NOT EXISTS event_dex_withdrawals (
+    transactionId TEXT,
+    contractId TEXT,
+    timestamp INTEGER,
+    round INTEGER,
+    lpIn TEXT,
+    outBalA TEXT,
+    outBalB TEXT,
+    poolBalA TEXT,
+    poolBalB TEXT,
+    PRIMARY KEY (transactionId)
+);
+
+-- swap activity for dex contracts
+CREATE TABLE IF NOT EXISTS event_dex_swaps (
+    transactionId TEXT,
+    contractId TEXT,
+    timestamp INTEGER,
+    round INTEGER,
+    inBalA TEXT,
+    inBalB TEXT,
+    outBalA TEXT,
+    outBalB TEXT,
+    poolBalA TEXT,
+    poolBalB TEXT,
+    PRIMARY KEY (transactionId)
+);
+
+
+
+
+
+
+
+
 
 ------------------------------------------
 -- ARC-0200 Indexes
