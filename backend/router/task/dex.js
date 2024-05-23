@@ -21,7 +21,39 @@ const isLPT = async (contractId, globalState) => {
   return isLPT;
 }
 
-// getEvents
+const onSwap = async (ci, events) => {
+  const contractId = ci.getContractId();
+  const swapEvents = (events.find(
+    (el) => ["Swap", "SwapEvent"].includes(el.name) && el.events.length > 0
+  )?.events || []).map(swap.decodeSwapEvent);
+  console.log(
+    `Processing ${swapEvents.length} Swap events for contract ${contractId}`
+  );
+  console.log(swapEvents);
+}
+
+const onDeposit = async (ci, events) => {
+  const contractId = ci.getContractId();
+  const depositEvents = (events.find(
+    (el) => ["Deposit", "DepositEvent"].includes(el.name) && el.events.length > 0
+  )?.events || []).map(swap.decodeDepositEvent);
+  console.log(
+    `Processing ${depositEvents.length} Deposit events for contract ${contractId}`
+  );
+  console.log(depositEvents);
+}
+
+
+const onWithdraw = async (ci, events) => {
+  const contractId = ci.getContractId();
+  const withdrawEvents = (events.find(
+    (el) => ["Withdraw", "WithdrawEvent"].includes(el.name) && el.events.length > 0
+  )?.events || []).map(swap.decodeWithdrawEvent);
+  console.log(
+    `Processing ${withdrawEvents.length} Withdraw events for contract ${contractId}`
+  );
+  console.log(withdrawEvents);
+}
 
 const getToken = async (ci, contractId) => {
 
@@ -133,7 +165,7 @@ const updateLastSync = async (contractId, round) => {
 
 const doIndex = async (app, round) => {
   const contractId = app.apid;
-  const ci = makeContract(contractId, abi.arc200);
+  const ci = makeContract(contractId, abi.swap);
   let lastSyncRound;
   if (app.isCreate) {
     lastSyncRound = round;
@@ -164,6 +196,9 @@ const doIndex = async (app, round) => {
     });
     await onTransfer(ci, events);
     await onApproval(ci, events);
+    await onSwap(ci, events);
+    await onDeposit(ci, events);
+    await onWithdraw(ci, events);
     // TODO add support for arc72_ApprovalForAll
     await updateLastSync(contractId, round);
   }
