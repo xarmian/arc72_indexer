@@ -324,6 +324,10 @@ export default class Database {
 	return await this.all("SELECT * from contracts_0200");
     }
 
+    async getContract0200ById(contractId) {
+        return await this.get("SELECT * FROM contracts_0200 WHERE contractId = ?", [contractId])   
+    }
+
     async getContract0200ContractIdByTokenId(tokenId) {
 	return (await this.all("SELECT contractId FROM contracts_0200 WHERE tokenId = ?", [tokenId])).map(({ contractId }) => contractId)
     }
@@ -482,7 +486,7 @@ export default class Database {
             INSERT OR IGNORE INTO event_dex_withdrawals (transactionId, contractId, timestamp, round, lpIn, outBalA, outBalB, poolBalA, poolBalB)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             `,
-            [transactionId, contractId, timestamp, round, lpIn, outBalA, outBalB, poolBalA, poolBalB
+            [transactionId, contractId, timestamp, round, lpIn, outBalA, outBalB, poolBalA, poolBalB]
         );
     }
 
