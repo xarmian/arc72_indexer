@@ -13,6 +13,6 @@
   "author": "David Runion",
   "license": "ISC",
   "dependencies": {
-    "ulujs": "^0.4.10"
+    "ulujs": "^0.7.13"
   }
 }

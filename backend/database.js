@@ -324,6 +324,10 @@ export default class Database {
 	return await this.all("SELECT * from contracts_0200");
     }
 
+    async getContract0200ById(contractId) {
+        return await this.get("SELECT * FROM contracts_0200 WHERE contractId = ?", [contractId])   
+    }
+
     async getContract0200ContractIdByTokenId(tokenId) {
 	return (await this.all("SELECT contractId FROM contracts_0200 WHERE tokenId = ?", [tokenId])).map(({ contractId }) => contractId)
     }
@@ -384,6 +388,27 @@ export default class Database {
     }
 
 
+    async insertOrUpdatePriceHistory0200({ contractId, price, round, timestamp }) {
+        const result = await this.run(
+            `
+            UPDATE price_history_0200
+            SET price = ?
+            WHERE contractId = ? AND round = ?
+            `,
+            [price, contractId, round]
+        );
+
+        if (result.changes === 0) {
+            return await this.run(
+                `
+                INSERT INTO price_history_0200 (contractId, price, round, timestamp) VALUES (?, ?, ?, ?)
+                `,
+                [contractId, price, round, timestamp]
+            );
+        }
+        return result;
+    }
+
 
     async insertOrUpdateAccountBalance0200({ accountId, contractId, balance }) {
         const result = await this.run(
@@ -442,6 +467,37 @@ export default class Database {
             INSERT OR IGNORE INTO approvals_0200 (transactionId, contractId, timestamp, round, owner, spender, amount) VALUES (?, ?, ?, ?, ?, ?, ?)
             `,
             [transactionId, contractId, timestamp, round, owner, spender, amount]
+        );
+    }
+
+    async insertEventDexDeposit({ transactionId, contractId, timestamp, round, inBalA, inBalB, lpOut, poolBalA, poolBalB }) {
+        return await this.run(
+            `
+            INSERT OR IGNORE INTO event_dex_deposits (transactionId, contractId, timestamp, round, inBalA, inBalB, lpOut, poolBalA, poolBalB)
+	    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `,
+            [transactionId, contractId, timestamp, round, inBalA, inBalB, lpOut, poolBalA, poolBalB]
+        );
+    }
+
+    async insertEventDexWithdraw({ transactionId, contractId, timestamp, round, lpIn, outBalA, outBalB, poolBalA, poolBalB }) {
+	console.log(this)
+        return await this.run(
+            `
+            INSERT OR IGNORE INTO event_dex_withdrawals (transactionId, contractId, timestamp, round, lpIn, outBalA, outBalB, poolBalA, poolBalB)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `,
+            [transactionId, contractId, timestamp, round, lpIn, outBalA, outBalB, poolBalA, poolBalB]
+        );
+    }
+
+    async insertEventDexSwap({ transactionId, contractId, timestamp, round, inBalA, inBalB, outBalA, outBalB, poolBalA, poolBalB }) {
+        return await this.run(
+            `
+            INSERT OR IGNORE INTO event_dex_swaps (transactionId, contractId, timestamp, round, inBalA, inBalB, outBalA, outBalB, poolBalA, poolBalB)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `,
+            [transactionId, contractId, timestamp, inBalA, inBalB, outBalA, outBalB, poolBalA, poolBalB]
         );
     }
 

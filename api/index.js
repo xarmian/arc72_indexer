@@ -15,8 +15,9 @@ import { salesEndpoint } from "./endpoints/mp/sales.js";
 import { deletesEndpoint } from "./endpoints/mp/deletes.js";
 import { statsEndpoint } from "./endpoints/stats.js";
 import { contracts0200Endpoint } from "./endpoints/arc200/tokens.js";
-import dotenv from "dotenv";
 import { accounts0200Endpoint } from "./endpoints/arc200/balances.js";
+import { prices0200Endpoint } from "./endpoints/arc200/prices.js";
+import dotenv from "dotenv";
 dotenv.config();
 
 const DB_PATH = process.env.DB_PATH || '../db/db.sqlite';
@@ -64,6 +65,10 @@ const endpoints = [
   {
     path: "/nft-indexer/v1/arc200/balances",
     handler: accounts0200Endpoint,
+  },
+  {
+    path: "/nft-indexer/v1/arc200/prices",
+    handler: prices0200Endpoint
   },
   {
     path: "/stats",

@@ -35,12 +35,22 @@ import {
     CONTRACT_TYPE_ARC72,
     CONTRACT_TYPE_MP,
     CONTRACT_TYPE_ARC200,
+    CONTRACT_TYPE_LPT,
 } from "./constants.js";
 import onARC72 from "./router/task/arc72.js";
 import onMP206 from "./router/task/mp206.js";
 import onARC200 from "./router/task/arc200.js";
+import onDex from "./router/task/dex.js";
 import dotenv from "dotenv";
 dotenv.config();
+
+const keypress = async () => {
+  process.stdin.setRawMode(true)
+  return new Promise(resolve => process.stdin.once('data', () => {
+    process.stdin.setRawMode(false)
+    resolve()
+  }))
+}
 
 const args = minimist(process.argv.slice(2));
 
@@ -53,7 +63,7 @@ if (isDebugMode) {
 export const getEndBlock = async () => {
     // end_block = (await algodClient.status().do())['last-round'];
     // end_block = (await indexerClient.lookupAccountByID(ZERO_ADDRESS).do())['current-round'];
-    const hc = await await indexerClient.makeHealthCheck().do();
+    const hc = await indexerClient.makeHealthCheck().do();
     const end_block = hc.round;
     return end_block;
 };
@@ -121,15 +131,23 @@ while (true) {
             const contractType = await getContractType(contractId);
             switch (contractType) {
                 case CONTRACT_TYPE_ARC72: {
+                    console.log("ARC72", app, rnd);
                     await onARC72(app, rnd);
                     break;
                 }
                 case CONTRACT_TYPE_MP /*206*/: {
+                    console.log("MP206", app, rnd);
                     await onMP206(app, rnd);
                     break;
                 }
                 case CONTRACT_TYPE_ARC200: {
+                    console.log("ARC200", app, rnd);
                     await onARC200(app, rnd);
+                    break;
+                }
+                case CONTRACT_TYPE_LPT: {
+                    console.log("LPT", app, rnd);
+                    await onDex(app, rnd);
                     break;
                 }
                 case CONTRACT_TYPE_UNKNOWN:
@@ -161,5 +179,9 @@ while (true) {
 
     if(args.once) {
 	break;
+    }
+
+    if(args.step) {
+	await keypress();
     }
 }
