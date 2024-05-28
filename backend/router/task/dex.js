@@ -21,8 +21,9 @@ const isLPT = async (contractId, globalState) => {
   return isLPT;
 }
 
-const saveEvents = async (contractId, events, f) => {
-  const token = await db.getContract0200ById(contractId)
+const saveEvents = async (contractId, events, f) => { 
+  console.log("Saving events");
+  const token = await db.getContract0200ById(String(contractId))
   console.log({token});
   const tokens = String(token.tokenId).split(",");
   if(tokens.length !== 2) {
@@ -37,6 +38,7 @@ const saveEvents = async (contractId, events, f) => {
     '0',
     ...(await db.getContract0200ContractIdByTokenId('0'))
   ]
+  console.log({nts});
   const decA = tokenA?.decimals || 6;
   const decB = tokenB?.decimals || 6;
   // for each event, record a transaction in the database
@@ -58,6 +60,10 @@ const saveEvents = async (contractId, events, f) => {
      }
      console.log({ratio, whichToken, tokA, tokB})
      if (!isNaN(ratio)) {
+	await db.insertOrUpdatePrice0200({
+		contractId: String(whichToken),
+                price: String(ratio)
+	})
 	await db.insertOrUpdatePriceHistory0200({
 		contractId: String(whichToken),
      		price: String(ratio),
@@ -77,8 +83,10 @@ const onSwap = async (ci, events) => {
   console.log(
     `Processing ${swapEvents.length} Swap events for contract ${contractId}`
   );
-  console.log(swapEvents);
-  await saveEvents(contractId, swapEvents, (e) => db.insertEventDexSwap(e));
+  if(swapEvents.length > 0) {
+  	console.log(swapEvents);
+  	await saveEvents(contractId, swapEvents, (e) => db.insertEventDexSwap(e));
+  }
 }
 
 const onDeposit = async (ci, events) => {
@@ -90,7 +98,9 @@ const onDeposit = async (ci, events) => {
     `Processing ${depositEvents.length} Deposit events for contract ${contractId}`
   );
   console.log(depositEvents);
-  await saveEvents(contractId, depositEvents, (e) => db.insertEventDexDeposit(e));
+  if(depositEvents.length > 0) {
+  	await saveEvents(contractId, depositEvents, (e) => db.insertEventDexDeposit(e));
+  }
 }
 
 
@@ -103,7 +113,9 @@ const onWithdraw = async (ci, events) => {
     `Processing ${withdrawEvents.length} Withdraw events for contract ${contractId}`
   );
   console.log(withdrawEvents);
-  await saveEvents(contractId, withdrawEvents, (e) => db.insertEventDexWithdraw(e));
+  if(withdrawEvents.length > 0) {
+  	await saveEvents(contractId, withdrawEvents, (e) => db.insertEventDexWithdraw(e));
+  }
 }
 
 const getToken = async (ci, contractId) => {
@@ -133,6 +145,12 @@ const getToken = async (ci, contractId) => {
     const info = infoR.returnValue;
     const { tokA, tokB } = info;
     tokenId = `${tokA},${tokB}`;
+    for(const tokenId of [tokA, tokB]) {
+	await db.insertContractToken0200({
+                contractId: String(contractId),
+                tokenId: String(tokenId)
+        });
+    }
     // if nt pair then update price
     const nts = [
       ...(await db.getContract0200ContractIdByTokenId('0'))
@@ -181,6 +199,13 @@ const getToken = async (ci, contractId) => {
     const tokenId1 = 0;
     const tokenId2 = Number("0x" + Buffer.from(boxResponse.value).toString("hex"));
     tokenId = `${tokenId1},${tokenId2}`
+    for(const tokenId of [tokenId1, tokenId2]) {
+	console.log(`Adding contract token ${contractId} ${tokenId}`);
+        await db.insertContractToken0200({
+                contractId: String(contractId),
+                tokenId: String(tokenId)
+        });
+    }
     const ciARC200 = makeContract(tokenId2, abi.arc200);
     const arc200_decimals = (await ciARC200.arc200_decimals()).returnValue;
     const nRatio = ratio.multipliedBy(new BigNumber(10).pow(arc200_decimals)).dividedBy(new BigNumber(10).pow(6))

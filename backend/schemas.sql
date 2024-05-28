@@ -169,18 +169,30 @@ CREATE INDEX IF NOT EXISTS idx_deletes_timestamp ON deletes(timestamp);
 
 CREATE TABLE IF NOT EXISTS contracts_0200 (
     contractId TEXT,
-    tokenId TEXT, -- NULL pure 0 wVOI >0 wVSA
+    --tokenId TEXT, -- NULL pure 0 wVOI >0 wVSA -- move to table
     name TEXT,
     symbol TEXT,
     decimals INTEGER,
     totalSupply TEXT,
     creator TEXT,
-    metadata BLOB,
+    --metadata BLOB, -- move to table
     createRound INTEGER,
     lastSyncRound INTEGER,
     isBlacklisted INTEGER,
     PRIMARY KEY (contractId)
 );
+
+CREATE TABLE IF NOT EXISTS contract_tokens_0200 (
+    contractId TEXT,
+    tokenId TEXT,
+    PRIMARY KEY (contractId, tokenId)
+);
+
+CREATE TABLE IF NOT EXISTS contract_metadata_0200 (
+    contractId TEXT,      
+    metadata BLOB,
+    PRIMARY KEY (contractId)
+);  
 
 -- map of account balances for arc-0200 contracts
 CREATE TABLE IF NOT EXISTS account_balances_0200 (

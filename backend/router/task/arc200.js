@@ -1,5 +1,5 @@
 import algosdk from "algosdk";
-import { CONTRACT, abi, swap } from "ulujs";
+import { CONTRACT, abi, arc200 } from "ulujs";
 import BigNumber from "bignumber.js";
 import {
   algodClient,
@@ -95,14 +95,30 @@ const getToken = async (ci, contractId) => {
   // case: wVOI
   if(iswNT) {
 	tokenId = "0"
+	const price = "1.000000"
+	console.log(`Adding contract token ${contractId} ${tokenId}`);
+	await db.insertContractToken0200({
+		contractId: String(contractId),
+		tokenId: String(tokenId)
+	});
+	console.log(`Updating price ${contractId} ${price}`);
 	await db.insertOrUpdatePrice0200({
                 contractId: String(contractId),
-                price: String(1.000000)
+                price: String(price)
         })
   }
   // case: wVSA or other
   else if(accountAssets.assets.length > 0)  {
-  	tokenId = accountAssets.assets.map(el => String(el["asset-id"])).join(",")
+	const tokenIds = accountAssets.assets.map(el => String(el["asset-id"]));
+  	tokenId = tokenIds.join(",")
+	for(const tokenId of tokenIds) {
+		console.log(`Adding contract token ${contractId} ${tokenId}`);
+		await db.insertContractToken0200({
+                	contractId: String(contractId),
+                	tokenId: String(tokenId)
+        	});
+
+	}
   }
   else {
 	// unhandled case
@@ -247,22 +263,14 @@ const doIndex = async (app, round) => {
     lastSyncRound = round;
     console.log(`Adding new contract ${contractId} to tokens table`);
     const token = await getToken(ci, contractId)
-    console.log({ token });
     await db.insertOrUpdateContract0200(token);
     console.log(`Minted token ${contractId} by ${token.creator} on round ${round}`);
   } else {
     //lastSyncRound = await db.getTokenLastSync(contractId);
     lastSyncRound = round;
     console.log(`Updating contract ${contractId} in tokens table`);
-    const token = await getToken(ci, contractId);
-    console.log({ token });
-    // TODO update token
-    /*
-    await db.insertOrUpdateCollection({
-      ...collection,
-      lastSyncRound,
-    });
-    */
+    //const token = await getToken(ci, contractId);
+    //console.log({ token });
   }
   if (lastSyncRound <= round) {
     // get transaction history since lastSyncRound

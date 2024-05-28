@@ -117,15 +117,27 @@ export const contracts0200Endpoint = async (req, res, db) => {
   /*
   if (!intersect(includes, prefixes)) {
   */
-    query += `SELECT 
-    	c.*,
-	p.price
-    FROM
-    	contracts_0200 c
-    LEFT JOIN
-    	prices_0200 p
-    ON
-    	c.contractId = p.contractId 
+    query += `
+SELECT 
+    c.*,
+    p.price,
+    t.tokenId                         
+FROM 
+    contracts_0200 c
+LEFT JOIN 
+    (SELECT 
+        t.contractId, 
+        group_concat(t.tokenId) as tokenId
+     FROM
+        contract_tokens_0200 t 
+     GROUP BY  
+        t.contractId) t 
+ON 
+    c.contractId = t.contractId
+LEFT JOIN 
+    prices_0200 p 
+ON 
+    c.contractId = p.contractId
     `;
   /*
   } else {
@@ -190,9 +202,9 @@ export const contracts0200Endpoint = async (req, res, db) => {
 
   /*
   if (intersect(includes, prefixes)) {
-    query += ` GROUP BY contracts_0200.contractId`;
   }
   */
+  query += ` GROUP BY c.contractId`;
 
   query += ` ORDER BY createRound ASC`;
 

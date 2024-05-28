@@ -325,11 +325,44 @@ export default class Database {
     }
 
     async getContract0200ById(contractId) {
-        return await this.get("SELECT * FROM contracts_0200 WHERE contractId = ?", [contractId])   
+        return await this.get(`
+SELECT 
+    c.*,
+    p.price,
+    group_concat(t.tokenId) as tokenId
+FROM 
+    contracts_0200 c
+LEFT JOIN 
+    contract_tokens_0200 t 
+ON 
+    c.contractId = t.contractId
+LEFT JOIN 
+    prices_0200 p 
+ON 
+    t.contractId = p.contractId
+WHERE c.contractId = ?
+GROUP BY  c.contractId;
+`, [contractId])   
     }
 
     async getContract0200ContractIdByTokenId(tokenId) {
-	return (await this.all("SELECT contractId FROM contracts_0200 WHERE tokenId = ?", [tokenId])).map(({ contractId }) => contractId)
+	return (await this.all(`
+WITH aggregated_tokens AS (
+    SELECT 
+        t.contractId, 
+        group_concat(t.tokenId) as tokenId
+    FROM
+        contract_tokens_0200 t 
+    GROUP BY  
+        t.contractId
+)
+SELECT 
+    at.contractId
+FROM 
+    aggregated_tokens at
+WHERE 
+    at.tokenId = ?;
+`, [tokenId])).map(({ contractId }) => contractId)
     }
 
     async getContract0200LastSync(contractId) {
@@ -345,25 +378,34 @@ export default class Database {
         return await this.run("UPDATE contracts_0200 SET tokenId = ? WHERE contractId = ?", [tokenId, contractId]);
     }
 
-    async insertOrUpdateContract0200({ contractId, name, symbol, decimals, totalSupply, createRound, lastSyncRound, creator, tokenId, metadata }) {
+    async insertOrUpdateContract0200({ contractId, name, symbol, decimals, totalSupply, createRound, lastSyncRound, creator }) {
         const result = await this.run(
             `
             UPDATE contracts_0200
-            SET totalSupply = ?, lastSyncRound = ?, creator = ?, metadata = ?, tokenId = ?
+            SET totalSupply = ?, lastSyncRound = ?, creator = ?
             WHERE contractId = ?
             `,
-            [totalSupply, lastSyncRound, creator, metadata, tokenId, contractId]
+            [totalSupply, lastSyncRound, creator, contractId]
         );
 
         if (result.changes === 0) {
             return await this.run(
                 `
-                INSERT INTO contracts_0200 (contractId, tokenId, name, symbol, decimals, totalSupply, creator, metadata, createRound, lastSyncRound, isBlacklisted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO contracts_0200 (contractId, name, symbol, decimals, totalSupply, creator, createRound, lastSyncRound, isBlacklisted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 `,
-                [contractId, tokenId, name, symbol, Number(decimals), totalSupply, creator, metadata, createRound, lastSyncRound, 0]
+                [contractId, name, symbol, Number(decimals), totalSupply, creator, createRound, lastSyncRound, 0]
             );
         }
         return result;
+    }
+
+    async insertContractToken0200({ contractId, tokenId }) {
+            return await this.run(
+                `
+                INSERT OR IGNORE INTO contract_tokens_0200 (contractId, tokenId) VALUES (?, ?)
+                `,
+                [contractId, tokenId]
+        );
     }
 
     async insertOrUpdatePrice0200({ contractId, price }) {
