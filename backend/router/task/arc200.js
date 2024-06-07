@@ -261,7 +261,7 @@ const doIndex = async (app, round) => {
       `Minted token ${contractId} by ${token.creator} on round ${round}`
     );
   } else {
-    lastSyncRound = await db.getTokenLastSync(contractId);
+    lastSyncRound = await db.getContract0200LastSync(contractId);
     console.log(`Updating contract ${contractId} in tokens table`);
     const token = await getToken(ci, contractId); 
     await db.insertOrUpdateContract0200(token); // ideally we would not need this step
