@@ -1,6 +1,9 @@
 import { CONTRACT, abi } from "ulujs";
 import { algodClient, indexerClient, decodeMpCurrencyData, db } from "../../utils.js";
 
+// TODO get this function from ulujs
+// getListingEvent
+//  - convert event tuple to object
 const getListingEvent = (event) => {
   const [
     transactionId,
@@ -31,6 +34,9 @@ const getListingEvent = (event) => {
   return listing;
 };
 
+// TODO get this function from ulujs
+// getBuyEvent
+//  - convert event tuple to object
 const getBuyEvent = (event) => {
   const [transactionId, round, timestamp, listingId, buyer] = event;
   return {
@@ -42,6 +48,9 @@ const getBuyEvent = (event) => {
   };
 };
 
+// TODO get this function from ulujs
+// getDeleteEvent
+//  - convert event tuple to object
 const getDeleteEvent = (event) => {
   const [transactionId, round, timestamp, listingId] = event;
   return {
@@ -52,9 +61,13 @@ const getDeleteEvent = (event) => {
   };
 };
 
+// makeContract
+//  - return marketplace contract instance
 const makeContract = (contractId) =>
   new CONTRACT(contractId, algodClient, indexerClient, abi.mp)
 
+// onListing
+//  - process listing event
 const onListing = async (ci, events) => {
   const contractId = ci.getContractId();
   const listEvents = events.find(el => el.name === "e_sale_ListEvent").events;
@@ -73,6 +86,8 @@ const onListing = async (ci, events) => {
   }
 };
 
+// onBuy
+//  - process buy event
 const onBuy = async (ci, events) => {
   const contractId = ci.getContractId();
   const buyEvents = events.find(el => el.name === "e_sale_BuyEvent").events;
@@ -121,6 +136,8 @@ const onBuy = async (ci, events) => {
   }
 };
 
+// onDelete
+//  - process delete event
 const onDelete = async (ci, events) => {
   const contractId = ci.getContractId();
   const deleteEvents = events.find(
@@ -170,6 +187,8 @@ const onDelete = async (ci, events) => {
   }
 };
 
+// updateLastSync
+//  - update marketplace sync record
 const updateLastSync = async (contractId, round) => {
   // update lastSyncRound for market
   await db.updateMarketLastSync(contractId, round);
@@ -178,6 +197,8 @@ const updateLastSync = async (contractId, round) => {
   );
 };
 
+// doIndex
+//  - update marketplace info and process events
 const doIndex = async (app, round) => {
   const contractId = app.apid;
   const ci = makeContract(contractId);
@@ -214,4 +235,5 @@ const doIndex = async (app, round) => {
     await updateLastSync(contractId, round);
   }
 };
+
 export default doIndex;

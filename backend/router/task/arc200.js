@@ -1,17 +1,15 @@
 import algosdk from "algosdk";
-import { CONTRACT, abi, arc200 } from "ulujs";
-import BigNumber from "bignumber.js";
+import { CONTRACT, abi } from "ulujs";
 import {
   algodClient,
   indexerClient,
-  decodeGlobalState,
   db,
   prepareString,
 } from "../../utils.js";
 import { ZERO_ADDRESS } from "../../constants.js";
-import { getEndBlock } from "../../index.js";
 
-
+// makeContract
+//  - returns contract instance
 const makeContract = (contractId, spec) =>
   new CONTRACT(contractId, algodClient, indexerClient, spec);
 
@@ -41,6 +39,8 @@ const getApprovalEvent = (event) => {
   };
 };
 
+// getMetadata
+//  - returns metadata for token
 export const getMetadata = async (ci, contractId) => {
   // get application info from read-only functions
   const name = (await ci.arc200_name()).returnValue;
@@ -48,80 +48,77 @@ export const getMetadata = async (ci, contractId) => {
   const totalSupply = (await ci.arc200_totalSupply()).returnValue;
   const decimals = (await ci.arc200_decimals()).returnValue;
   return {
-	name,
-	symbol,
-	totalSupply,
-	decimals
-  }
-}
+    name,
+    symbol,
+    totalSupply,
+    decimals,
+  };
+};
 
+// getToken
+//  - returns token object and updates stored token
 const getToken = async (ci, contractId) => {
-
-  const {
-	name,
-        symbol,
-        totalSupply,
-        decimals
-  } = await getMetadata(ci, contractId);
-
+  const { name, symbol, totalSupply, decimals } = await getMetadata(
+    ci,
+    contractId
+  );
   // get application info from indexer
   const app = await indexerClient.lookupApplications(contractId).do();
   const creator = app.application.params.creator;
   const createRound = app.application["created-at-round"];
-
   // get application assets from indexer
-  const accountAssets = await indexerClient.lookupAccountAssets(algosdk.getApplicationAddress(contractId)).do();
-  
+  const accountAssets = await indexerClient
+    .lookupAccountAssets(algosdk.getApplicationAddress(contractId))
+    .do();
   // check if wrapped network token
+  //   wVOI has a method called circulatingSupply
   // TODO get from ulujs abi
   const ciNT200 = makeContract(contractId, {
-	name: "",
-	desc: "",
-	methods: [
-		{
-			name: "circulatingSupply",
-			args: [],
-			returns: {
-				type: "uint256"
-			}
-		}
-	],
-	events: []
-  })
+    name: "",
+    desc: "",
+    methods: [
+      {
+        name: "circulatingSupply",
+        args: [],
+        returns: {
+          type: "uint256",
+        },
+      },
+    ],
+    events: [],
+  });
   const circulatingSupplyR = await ciNT200.circulatingSupply();
   const iswNT = circulatingSupplyR.success && accountAssets.assets.length === 0;
 
   let tokenId = null;
   // case: wVOI
-  if(iswNT) {
-	tokenId = "0"
-	const price = "1.000000"
-	console.log(`Adding contract token ${contractId} ${tokenId}`);
-	await db.insertContractToken0200({
-		contractId: String(contractId),
-		tokenId: String(tokenId)
-	});
-	console.log(`Updating price ${contractId} ${price}`);
-	await db.insertOrUpdatePrice0200({
-                contractId: String(contractId),
-                price: String(price)
-        })
+  if (iswNT) {
+    tokenId = "0";
+    const price = "1.000000";
+    console.log(`Adding contract token ${contractId} ${tokenId}`);
+    await db.insertContractToken0200({
+      contractId: String(contractId),
+      tokenId: String(tokenId),
+    });
+    console.log(`Updating price ${contractId} ${price}`);
+    await db.insertOrUpdatePrice0200({
+      contractId: String(contractId),
+      price: String(price),
+    });
   }
   // case: wVSA or other
-  else if(accountAssets.assets.length > 0)  {
-	const tokenIds = accountAssets.assets.map(el => String(el["asset-id"]));
-  	tokenId = tokenIds.join(",")
-	for(const tokenId of tokenIds) {
-		console.log(`Adding contract token ${contractId} ${tokenId}`);
-		await db.insertContractToken0200({
-                	contractId: String(contractId),
-                	tokenId: String(tokenId)
-        	});
-
-	}
-  }
-  else {
-	// unhandled case
+  else if (accountAssets.assets.length > 0) {
+    const tokenIds = accountAssets.assets.map((el) => String(el["asset-id"]));
+    tokenId = tokenIds.join(",");
+    for (const tokenId of tokenIds) {
+      console.log(`Adding contract token ${contractId} ${tokenId}`);
+      await db.insertContractToken0200({
+        contractId: String(contractId),
+        tokenId: String(tokenId),
+      });
+    }
+  } else {
+    // unhandled case
   }
   return {
     contractId,
@@ -131,14 +128,14 @@ const getToken = async (ci, contractId) => {
     totalSupply: String(totalSupply),
     createRound,
     creator,
-    tokenId
+    tokenId,
   };
 };
 
 const onMint = async (ci, event) => {
   const contractId = ci.getContractId();
   const { round, timestamp, to } = getTransferEvent(event);
-  const token = await getToken(ci, contractId)
+  const token = await getToken(ci, contractId);
   await db.insertOrUpdateAccountBalance0200({
     contractId: String(contractId),
     accountId: to,
@@ -222,18 +219,15 @@ export const onApproval = async (ci, events) => {
     `Processing ${approvalEvents.length} arc200_Approval events for contract ${contractId}`
   );
   for await (const event of approvalEvents) {
-    const {
-      transactionId, round, timestamp, from, to, amount
-    } = getApprovalEvent(event);
+    const { transactionId, round, timestamp, from, to, amount } =
+      getApprovalEvent(event);
     await db.insertOrUpdateAccountApproval0200({
       contractId,
       owner: from,
       spender: to,
-      amount
+      amount,
     });
-    console.log(
-    `[${contractId}] Updated approval${from}:${to} to ${amount}`
-    );
+    console.log(`[${contractId}] Updated approval${from}:${to} to ${amount}`);
     db.insertApproval0200({
       contractId,
       transactionId,
@@ -242,7 +236,7 @@ export const onApproval = async (ci, events) => {
       owner: from,
       spender: to,
       amount,
-    })
+    });
   }
 };
 
@@ -250,10 +244,9 @@ export const onApproval = async (ci, events) => {
 
 const updateLastSync = async (contractId, round) => {
   // update lastSyncRound in collections table
-  //await db.updateCollectionLastSync(contractId, round);
+  await db.updateCollectionLastSync(contractId, round);
   console.log(`Updated lastSyncRound for contract ${contractId} to ${round}`);
 };
-
 
 const doIndex = async (app, round) => {
   const contractId = app.apid;
@@ -262,15 +255,17 @@ const doIndex = async (app, round) => {
   if (app.isCreate) {
     lastSyncRound = round;
     console.log(`Adding new contract ${contractId} to tokens table`);
-    const token = await getToken(ci, contractId)
+    const token = await getToken(ci, contractId);
     await db.insertOrUpdateContract0200(token);
-    console.log(`Minted token ${contractId} by ${token.creator} on round ${round}`);
+    console.log(
+      `Minted token ${contractId} by ${token.creator} on round ${round}`
+    );
   } else {
-    //lastSyncRound = await db.getTokenLastSync(contractId);
-    lastSyncRound = round;
+    lastSyncRound = await db.getTokenLastSync(contractId);
     console.log(`Updating contract ${contractId} in tokens table`);
-    //const token = await getToken(ci, contractId);
-    //console.log({ token });
+    const token = await getToken(ci, contractId); 
+    await db.insertOrUpdateContract0200(token); // ideally we would not need this step
+    console.log({ token });
   }
   if (lastSyncRound <= round) {
     // get transaction history since lastSyncRound
@@ -280,8 +275,8 @@ const doIndex = async (app, round) => {
     });
     await onTransfer(ci, events);
     await onApproval(ci, events);
-    // TODO add support for arc72_ApprovalForAll
     await updateLastSync(contractId, round);
   }
 };
+
 export default doIndex;

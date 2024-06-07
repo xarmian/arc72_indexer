@@ -166,28 +166,27 @@ CREATE INDEX IF NOT EXISTS idx_deletes_timestamp ON deletes(timestamp);
 ------------------------------------------
 
 -- contract metadata for arc-0200 contracts
-
 CREATE TABLE IF NOT EXISTS contracts_0200 (
     contractId TEXT,
-    --tokenId TEXT, -- NULL pure 0 wVOI >0 wVSA -- move to table
     name TEXT,
     symbol TEXT,
     decimals INTEGER,
     totalSupply TEXT,
     creator TEXT,
-    --metadata BLOB, -- move to table
     createRound INTEGER,
     lastSyncRound INTEGER,
     isBlacklisted INTEGER,
     PRIMARY KEY (contractId)
 );
 
+-- associated tokens
 CREATE TABLE IF NOT EXISTS contract_tokens_0200 (
     contractId TEXT,
     tokenId TEXT,
     PRIMARY KEY (contractId, tokenId)
 );
 
+-- metadata attached to token
 CREATE TABLE IF NOT EXISTS contract_metadata_0200 (
     contractId TEXT,      
     metadata BLOB,
@@ -217,8 +216,8 @@ CREATE TABLE IF NOT EXISTS transfers_0200 (
     contractId TEXT,
     timestamp INTEGER,
     round INTEGER,
-    sender TEXT, -- avoid from, reserved word
-    receiver TEXT, -- avoid to, reserved word
+    sender TEXT, 
+    receiver TEXT, 
     amount TEXT,
     PRIMARY KEY (transactionId)
 );
@@ -234,6 +233,8 @@ CREATE TABLE IF NOT EXISTS approvals_0200 (
     amount TEXT,
     PRIMARY KEY (transactionId)
 );
+
+--- dex ---
 
 -- prices for arc-0200 contracts
 CREATE TABLE IF NOT EXISTS prices_0200 (
@@ -265,7 +266,6 @@ CREATE TABLE IF NOT EXISTS event_dex_deposits (
     PRIMARY KEY (transactionId)
 );
 
-
 -- withdraw activity for dex contracts
 CREATE TABLE IF NOT EXISTS event_dex_withdrawals (
     transactionId TEXT,
@@ -295,14 +295,6 @@ CREATE TABLE IF NOT EXISTS event_dex_swaps (
     PRIMARY KEY (transactionId)
 );
 
-
-
-
-
-
-
-
-
 ------------------------------------------
 -- ARC-0200 Indexes
 ------------------------------------------
@@ -318,3 +310,7 @@ CREATE TABLE IF NOT EXISTS event_dex_swaps (
 -- / approvals_0200
 
 -- Path: backend/schemas.sql
+
+------------------------------------------
+-- DEX-0200 Indexes
+------------------------------------------
