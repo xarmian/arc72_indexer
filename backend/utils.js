@@ -131,6 +131,7 @@ export async function isLPT(contractId) {
 }
 
 // TODO support multiple contract types
+//      for example if what-if a contract is an arc72 and an arc200
 export async function getContractType(contract) {
     if (await isARC72(contract)) return CONTRACT_TYPE_ARC72;
     else if (await isMP(contract)) return CONTRACT_TYPE_MP;

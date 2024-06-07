@@ -1,10 +1,19 @@
 import { CONTRACT, abi } from "ulujs";
-import { algodClient, indexerClient, decodeGlobalState, db } from "../../utils.js";
+import {
+  algodClient,
+  indexerClient,
+  decodeGlobalState,
+  db,
+} from "../../utils.js";
 import { ZERO_ADDRESS } from "../../constants.js";
 
+// makeContract
+//  - returns arc72 contract instance
 const makeContract = (contractId) =>
   new CONTRACT(contractId, algodClient, indexerClient, abi.arc72);
 
+// getTransferEvent
+//  - convert event tuple to object
 const getTransferEvent = (event) => {
   const [transactionId, round, timestamp, from, to, tokenId] = event;
   return {
@@ -17,6 +26,8 @@ const getTransferEvent = (event) => {
   };
 };
 
+// getApprovalEvent
+//  - convert event tuple to object
 const getApprovalEvent = (event) => {
   const [transactionId, round, timestamp, from, to, tokenId] = event;
   return {
@@ -29,6 +40,8 @@ const getApprovalEvent = (event) => {
   };
 };
 
+// getCollection
+// - returns collection with updated total supply and global state if any
 const getCollection = async (ci, contractId) => {
   // get application info from read-only functions
   const totalSupply = (await ci.arc72_totalSupply()).returnValue;
@@ -47,10 +60,12 @@ const getCollection = async (ci, contractId) => {
   };
 };
 
+// onMint
+//  - asset is minted, update token and collection
 const onMint = async (ci, event) => {
-  const contractId = ci.getContractId()
+  const contractId = ci.getContractId();
   const { round, to, tokenId } = getTransferEvent(event);
-  const tokenIndex = 0;
+  const tokenIndex = 0; // not sure what this does
   const owner = to;
   const metadataURI = (await ci.arc72_tokenURI(tokenId)).returnValue; // TODO strip null bytes ???
   const metadata = JSON.stringify(
@@ -74,20 +89,23 @@ const onMint = async (ci, event) => {
   console.log(`Minted token ${tokenId} for contract ${contractId}`);
 };
 
+// onAssetTransfer
+//  - not a mint, do least amount of work
 const onAssetTransfer = async (ci, event) => {
-  const contractId = ci.getContractId()
-  const { tokenId, to } = getTransferEvent(event)
+  const contractId = ci.getContractId();
+  const { tokenId, to } = getTransferEvent(event);
   await db.updateTokenOwner(contractId, tokenId, to);
-
   // check token approval
   //const approved = (await ci.arc72_getApproved(tokenId)).returnValue ?? null;
-  const approved = ZERO_ADDRESS;
+  const approved = ZERO_ADDRESS; // on asset transfer approved should be reset
   await db.updateTokenApproved(contractId, tokenId, approved);
   console.log(
     `Updated token ${tokenId} owner to ${to}, approval to ${approved}`
   );
 };
 
+// saveTransaction
+//  - save transfer event as is
 const saveTransaction = async (ci, event) => {
   const contractId = ci.getContractId();
   const { transactionId, round, timestamp, from, to, tokenId } =
@@ -103,9 +121,13 @@ const saveTransaction = async (ci, event) => {
   });
 };
 
+// onTransfer
+//  - update owner, approved, and save transaction
 const onTransfer = async (ci, events) => {
   const contractId = ci.getContractId();
-  const transferEvents = events.find((el) => el.name === "arc72_Transfer").events;
+  const transferEvents = events.find(
+    (el) => el.name === "arc72_Transfer"
+  ).events;
   console.log(
     `Processing ${transferEvents.length} arc72_Transfer events for contract ${contractId}`
   );
@@ -121,9 +143,13 @@ const onTransfer = async (ci, events) => {
   }
 };
 
+// onApproval
+//  - set approval for each approval event
 const onApproval = async (ci, events) => {
-  const contractId = ci.getContractId()
-  const approvalEvents = events.find((el) => el.name === "arc72_Approval").events;
+  const contractId = ci.getContractId();
+  const approvalEvents = events.find(
+    (el) => el.name === "arc72_Approval"
+  ).events;
   console.log(
     `Processing ${approvalEvents.length} arc72_Approval events for contract ${contractId}`
   );
@@ -138,12 +164,19 @@ const onApproval = async (ci, events) => {
 
 // TODO add support for arc72_ApprovalForAll
 
+// updateLastSync
+//  - update lastSyncRound in collections table
 const updateLastSync = async (contractId, round) => {
-  // update lastSyncRound in collections table
   await db.updateCollectionLastSync(contractId, round);
   console.log(`Updated lastSyncRound for contract ${contractId} to ${round}`);
 };
 
+// doIndex
+//  - updates collection info and transactin history
+// precondition:
+//  - contract is arc72 contract
+// postcondition:
+//  - update stored collection immutable properties
 const doIndex = async (app, round) => {
   const contractId = app.apid;
   const ci = makeContract(contractId);
@@ -151,22 +184,22 @@ const doIndex = async (app, round) => {
   if (app.isCreate) {
     lastSyncRound = round;
     console.log(`Adding new contract ${contractId} to collections table`);
-    const collection = await getCollection(ci, contractId);
-    await db.insertOrUpdateCollection({
-      ...collection,
-      lastSyncRound,
-    });
   } else {
     lastSyncRound = await db.getCollectionLastSync(contractId);
     console.log(`Updating contract ${contractId} in collections table`);
-    const collection = await getCollection(ci, contractId);
-    await db.insertOrUpdateCollection({
-      ...collection,
-      lastSyncRound,
-    });
   }
+  // following block mostly for retrieving mutable attibutes of collection namely:
+  // - total supply
+  //     total supply can be computed by adding tokens sent to and from zero address
+  // - decoded state
+  //     global state of collection (mutable + immutable)
+  const collection = await getCollection(ci, contractId);
+  await db.insertOrUpdateCollection({
+    ...collection,
+    lastSyncRound,
+  });
+  // get transaction history since lastSyncRound
   if (lastSyncRound <= round) {
-    // get transaction history since lastSyncRound
     const events = await ci.getEvents({
       minRound: lastSyncRound,
       maxRound: round,
