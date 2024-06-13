@@ -11,6 +11,7 @@
   "dependencies": {
     "algosdk": "^2.7.0",
     "axios": "^1.6.8",
-    "ulujs": "^0.4.10"
+    "bignumber.js": "^9.1.2",
+    "ulujs": "^0.9.12"
   }
 }

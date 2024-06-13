@@ -261,5 +261,7 @@ export const swaggerOptions = {
     "./endpoints/mp/deletes.js",
     "./endpoints/arc200/tokens.js",
     "./endpoints/arc200/balances.js",
+    "./endpoints/arc200/transfers.js",
+    "./endpoints/arc200/approvals.js",
   ],
 };

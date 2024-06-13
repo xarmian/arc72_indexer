@@ -295,6 +295,26 @@ CREATE TABLE IF NOT EXISTS event_dex_swaps (
     PRIMARY KEY (transactionId)
 );
 
+CREATE TABLE IF NOT EXISTS dex_pool (
+    contractId TEXT,
+    providerId TEXT,
+    poolId TEXT,
+    tokAId TEXT,
+    tokBId TEXT,
+    symbolA TEXT,
+    symbolB TEXT,
+    poolBalA TEXT,
+    poolBalB TEXT,
+    tvlA TEXT,
+    tvlB TEXT,
+    volA TEXT,
+    volB TEXT,
+    apr TEXT,
+    supply TEXT,
+    lastSyncRound INTEGER,
+    PRIMARY KEY (contractId)
+)
+
 ------------------------------------------
 -- ARC-0200 Indexes
 ------------------------------------------

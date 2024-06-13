@@ -8,7 +8,7 @@ function intersect(a, b) {
 
 /**
  * @swagger
- * /nft-indexer/v1/arc200/tokens:
+ * /nft-indexer/v1/dex/pools:
  *  get:
  *   summary: Retrieves arc200 token data
  *   description: Fetch arc200 token details based on query parameters (this is a NON-STANDARD endpoint)
@@ -75,7 +75,7 @@ function intersect(a, b) {
  *       description: Server error
  */
 
-export const contracts0200Endpoint = async (req, res, db) => {
+export const dexPoolsEndpoint = async (req, res, db) => {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Response-Type", "application/json");
 
@@ -104,7 +104,11 @@ export const contracts0200Endpoint = async (req, res, db) => {
   const limit = req.query.limit;
 
   // "includes" is a query parameter that can be used to include additional data in the response
-  const includes = req.query.includes?.split(",") ?? [];
+  //const includes = req.query.includes?.split(",") ?? [];
+
+  /*
+  const prefixes = ['account_balances', 'transfers', 'approvals'];
+  */
 
   // Construct SQL query
 
@@ -114,53 +118,16 @@ export const contracts0200Endpoint = async (req, res, db) => {
  
     query += `
 SELECT 
-  c.contractId,
-  c.name,
-  c.symbol,
-  c.decimals,
-  c.totalSupply,
-  c.creator,
-  c.createRound
-`;
-if(includes.includes('all') || includes.includes("prices")) {
-query += `
-    ,p.price
-`
-}
-
-if(includes.includes('all') || includes.includes("tokens")) {
-query += `
-    ,t.tokenId                         
-`
-}
-query += `
+    p.*,
+    CASE
+     WHEN CAST(tvlA AS REAL) < CAST(tvlB AS REAL) THEN CAST(tvlA as REAL) * 2
+     ELSE CAST(tvlB as REAL) * 2
+    END AS tvl
 FROM 
-    contracts_0200 c
-`;
-if(includes.includes('all') || includes.includes("tokens")) {
-query += `
-LEFT JOIN 
-    (SELECT 
-        t.contractId, 
-        group_concat(t.tokenId) as tokenId
-     FROM
-        contract_tokens_0200 t 
-     GROUP BY  
-        t.contractId) t 
-ON 
-    c.contractId = t.contractId
-`
-}
+    dex_pool p
+    `;
 
-if(includes.includes('all') || includes.includes("prices")) {
-query += `
-LEFT JOIN 
-    prices_0200 p 
-ON 
-    c.contractId = p.contractId
-`;
-}
-
+  /*
   if (contractId) {
     conditions.push(`c.contractId = $contractId`);
     params.$contractId = contractId;
@@ -192,14 +159,23 @@ ON
   }
 
   conditions.push(`isBlacklisted = '0'`);
+  */
 
   if (conditions.length > 0) {
     query += ` WHERE ` + conditions.join(" AND ");
   }
 
-  query += ` GROUP BY c.contractId`;
+  /*
+  if (intersect(includes, prefixes)) {
+  }
+  */
 
-  query += ` ORDER BY createRound ASC`;
+  /*
+  query += ` GROUP BY c.contractId`;
+  */
+
+  //query += ` ORDER BY contractId ASC`;
+  query += ` ORDER BY tvl DESC`;
 
   if (limit) {
     query += ` LIMIT $limit`;
@@ -213,10 +189,12 @@ ON
     const row = rows[i];
 
     row.contractId = Number(row.contractId);
+    /*
     row.mintRound = Number(row.createRound);
     row.globalState = JSON.parse(row?.globalState ?? "{}");
     delete row.lastSyncRound;
     delete row.createRound;
+    */
   }
 
   // get round of last row
@@ -225,7 +203,7 @@ ON
     maxRound = rows[rows.length - 1].mintRound;
   }
 
-  response["tokens"] = rows;
+  response["pools"] = rows;
   response["next-token"] = maxRound + 1;
   res.status(200).json(response);
 

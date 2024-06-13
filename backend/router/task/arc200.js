@@ -225,7 +225,7 @@ export const onApproval = async (ci, events) => {
       contractId,
       owner: from,
       spender: to,
-      amount,
+      approval: amount,
     });
     console.log(`[${contractId}] Updated approval${from}:${to} to ${amount}`);
     db.insertApproval0200({
@@ -235,7 +235,7 @@ export const onApproval = async (ci, events) => {
       timestamp,
       owner: from,
       spender: to,
-      amount,
+      approval: amount,
     });
   }
 };
@@ -244,7 +244,7 @@ export const onApproval = async (ci, events) => {
 
 const updateLastSync = async (contractId, round) => {
   // update lastSyncRound in collections table
-  await db.updateCollectionLastSync(contractId, round);
+  await db.updateContract0200LastSync(contractId, round);
   console.log(`Updated lastSyncRound for contract ${contractId} to ${round}`);
 };
 
@@ -254,6 +254,7 @@ const doIndex = async (app, round) => {
   let lastSyncRound;
   if (app.isCreate) {
     lastSyncRound = round;
+    console.log({lastSyncRound});
     console.log(`Adding new contract ${contractId} to tokens table`);
     const token = await getToken(ci, contractId);
     await db.insertOrUpdateContract0200(token);
@@ -261,7 +262,10 @@ const doIndex = async (app, round) => {
       `Minted token ${contractId} by ${token.creator} on round ${round}`
     );
   } else {
-    lastSyncRound = await db.getContract0200LastSync(contractId);
+    lastSyncRound = (await db.getContract0200LastSync(contractId)) ?? 0;
+    console.log({lastSyncRound});
+    lastSyncRound = round;
+    console.log({lastSyncRound});
     console.log(`Updating contract ${contractId} in tokens table`);
     const token = await getToken(ci, contractId); 
     await db.insertOrUpdateContract0200(token); // ideally we would not need this step

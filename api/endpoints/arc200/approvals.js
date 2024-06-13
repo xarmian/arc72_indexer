@@ -3,9 +3,9 @@ const zeroAddress =
 
 /**
  * @swagger
- * /nft-indexer/v1/arc200/balances:
+ * /nft-indexer/v1/arc200/approvals:
  *  get:
- *   summary: Retrieves arc200 token balance data
+ *   summary: Retrieves arc200 token approval data
  *   description: Fetch arc200 token details based on query parameters (this is a NON-STANDARD endpoint)
  *   parameters:
  *     - in: query
@@ -14,7 +14,12 @@ const zeroAddress =
  *         type: integer
  *         description: Limit to only results with the given contractId
  *     - in: query
- *       name: accountId
+ *       name: owner
+ *       schema:
+ *         type: string
+ *         description: Include results where the given wallet address is the holder of the token
+ *     - in: query
+ *       name: spender
  *       schema:
  *         type: string
  *         description: Include results where the given wallet address is the holder of the token
@@ -39,7 +44,7 @@ const zeroAddress =
  *     500:
  *       description: Server error
  */
-export const accounts0200Endpoint = async (req, res, db) => {
+export const approvals0200Endpoint = async (req, res, db) => {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Response-Type", "application/json");
 
@@ -59,14 +64,15 @@ export const accounts0200Endpoint = async (req, res, db) => {
 
   // Extract query parameters
   const contractId = req.query.contractId;
-  const accountId = req.query.accountId;
+  const owner = req.query.owner;
+  const spender = req.query.spender;
   const next = req.query.next ?? 0;
   const limit = req.query.limit;
 
   // Construct SQL query
 
   let query;
-    query = `SELECT * FROM account_balances_0200`;
+    query = `SELECT * FROM account_approvals_0200`;
     let conditions = [];
     let params = {};
 
@@ -75,9 +81,14 @@ export const accounts0200Endpoint = async (req, res, db) => {
       params.$contractId = contractId;
     }
 
-    if (accountId) {
-      conditions.push(`accountId = $accountId`);
-      params.$accountId = accountId;
+    if (owner) {
+      conditions.push(`owner = $owner`);
+      params.$owner = owner;
+    }
+
+    if (spender) {
+      conditions.push(`spender = $spender`);
+      params.$spender = spender;
     }
 
     if (conditions.length > 0) {
@@ -105,7 +116,7 @@ export const accounts0200Endpoint = async (req, res, db) => {
     maxRound = rows[rows.length - 1].mintRound;
   }
 
-  response["balances"] = rows;
+  response["approvals"] = rows;
   response["next-token"] = maxRound + 1;
 
   res.status(200).json(response);

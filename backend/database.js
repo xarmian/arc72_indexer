@@ -328,8 +328,8 @@ export default class Database {
         return await this.get(`
 SELECT 
     c.*,
-    p.price,
-    group_concat(t.tokenId) as tokenId
+    group_concat(t.tokenId) as tokenId,
+    p.price as price
 FROM 
     contracts_0200 c
 LEFT JOIN 
@@ -339,9 +339,9 @@ ON
 LEFT JOIN 
     prices_0200 p 
 ON 
-    t.contractId = p.contractId
+    c.contractId = p.contractId
 WHERE c.contractId = ?
-GROUP BY  c.contractId;
+GROUP BY c.contractId;
 `, [contractId])   
     }
 
@@ -406,6 +406,39 @@ WHERE
                 `,
                 [contractId, tokenId]
         );
+    }
+
+    async insertOrUpdatePool({ contractId, providerId, poolId, tokAId, tokBId, symbolA, symbolB, poolBalA, poolBalB, tvlA, tvlB, volA, volB, apr, supply }) {
+        const result = await this.run(
+            `
+            UPDATE dex_pool
+            SET poolBalA = ?, poolBalB = ?, tvlA = ?, tvlB = ?, volA = ?, volB = ?, apr = ?, supply = ?
+            WHERE contractId = ?
+            `,
+            [poolBalA, poolBalB, tvlA, tvlB, volA, volB, apr, supply, contractId]
+        );
+                
+        if (result.changes === 0) {
+            return await this.run(
+                `
+                INSERT INTO dex_pool (contractId, providerId, poolId, tokAId, tokBId, symbolA, symbolB, poolBalA, poolBalB, tvlA, tvlB, volA, volB, apr, supply) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                `,
+                [contractId, providerId, poolId, tokAId, tokBId, symbolA, symbolB, poolBalA, poolBalB, tvlA, tvlB, supply]
+            );
+        }
+        return result;
+    }
+
+
+    // delete these, use arc200 token last sync round
+
+    async updatePoolLastSync(contractId, lastSyncRound) {
+        return await this.run("UPDATE dex_pool SET lastSyncRound = ? WHERE contractId = ?", [lastSyncRound, contractId]);
+    }
+
+    async getPoolLastSync(contractId) {
+        const contract = await this.get("SELECT lastSyncRound FROM dex_pool WHERE contractId = ?", [contractId]);
+        return (contract) ? contract.lastSyncRound : 0;
     }
 
     async insertOrUpdatePrice0200({ contractId, price }) {
@@ -523,7 +556,6 @@ WHERE
     }
 
     async insertEventDexWithdraw({ transactionId, contractId, timestamp, round, lpIn, outBalA, outBalB, poolBalA, poolBalB }) {
-	console.log(this)
         return await this.run(
             `
             INSERT OR IGNORE INTO event_dex_withdrawals (transactionId, contractId, timestamp, round, lpIn, outBalA, outBalB, poolBalA, poolBalB)
@@ -539,8 +571,21 @@ WHERE
             INSERT OR IGNORE INTO event_dex_swaps (transactionId, contractId, timestamp, round, inBalA, inBalB, outBalA, outBalB, poolBalA, poolBalB)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `,
-            [transactionId, contractId, timestamp, inBalA, inBalB, outBalA, outBalB, poolBalA, poolBalB]
+            [transactionId, contractId, timestamp, round, inBalA, inBalB, outBalA, outBalB, poolBalA, poolBalB]
         );
+    }
+
+
+    async getPoolVolume(contractId, timestamp = 0) {
+	return await this.get(
+		`
+		SELECT contractId, SUM(inBalA) as volA, SUM(inBalB) as volB
+		FROM event_dex_swaps
+		WHERE contractId = ? AND timestamp >= ?
+		GROUP BY contractId
+		`,
+		[contractId, timestamp]
+	);
     }
 
     // TODO add arc-0200 

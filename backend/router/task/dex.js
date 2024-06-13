@@ -4,8 +4,23 @@ import BigNumber from "bignumber.js";
 import { algodClient, indexerClient, db, prepareString } from "../../utils.js";
 import { getMetadata, onTransfer, onApproval } from "./arc200.js";
 
+const getTimestampOneWeekBefore = () => {
+    // Get the current date and time
+    let now = new Date();
+    // Subtract 7 days (7 * 24 * 60 * 60 * 1000 milliseconds) to get the date one week before
+    let oneWeekBefore = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    return Math.round(oneWeekBefore.getTime() / 1000);
+}
+
 const makeContract = (contractId, spec) =>
   new CONTRACT(contractId, algodClient, indexerClient, spec);
+
+
+const nts = await db.getContract0200ContractIdByTokenId('0');
+    
+const tokenId = (token) => nts.includes(token.contractId) ? 0 : Number(token.contractId);
+const symbol = (token) => nts.includes(token.contractId) ? "VOI" : token.symbol;
+const poolId = (tokenA, tokenB) => ((tokA, tokB) => tokA > tokB ? `${tokB}-${tokA}` : `${tokA}-${tokB}`)(tokenId(tokenA),tokenId(tokenB));
 
 // isLPT
 //  - checks if lpt
@@ -24,9 +39,9 @@ const saveEvents = async (contractId, events, f) => {
   const token = await db.getContract0200ById(String(contractId));
   console.log({ token });
   const tokens = String(token.tokenId).split(",");
+  console.log({ tokens });
   if (tokens.length !== 2) {
     console.log("Token missing tokens. Abort!");
-    console.log({ tokens });
     return; // abort
   }
   const [tokA, tokB] = tokens;
@@ -34,11 +49,12 @@ const saveEvents = async (contractId, events, f) => {
   const tokenB = await db.getContract0200ById(tokB);
   const nts = ["0", ...(await db.getContract0200ContractIdByTokenId("0"))];
   console.log({ nts });
-  const decA = tokenA?.decimals || 6;
-  const decB = tokenB?.decimals || 6;
+  const decA = tokA === "0" ? 6 : tokenA?.decimals || 0
+  const decB = tokB === "0" ? 6 : tokenB?.decimals || 0
   // for each event, record a transaction in the database
   for await (const event of events) {
     await f(event);
+    continue;
     const { poolBals, round, ts } = event;
     console.log(event);
     const { A, B } = poolBals;
@@ -53,7 +69,7 @@ const saveEvents = async (contractId, events, f) => {
       ratio = balBBn.dividedBy(balABn);
       whichToken = tokA;
     }
-    console.log({ ratio, whichToken, tokA, tokB });
+    console.log({ ratio, whichToken, tokA, tokB, decA, decB, tokenA, tokenB, balABn, balBBn });
     if (!isNaN(ratio)) {
       await db.insertOrUpdatePrice0200({
         contractId: String(whichToken),
@@ -80,8 +96,21 @@ const onSwap = async (ci, events) => {
     `Processing ${swapEvents.length} Swap events for contract ${contractId}`
   );
   if (swapEvents.length > 0) {
-    console.log(swapEvents);
-    await saveEvents(contractId, swapEvents, (e) => db.insertEventDexSwap(e));
+    await saveEvents(contractId, swapEvents, (e) => {
+	const dexSwapEvent = {
+		contractId,
+        	transactionId: e.txId,
+        	timestamp: e.ts,
+        	round: e.round,
+        	inBalA: e.inBals.A,
+        	inBalB: e.inBals.B,
+        	outBalA: e.outBals.A,
+        	outBalB: e.outBals.B,
+        	poolBalA: e.poolBals.A,
+        	poolBalB: e.poolBals.B
+	}
+	db.insertEventDexSwap(dexSwapEvent);
+    })
   }
 };
 
@@ -124,7 +153,7 @@ const onWithdraw = async (ci, events) => {
 };
 
 const getToken = async (ci, contractId) => {
-  const { name, symbol, totalSupply, decimals } = await getMetadata(
+  const { name, symbol: tokenSymbol, totalSupply, decimals } = await getMetadata(
     ci,
     contractId
   );
@@ -145,7 +174,72 @@ const getToken = async (ci, contractId) => {
   // case: ARC200LT (Humble)
   if (isARC200LT) {
     const info = infoR.returnValue;
-    const { tokA, tokB } = info;
+    console.log(info);
+    const { tokA, tokB, poolBals, lptBals } = info;
+    const { A: poolBalA, B: poolBalB } = poolBals;
+    const { lpMinted: supply } = lptBals
+
+    // update pool bals (just poolBals and tvl);
+    do {
+    const tokAId = String(tokA);
+    const tokBId = String(tokB);
+    const providerId = "01";
+    const tokenA = await db.getContract0200ById(tokAId)
+    const tokenB = await db.getContract0200ById(tokBId)
+    console.log({ tokenA, tokenB });
+    if(!tokenA || !tokenB || poolBalA === "0" || poolBalB === "0") break;
+    const symbolA = symbol(tokenA);
+    const symbolB = symbol(tokenB);
+    const priceABn = new BigNumber(tokenA?.price || "0");
+    const priceBBn = new BigNumber(tokenB?.price || "0");
+    const poolBalABn = new BigNumber(poolBalA).dividedBy(new BigNumber(10).pow(tokenA.decimals))
+    const poolBalBBn = new BigNumber(poolBalB).dividedBy(new BigNumber(10).pow(tokenB.decimals))
+    const poolBalAN = poolBalABn.toFixed(tokenA.decimals);
+    const poolBalBN = poolBalBBn.toFixed(tokenB.decimals);
+    const tvlA = poolBalABn.multipliedBy(priceABn)
+    const tvlB = poolBalBBn.multipliedBy(priceBBn)
+    // get volumes
+    const volumes = await db.getPoolVolume(contractId, getTimestampOneWeekBefore());
+    const inBalABn = volumes
+	    ? new BigNumber(volumes.volA).dividedBy(new BigNumber(10).pow(tokenA.decimals))
+	    : new BigNumber(0);
+    const inBalBBn = volumes
+            ? new BigNumber(volumes.volB).dividedBy(new BigNumber(10).pow(tokenB.decimals))
+            : new BigNumber(0);
+    const volA = inBalABn.multipliedBy(priceABn)
+    const volB = inBalBBn.multipliedBy(priceBBn)
+    // calculate apr
+    const vol = volA.plus(volB);
+    const tvl = tvlA.plus(tvlB);
+    const weeklyFees = vol.multipliedBy(new BigNumber(30)).dividedBy(new BigNumber(10000)) // using 0.3% fee
+    const fees = weeklyFees.multipliedBy(52); // annualized
+    const apr = fees.dividedBy(tvl).multipliedBy(new BigNumber(100)).toFixed(2);
+    // get supply
+    const supplyBn = new BigNumber(supply).dividedBy(new BigNumber(10).pow(6))
+    // update pool
+    const poolBalsUpdate = { 
+	    contractId, 
+	    tokAId, 
+	    tokBId, 
+	    poolBalA: poolBalAN, 
+	    poolBalB: poolBalBN, 
+	    tvlA: tvlA.toFixed(6),
+	    tvlB: tvlB.toFixed(6),
+	    symbolA, 
+	    symbolB, 
+	    providerId, 
+	    poolId: poolId(tokenA, tokenB),
+	    volA: volA.toFixed(6),
+	    volB: volB.toFixed(6),
+	    apr,
+	    supply: supplyBn.toFixed(6)
+    }
+    console.log(`Updating pool bals for contract ${contractId}`);
+    console.log({poolBalsUpdate});
+    await db.insertOrUpdatePool(poolBalsUpdate)
+    } while(0);
+
+    // update contract tokens
     tokenId = `${tokA},${tokB}`;
     for (const tokenId of [tokA, tokB]) {
       await db.insertContractToken0200({
@@ -153,18 +247,19 @@ const getToken = async (ci, contractId) => {
         tokenId: String(tokenId),
       });
     }
+
     // if nt pair then update price
     const nts = [...(await db.getContract0200ContractIdByTokenId("0"))].map(
       Number
     );
     console.log({ tokA, tokB, nts });
     if (nts.some((el) => [tokA, tokB].includes(el))) {
-      const { poolBals } = info;
       const decA = (await makeContract(tokA, abi.arc200).arc200_decimals())
         .returnValue;
       const decB = (await makeContract(tokB, abi.arc200).arc200_decimals())
         .returnValue;
       const { A: balA, B: balB } = poolBals;
+      // update price
       const balABn = new BigNumber(balA).dividedBy(new BigNumber(10).pow(decA));
       const balBBn = new BigNumber(balB).dividedBy(new BigNumber(10).pow(decB));
       let ratio;
@@ -187,7 +282,7 @@ const getToken = async (ci, contractId) => {
           price: "",
         });
       }
-      console.log({ ratio });
+
     }
   }
   // case: LPT (NomadexAmmPublic AlgoArc200PoolV02)
@@ -228,21 +323,23 @@ const getToken = async (ci, contractId) => {
   } else {
     // unhandled case
   }
-  return {
+  const token = {
     contractId,
     name: prepareString(name),
-    symbol: prepareString(symbol),
+    symbol: prepareString(tokenSymbol),
     decimals: Number(decimals),
     totalSupply: String(totalSupply),
     createRound,
     creator,
-    tokenId,
-  };
+    tokenId
+  }
+  console.log({token});
+  return token;
 };
 
 // update lastSyncRound in collections table
 const updateLastSync = async (contractId, round) => {
-  await db.updateCollectionLastSync(contractId, round);
+  await db.updateContract0200LastSync(contractId, round);
   console.log(`Updated lastSyncRound for contract ${contractId} to ${round}`);
 };
 
@@ -254,6 +351,7 @@ const doIndex = async (app, round) => {
   let lastSyncRound;
   if (app.isCreate) {
     lastSyncRound = round;
+    console.log({ lastSyncRound });
     console.log(`Adding new contract ${contractId} to tokens table`);
     const token = await getToken(ci, contractId);
     console.log({ token });
@@ -262,12 +360,13 @@ const doIndex = async (app, round) => {
       `Minted token ${contractId} by ${token.creator} on round ${round}`
     );
   } else {
-    lastSyncRound = await db.getContract0200LastSync(contractId);
-    lastSyncRound = round;
+    lastSyncRound = (await db.getContract0200LastSync(contractId)) ?? 0;
+    console.log({ lastSyncRound });
+    //lastSyncRound = round;
     console.log(`Updating contract ${contractId} in tokens table`);
     const token = await getToken(ci, contractId);
-    await db.insertOrUpdateContract0200(token); // ideally we would not need this
     console.log({ token });
+    await db.insertOrUpdateContract0200(token); // ideally we would not need this
   }
   if (lastSyncRound <= round) {
     // get transaction history since lastSyncRound

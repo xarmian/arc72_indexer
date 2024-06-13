@@ -67,10 +67,11 @@ const onMint = async (ci, event) => {
   const { round, to, tokenId } = getTransferEvent(event);
   const tokenIndex = 0; // not sure what this does
   const owner = to;
+  // metadataURI could be undefined
   const metadataURI = (await ci.arc72_tokenURI(tokenId)).returnValue; // TODO strip null bytes ???
-  const metadata = JSON.stringify(
+  const metadata = metadataURI ? JSON.stringify(
     await fetch(metadataURI).then((res) => res.json())
-  );
+  ) : null;
   const totalSupply = (await ci.arc72_totalSupply()).returnValue;
   const approved = ZERO_ADDRESS;
   const mintRound = round;
