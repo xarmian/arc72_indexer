@@ -95,7 +95,8 @@ export const dexPoolsEndpoint = async (req, res, db) => {
 
   // Extract query parameters
   const contractId = req.query.contractId;
-  const holder = req.query.holder;
+  const minContractId = req.query["min-contract-id"] ?? 0;
+  const maxContractId = req.query["max-contract-id"];
   const mintRound = req.query["mint-round"];
   const mintMinRound = req.query["mint-min-round"] ?? 0;
   const mintMaxRound = req.query["mint-max-round"];
@@ -127,12 +128,22 @@ FROM
     dex_pool p
     `;
 
-  /*
   if (contractId) {
-    conditions.push(`c.contractId = $contractId`);
+    conditions.push(`p.contractId = $contractId`);
     params.$contractId = contractId;
   }
 
+  if (minContractId > 0) {
+    conditions.push(`p.contractId >= $minContractId`);
+    params.$minContractId = minContractId;
+  }
+
+  if (maxContractId > 0) {
+    conditions.push(`p.contractId <= $maxContractId`);
+    params.$maxContractId = maxContractId;
+  }
+
+  /*
   if (mintRound) {
     conditions.push(`c.createRound = $mintRound`);
     params.$mintRound = mintRound;
@@ -210,7 +221,7 @@ FROM
   // Log date/time, ip address, query
   const date = new Date();
   const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
-  console.log(
+  console.error(
     `${date.toISOString()}: ${ip} ${query} ${JSON.stringify(params)}`
   );
 };
