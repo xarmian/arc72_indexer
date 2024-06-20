@@ -97,6 +97,7 @@ export const dexPoolsEndpoint = async (req, res, db) => {
   const contractId = req.query.contractId;
   const minContractId = req.query["min-contract-id"] ?? 0;
   const maxContractId = req.query["max-contract-id"];
+  const tokenId = req.query["tokenId"];
   const mintRound = req.query["mint-round"];
   const mintMinRound = req.query["mint-min-round"] ?? 0;
   const mintMaxRound = req.query["mint-max-round"];
@@ -104,12 +105,19 @@ export const dexPoolsEndpoint = async (req, res, db) => {
   const next = req.query.next ?? 0;
   const limit = req.query.limit;
 
-  // "includes" is a query parameter that can be used to include additional data in the response
-  //const includes = req.query.includes?.split(",") ?? [];
+  const sortBy = req.query.sort_by || 'tvl'; // Default sort field
+  const sortOrder = req.query.sort_order || 'desc'; // Default sort order
 
-  /*
-  const prefixes = ['account_balances', 'transfers', 'approvals'];
-  */
+  // Sanitize input to prevent SQL injection
+  const validSortFields = ['tvl', 'createRound', 'contractId'];
+  if (!validSortFields.includes(sortBy)) {
+        return res.status(400).send('Invalid sort field');
+  }
+
+  if (!['asc', 'desc'].includes(sortOrder)) {
+        return res.status(400).send('Invalid sort order');
+  }
+
 
   // Construct SQL query
 
@@ -123,9 +131,15 @@ SELECT
     CASE
      WHEN CAST(tvlA AS REAL) < CAST(tvlB AS REAL) THEN CAST(tvlA as REAL) * 2
      ELSE CAST(tvlB as REAL) * 2
-    END AS tvl
+    END AS tvl,
+    c.createRound as createRound,
+    c.creator as creator
 FROM 
     dex_pool p
+INNER JOIN 
+    contracts_0200 c
+ON 
+    p.contractId = c.contractId
     `;
 
   if (contractId) {
@@ -143,7 +157,6 @@ FROM
     params.$maxContractId = maxContractId;
   }
 
-  /*
   if (mintRound) {
     conditions.push(`c.createRound = $mintRound`);
     params.$mintRound = mintRound;
@@ -159,6 +172,11 @@ FROM
     params.$mintMaxRound = mintMaxRound;
   }
 
+  if (tokenId) {
+    conditions.push(`(p.tokAId = $tokenId OR p.tokBId = $tokenId)`);
+    params.$tokenId = tokenId;
+  }
+
   if (creator) {
     conditions.push(`c.creator = $creator`);
     params.$creator = creator;
@@ -169,24 +187,11 @@ FROM
     params.$next = next;
   }
 
-  conditions.push(`isBlacklisted = '0'`);
-  */
-
   if (conditions.length > 0) {
     query += ` WHERE ` + conditions.join(" AND ");
   }
 
-  /*
-  if (intersect(includes, prefixes)) {
-  }
-  */
-
-  /*
-  query += ` GROUP BY c.contractId`;
-  */
-
-  //query += ` ORDER BY contractId ASC`;
-  query += ` ORDER BY tvl DESC`;
+  query += ` ORDER BY ${sortBy} ${sortOrder.toUpperCase()}`
 
   if (limit) {
     query += ` LIMIT $limit`;
@@ -200,12 +205,9 @@ FROM
     const row = rows[i];
 
     row.contractId = Number(row.contractId);
-    /*
     row.mintRound = Number(row.createRound);
-    row.globalState = JSON.parse(row?.globalState ?? "{}");
     delete row.lastSyncRound;
     delete row.createRound;
-    */
   }
 
   // get round of last row
