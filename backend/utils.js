@@ -7,6 +7,7 @@ import {
     CONTRACT_TYPE_ARC200,
     CONTRACT_TYPE_MP,
     CONTRACT_TYPE_LPT,
+    CONTRACT_TYPE_STAKE,
 } from "./constants.js";
 import Database from "./database.js";
 import dotenv from "dotenv";
@@ -94,6 +95,11 @@ async function isSupported(contractId, interfaceSelector) {
     }
 }
 
+export async function isStake(contractId) {
+	const stakeExists = await db.stakeExists(contractId);
+	return stakeExists;
+}
+
 export async function isARC72(contractId) {
     return isSupported(contractId, INTERFACE_SELECTOR_ARC72);
 }
@@ -140,6 +146,9 @@ export async function getContractType(contract) {
             return CONTRACT_TYPE_LPT;
         }
         return CONTRACT_TYPE_ARC200;
+    }
+    else if (await isStake(contract)) {
+	return CONTRACT_TYPE_STAKE;
     }
     return CONTRACT_TYPE_UNKNOWN;
 }

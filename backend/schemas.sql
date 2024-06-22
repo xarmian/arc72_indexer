@@ -315,6 +315,138 @@ CREATE TABLE IF NOT EXISTS dex_pool (
     PRIMARY KEY (contractId)
 )
 
+-- stake tables
+
+CREATE TABLE IF NOT EXISTS stake_contracts (
+    contractId TEXT PRIMARY KEY,
+    escrowAddr TEXT,
+    createRound INTEGER,
+    lastSyncRound INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS stake_pools (
+    contractId TEXT,
+    poolId TEXT,
+    poolProviderAddress TEXT,
+    poolStakeTokenId TEXT,
+    poolStakedAmount TEXT,
+    poolStart INTEGER,
+    poolEnd INTEGER,
+    PRIMARY KEY (contractId, poolId)
+);
+
+CREATE TABLE IF NOT EXISTS stake_rewards (
+    contractId TEXT,
+    poolId TEXT,
+    rewardTokenId TEXT,
+    rewardAmount TEXT,
+    rewardRemaining TEXT,
+    PRIMARY KEY (contractId, poolId, rewardTokenId)
+);
+
+CREATE TABLE IF NOT EXISTS stake_accounts (
+    contractId TEXT,
+    poolId TEXT,
+    stakeAccountAddress TEXT,
+    stakeAmount TEXT,
+    PRIMARY KEY (contractId, poolId, stakeAccountAddress)
+);
+
+CREATE TABLE IF NOT EXISTS stake_deletes (
+    contractId TEXT,
+    poolId TEXT,
+    stakePoolDeleteAddress TEXT,
+    PRIMARY KEY (contractId, poolId)
+);
+
+CREATE TABLE IF NOT EXISTS stake_account_rewards (
+    contractId TEXT,
+    poolId TEXT,
+    stakeAccountAddress TEXT,
+    stakeTokenId TEXT,
+    stakeRewardAmount TEXT,
+    PRIMARY KEY (contractId, poolId, stakeAccountAddress, stakeTokenId)
+);
+
+CREATE TABLE IF NOT EXISTS event_stake_pool (
+    transactionId TEXT,
+    contractId TEXT,
+    timestamp INTEGER,
+    round INTEGER,
+    poolId TEXT,
+    providerAddress TEXT,
+    stakeTokenId TEXT,
+    rewardTokenIds TEXT,
+    rewardsAmounts TEXT,
+    poolStart INTEGER,
+    poolEnd INTEGER,
+    PRIMARY KEY (transactionId)
+); 
+
+CREATE TABLE IF NOT EXISTS event_stake_delete_pool (
+    transactionId TEXT,
+    contractId TEXT,
+    timestamp INTEGER,
+    round INTEGER,
+    poolId TEXT,
+    deleteAddress TEXT,
+    PRIMARY KEY (transactionId)
+);
+
+CREATE TABLE IF NOT EXISTS event_stake_stake (
+    transactionId TEXT,
+    contractId TEXT,
+    timestamp INTEGER,
+    round INTEGER,
+    poolId TEXT,
+    stakeAddress TEXT,
+    stakeAmount TEXT,
+    newUserStake TEXT,
+    newAllStake TEXT,
+    PRIMARY KEY (transactionId)
+);
+
+CREATE TABLE IF NOT EXISTS event_stake_harvest (
+    transactionId TEXT,
+    contractId TEXT,
+    timestamp INTEGER,
+    round INTEGER,
+    poolId TEXT,
+    rewarderAddress TEXT,
+    userReceived TEXT,
+    totalRemaining TEXT,
+    receiverAddress TEXT,
+    PRIMARY KEY (transactionId)
+);
+
+CREATE TABLE IF NOT EXISTS event_stake_withdraw (
+    transactionId TEXT,
+    contractId TEXT,
+    timestamp INTEGER,
+    round INTEGER,
+    poolId TEXT,
+    stakeAddress TEXT,
+    stakeAmount TEXT,
+    newUserStake TEXT,
+    newAllStake TEXT,
+    receiverAddress TEXT,
+    PRIMARY KEY (transactionId)
+);
+
+CREATE TABLE IF NOT EXISTS event_stake_emergency_withdraw (
+    transactionId TEXT,
+    contractId TEXT,
+    timestamp INTEGER,
+    round INTEGER,
+    poolId TEXT,
+    stakeAddress TEXT,
+    stakeAmount TEXT,
+    newUserStake TEXT,
+    newAllStake TEXT,
+    receiverAddress TEXT,
+    PRIMARY KEY (transactionId)
+);
+
 ------------------------------------------
 -- ARC-0200 Indexes
 ------------------------------------------

@@ -197,6 +197,203 @@ export default class Database {
         return await this.run("UPDATE tokens SET approved = ? WHERE contractId = ? AND tokenId = ?", [approved, contractId, String(tokenId)]);
     }
 
+    // Stake
+
+    async stakeExists(contractId) {
+	const stake = await this.get("SELECT contractId FROM stake_contracts WHERE contractId = ?", [contractId]);
+        return (stake) ? true : false;
+    }
+
+    async getStakeLastSync(contractId) {
+        const stake = await this.get("SELECT lastSyncRound FROM stake_contracts WHERE contractId = ?", [contractId]);
+        return (stake) ? stake.lastSyncRound : 0; 
+    }   
+
+    async updateStakeLastSync(contractId, lastSyncRound) {
+        return await this.run("UPDATE stake_contracts SET lastSyncRound = ? WHERE contractId = ?", [lastSyncRound, contractId]);
+    }
+
+
+    async getStakePool(contractId, poolId) {
+	return await this.get(`
+SELECT 
+    sp.contractId,
+    sp.poolId,
+    sp.poolProviderAddress,
+    sp.poolStakeTokenId,
+    sp.poolStakedAmount,
+    sp.poolStart,
+    sp.poolEnd,
+    GROUP_CONCAT(sr.rewardTokenId, ', ') AS rewardTokenIds,
+    GROUP_CONCAT(sr.rewardAmount, ', ') AS rewardAmounts,
+    GROUP_CONCAT(sr.rewardRemaining, ', ') AS rewardRemainings
+FROM 
+    stake_pools sp
+INNER JOIN 
+    stake_rewards sr
+ON 
+    sp.contractId = sr.contractId AND sp.poolId = sr.poolId
+WHERE 
+    sp.contractId = ? AND sp.poolId = ?
+GROUP BY 
+    sp.contractId, sp.poolId;
+	`, [contractId, poolId]);
+    }
+
+    async insertOrUpdateStakePool({ contractId, poolId, poolProviderAddress, poolStakeTokenId, poolStakedAmount, poolStart, poolEnd }) {
+        const result = await this.run(
+            `
+            UPDATE stake_pools
+            SET poolStakedAmount = ?
+            WHERE contractId = ? and poolId = ?
+            `,
+            [poolStakedAmount, contractId, poolId]
+        );
+
+        if (result.changes === 0) {
+            return await this.run(
+                `
+                INSERT INTO stake_pools (contractId, poolId, poolProviderAddress, poolStakeTokenId, poolStakedAmount, poolStart, poolEnd) VALUES (?, ?, ?, ?, ?, ?, ?)
+                `,
+                [contractId, poolId, poolProviderAddress, poolStakeTokenId, poolStakedAmount, poolStart, poolEnd]
+            );
+        }
+        return result;
+    }
+
+    async insertOrUpdateStakeRewards({ contractId, poolId, rewardTokenId, rewardAmount, rewardRemaining }) {
+        const result = await this.run(
+            `
+            UPDATE stake_rewards
+            SET rewardRemaining = ?                                                                                      
+            WHERE contractId = ? AND poolId = ? AND rewardTokenId = ?
+            `,
+            [rewardRemaining, contractId, poolId, rewardTokenId]                                                                                
+        );
+            
+        if (result.changes === 0) {                                                                                       
+            return await this.run(                                                                                        
+                `
+                INSERT INTO stake_rewards (contractId, poolId, rewardTokenId, rewardAmount, rewardRemaining) VALUES (?, ?, ?, ?, ?)
+                `,                                                                                                        
+                [contractId, poolId, rewardTokenId, rewardAmount, rewardRemaining]
+            );
+        }
+        return result;
+    }
+
+    async insertEventStakePool({ transactionId, contractId, timestamp, round, poolId, providerAddress, stakeTokenId, rewardTokenIds, rewardsAmounts, poolStart, poolEnd }) {
+        return await this.run(
+            `
+            INSERT OR IGNORE INTO event_stake_pool (transactionId, contractId, timestamp, round, poolId, providerAddress, stakeTokenId, rewardTokenIds, rewardsAmounts, poolStart, poolEnd)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `,
+            [transactionId, contractId, timestamp, round, poolId, providerAddress, stakeTokenId, rewardTokenIds, rewardsAmounts, poolStart, poolEnd]
+        );
+    }
+
+    async insertOrUpdateStakeAccount({ contractId, poolId, stakeAccountAddress, stakeAmount }) {
+        const result = await this.run(
+            `
+            UPDATE stake_accounts
+            SET stakeAmount = ?
+            WHERE contractId = ? AND poolId = ? AND stakeAccountAddress = ?
+            `,
+            [stakeAmount, contractId, poolId, stakeAccountAddress]
+        );
+
+        if (result.changes === 0) {
+            return await this.run(
+                `
+                INSERT INTO stake_accounts (contractId, poolId, stakeAccountAddress, stakeAmount) VALUES (?, ?, ?, ?)
+                `,
+                [contractId, poolId, stakeAccountAddress, stakeAmount]
+            );
+        }
+        return result;
+    }
+
+    async insertEventStake({ transactionId, contractId, timestamp, round, poolId, stakeAddress, stakeAmount, newUserStake, newAllStake }) {
+        return await this.run(
+            `
+            INSERT OR IGNORE INTO event_stake_stake (transactionId, contractId, timestamp, round, poolId, stakeAddress, stakeAmount, newUserStake, newAllStake)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `,
+            [transactionId, contractId, timestamp, round, poolId, stakeAddress, stakeAmount, newUserStake, newAllStake]
+        );
+    }
+
+
+    async insertOrUpdateStakeAccountRewards({ contractId, poolId, stakeAccountAddress, stakeTokenId, stakeRewardAmount }) {
+        const result = await this.run(
+            `
+            UPDATE stake_account_rewards
+            SET stakeRewardAmount = ?                                                                                      
+            WHERE contractId = ? AND poolId = ? AND stakeAccountAddress = ? AND stakeTokenId = ?
+            `,  
+            [stakeRewardAmount, contractId, poolId, stakeAccountAddress, stakeTokenId]
+        );
+            
+        if (result.changes === 0) { 
+            return await this.run(
+                `
+                INSERT INTO stake_account_rewards (contractId, poolId, stakeAccountAddress, stakeTokenId, stakeRewardAmount) VALUES (?, ?, ?, ?, ?)
+                `,
+                [contractId, poolId, stakeAccountAddress, stakeTokenId, stakeRewardAmount]
+            );
+        }
+        return result;
+    }
+
+    async insertEventStakeHarvest({ transactionId, contractId, timestamp, round, poolId, rewarderAddress, userReceived, totalRemaining, receiverAddress }) {
+        return await this.run(
+            `
+            INSERT OR IGNORE INTO event_stake_harvest (transactionId, contractId, timestamp, round, poolId, rewarderAddress, userReceived, totalRemaining, receiverAddress)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `,
+            [transactionId, contractId, timestamp, round, poolId, rewarderAddress, userReceived, totalRemaining, receiverAddress]
+        );
+    }
+
+    async insertStakeDelete({ contractId, poolId, stakePoolDeleteAddress }) {
+        return await this.run(
+            `           
+            INSERT OR IGNORE INTO stake_deletes (contractId, poolId, stakePoolDeleteAddress) VALUES (?, ?, ?)
+            `,
+            [contractId, poolId, stakePoolDeleteAddress]
+        );
+    }
+
+    async insertEventStakeDeletePool({ transactionId, contractId, timestamp, round, poolId, deleteAddress }) {
+        return await this.run(
+            `
+            INSERT OR IGNORE INTO event_stake_delete_pool (transactionId, contractId, timestamp, round, poolId, deleteAddress)
+            VALUES (?, ?, ?, ?, ?, ?)
+            `,
+            [transactionId, contractId, timestamp, round, poolId, deleteAddress]
+        );
+    }
+
+    async insertEventStakeWithdraw({ transactionId, contractId, timestamp, round, poolId, stakeAddress, stakeAmount, newUserStake, newAllStake, receiverAddress }) {
+        return await this.run(
+            `
+            INSERT OR IGNORE INTO event_stake_withdraw (transactionId, contractId, timestamp, round, poolId, stakeAddress, stakeAmount, newUserStake, newAllStake, receiverAddress)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `,
+            [transactionId, contractId, timestamp, round, poolId, stakeAddress, stakeAmount, newUserStake, newAllStake, receiverAddress]
+        );
+    }
+
+    async insertEventStakeEmergencyWithdraw({ transactionId, contractId, timestamp, round, poolId, stakeAddress, stakeAmount, newUserStake, newAllStake, receiverAddress }) {
+        return await this.run(
+            `
+            INSERT OR IGNORE INTO event_stake_emergency_withdraw (transactionId, contractId, timestamp, round, poolId, stakeAddress, stakeAmount, newUserStake, newAllStake, receiverAddress)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `,
+            [transactionId, contractId, timestamp, round, poolId, stakeAddress, stakeAmount, newUserStake, newAllStake, receiverAddress]
+        ); 
+    }
+
     // MP-0206
 
     async marketExists(contractId) {
