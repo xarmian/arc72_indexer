@@ -5,7 +5,7 @@ import https from "https";
 import { swaggerOptions } from "./swagger.js";
 import minimist from "minimist"; // import minimist to parse command line arguments
 import fs from "fs";
-import Database from './database.js';
+import Database from "./database.js";
 import { tokensEndpoint } from "./endpoints/arc72/tokens.js";
 import { transfersEndpoint } from "./endpoints/arc72/transfers.js";
 import { collectionsEndpoint } from "./endpoints/arc72/collections.js";
@@ -20,10 +20,11 @@ import { prices0200Endpoint } from "./endpoints/arc200/prices.js";
 import { arc200TransfersEndpoint } from "./endpoints/arc200/transfers.js";
 import { approvals0200Endpoint } from "./endpoints/arc200/approvals.js";
 import { dexPoolsEndpoint } from "./endpoints/dex/pools.js";
+import { stakePoolsEndpoint } from "./endpoints/stake/pools.js";
 import dotenv from "dotenv";
 dotenv.config();
 
-const DB_PATH = process.env.DB_PATH || '../db/db.sqlite';
+const DB_PATH = process.env.DB_PATH || "../db/db.sqlite";
 const db = new Database(DB_PATH);
 
 const app = express();
@@ -68,14 +69,14 @@ const endpoints = [
   {
     path: "/nft-indexer/v1/arc200/balances",
     handler: accounts0200Endpoint,
-  }, 
+  },
   {
     path: "/nft-indexer/v1/arc200/approvals",
     handler: approvals0200Endpoint,
   },
   {
     path: "/nft-indexer/v1/arc200/prices",
-    handler: prices0200Endpoint
+    handler: prices0200Endpoint,
   },
   {
     path: "/nft-indexer/v1/arc200/transfers",
@@ -84,6 +85,10 @@ const endpoints = [
   {
     path: "/nft-indexer/v1/dex/pools",
     handler: dexPoolsEndpoint,
+  },
+  {
+    path: "/nft-indexer/v1/stake/pools",
+    handler: stakePoolsEndpoint,
   },
   {
     path: "/stats",
