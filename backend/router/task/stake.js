@@ -110,7 +110,8 @@ const onPool = async (ci, events) => {
 		poolStakeTokenId: Number(evt.stakeTokenId),
 		poolStakedAmount: 0,
 		poolStart: Number(evt.start),
-		poolEnd: Number(evt.end)
+		poolEnd: Number(evt.end),
+		createRound: Number(evt.round)
 	})
 	// initialize rewards
 	for (let i=0;i<evt.rewards.length;i++) {

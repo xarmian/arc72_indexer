@@ -240,7 +240,7 @@ GROUP BY
 	`, [contractId, poolId]);
     }
 
-    async insertOrUpdateStakePool({ contractId, poolId, poolProviderAddress, poolStakeTokenId, poolStakedAmount, poolStart, poolEnd }) {
+    async insertOrUpdateStakePool({ contractId, poolId, poolProviderAddress, poolStakeTokenId, poolStakedAmount, poolStart, poolEnd, createRound }) {
         const result = await this.run(
             `
             UPDATE stake_pools
@@ -253,9 +253,9 @@ GROUP BY
         if (result.changes === 0) {
             return await this.run(
                 `
-                INSERT INTO stake_pools (contractId, poolId, poolProviderAddress, poolStakeTokenId, poolStakedAmount, poolStart, poolEnd) VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO stake_pools (contractId, poolId, poolProviderAddress, poolStakeTokenId, poolStakedAmount, poolStart, poolEnd, createRound) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 `,
-                [contractId, poolId, poolProviderAddress, poolStakeTokenId, poolStakedAmount, poolStart, poolEnd]
+                [contractId, poolId, poolProviderAddress, poolStakeTokenId, poolStakedAmount, poolStart, poolEnd, createRound]
             );
         }
         return result;

@@ -332,6 +332,7 @@ CREATE TABLE IF NOT EXISTS stake_pools (
     poolStakedAmount TEXT,
     poolStart INTEGER,
     poolEnd INTEGER,
+    createRound INTEGER,
     PRIMARY KEY (contractId, poolId)
 );
 
