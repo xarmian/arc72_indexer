@@ -1,6 +1,6 @@
 /**
  * @swagger
- * /nft-indexer/v1/stake/pools:
+ * /nft-indexer/v1/stake/accounts:
  *  get:
  *   summary: Retrieves arc200 token data
  *   description: Fetch arc200 token details based on query parameters (this is a NON-STANDARD endpoint)
@@ -67,7 +67,7 @@
  *       description: Server error
  */
 
-export const stakePoolsEndpoint = async (req, res, db) => {
+export const stakeAccountsEndpoint = async (req, res, db) => {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Response-Type", "application/json");
 
@@ -88,7 +88,9 @@ export const stakePoolsEndpoint = async (req, res, db) => {
   // Extract query parameters
   const contractId = req.query.contractId;
   const poolId = req.query.poolId;
+  const accountId = req.query.accountId;
   const tokenId = req.query["tokenId"]; // stake token id
+
   const createRound = req.query["create-round"];
   const minCreateRound = req.query["mint-min-round"] ?? 0;
   const maxCreateRound = req.query["mint-max-round"];
@@ -103,6 +105,10 @@ export const stakePoolsEndpoint = async (req, res, db) => {
 
   const sortBy = req.query.sort_by || "poolId"; // Default sort field
   const sortOrder = req.query.sort_order || "desc"; // Default sort order
+
+  if (!accountId) {
+    return res.status(400).send("accountId is required");
+  }
 
   // Sanitize input to prevent SQL injection
   const validSortFields = ["poolId", "createRound", "contractId"];
@@ -121,23 +127,38 @@ export const stakePoolsEndpoint = async (req, res, db) => {
   let params = {};
 
   query += `
-SELECT 
-    p.contractId,
-    p.poolId,
-    p.poolProviderAddress as creator,
-    p.poolStakeTokenId as stakeTokenId,
-    p.poolStakedAmount as stakeAmount,
-    p.poolStart as start,
-    p.poolEnd as end,
-    GROUP_CONCAT(sr.rewardTokenId, ', ') AS rewardTokenIds,
-    GROUP_CONCAT(sr.rewardAmount, ', ') AS rewardAmounts,
-    GROUP_CONCAT(sr.rewardRemaining, ', ') AS rewardRemainings
+  SELECT 
+  sa.contractId AS contractId,
+  sa.poolId AS poolId,
+  sa.stakeAccountAddress AS accountId,
+  sa.stakeAmount AS userStakeAmount,
+  sp.poolProviderAddress AS providerAccountId,
+  sp.poolStakeTokenId AS stakeTokenId,
+  sp.poolStakedAmount AS allStakeAmount,
+  sp.poolStart AS start,
+  sp.poolEnd AS end,
+  sp.createRound AS createRound,
+  GROUP_CONCAT(sr.rewardTokenId, ', ') AS rewardTokenIds,
+  GROUP_CONCAT(sr.rewardAmount, ', ') AS rewardAmounts,
+  GROUP_CONCAT(sr.rewardRemaining, ', ') AS rewardRemainings,
+  CASE
+      WHEN sp.poolStakedAmount = 0 THEN 0
+      ELSE CAST(sa.stakeAmount AS REAL) / CAST(sp.poolStakedAmount AS REAL) * 100
+  END AS stakeOwnershipPercentage,
+  CASE
+      WHEN sp.poolStakedAmount = 0 THEN 0
+      ELSE SUM(CAST(sr.rewardRemaining AS REAL) * (CAST(sa.stakeAmount AS REAL) / CAST(sp.poolStakedAmount AS REAL)))
+  END AS maxUserRewardRemaining
 FROM 
-    stake_pools p
+  stake_accounts sa
 INNER JOIN 
-    stake_rewards sr
+  stake_pools sp
 ON 
-    p.contractId = sr.contractId AND p.poolId = sr.poolId
+  sa.contractId = sp.contractId AND sa.poolId = sp.poolId
+INNER JOIN 
+  stake_rewards sr
+ON 
+  sa.contractId = sr.contractId AND sa.poolId = sr.poolId
     `;
 
   if (contractId) {
@@ -148,6 +169,11 @@ ON
   if (poolId) {
     conditions.push(`p.poolId = $poolId`);
     params.$poolId = poolId;
+  }
+
+  if (accountId) {
+    conditions.push(`sa.stakeAccountAddress = $accountId`);
+    params.$accountId = accountId;
   }
 
   if (createRound) {
@@ -205,8 +231,11 @@ ON
   }
 
   query += `
-	GROUP BY 
-    	p.contractId, p.poolId;
+  GROUP BY 
+      sa.contractId, sa.poolId, sa.stakeAccountAddress, sa.stakeAmount, 
+      sp.poolProviderAddress, sp.poolStakeTokenId, sp.poolStakedAmount, 
+      sp.poolStart, sp.poolEnd, sp.createRound;
+    
   `;
 
   query += ` ORDER BY ${sortBy} ${sortOrder.toUpperCase()}`;
@@ -232,7 +261,7 @@ ON
     maxRound = rows[rows.length - 1].createRound;
   }
 
-  response["pools"] = rows;
+  response["accounts"] = rows;
   response["next-token"] = maxRound + 1;
   res.status(200).json(response);
 
