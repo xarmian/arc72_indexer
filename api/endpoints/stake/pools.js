@@ -124,9 +124,22 @@ export const stakePoolsEndpoint = async (req, res, db) => {
 
   query += `
 SELECT 
-    p.*,
+    p.contractId,
+    p.poolId,
+    p.poolProviderAddress as creator,
+    p.poolStakeTokenId as stakeTokenId,
+    p.poolStakedAmount as stakeAmount,
+    p.poolStart as start,
+    p.poolEnd as end,
+    GROUP_CONCAT(sr.rewardTokenId, ', ') AS rewardTokenIds,
+    GROUP_CONCAT(sr.rewardAmount, ', ') AS rewardAmounts,
+    GROUP_CONCAT(sr.rewardRemaining, ', ') AS rewardRemainings
 FROM 
-    stake_pool p
+    stake_pools p
+INNER JOIN 
+    stake_rewards sr
+ON 
+    p.contractId = sr.contractId AND p.poolId = sr.poolId
     `;
 
   if (contractId) {
@@ -203,6 +216,11 @@ FROM
     query += ` WHERE ` + conditions.join(" AND ");
   }
 
+  query += `
+	GROUP BY 
+    	p.contractId, p.poolId;
+  `;
+
   query += ` ORDER BY ${sortBy} ${sortOrder.toUpperCase()}`;
 
   if (limit) {
@@ -223,7 +241,7 @@ FROM
   // get round of last row
   let maxRound = 0;
   if (rows.length > 0) {
-    maxRound = rows[rows.length - 1].mintRound;
+    maxRound = rows[rows.length - 1].createRound;
   }
 
   response["pools"] = rows;
