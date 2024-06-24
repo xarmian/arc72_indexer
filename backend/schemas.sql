@@ -448,6 +448,15 @@ CREATE TABLE IF NOT EXISTS event_stake_emergency_withdraw (
     PRIMARY KEY (transactionId)
 );
 
+-- contracts
+
+CREATE TABLE IF NOT EXISTS contract_stubs (
+	contractId TEXT PRIMARY KEY,
+	hash TEXT NOT NULL,
+	creator TEXT NOT NULL,
+	active INTEGER DEFAULT 0
+)
+
 ------------------------------------------
 -- ARC-0200 Indexes
 ------------------------------------------

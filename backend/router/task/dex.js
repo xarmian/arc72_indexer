@@ -161,6 +161,9 @@ const getToken = async (ci, contractId) => {
   // get application info from indexer
   const app = await indexerClient.lookupApplications(contractId).do();
   const globalState = app.application.params["global-state"];
+
+  console.log(globalState);
+
   const creator = app.application.params.creator;
   const createRound = app.application["created-at-round"];
 
@@ -322,6 +325,7 @@ const getToken = async (ci, contractId) => {
     });
   } else {
     // unhandled case
+    return null;
   }
   const token = {
     contractId,
@@ -350,19 +354,24 @@ const doIndex = async (app, round) => {
   const ci = makeContract(contractId, abi.swap);
   let lastSyncRound;
   if (app.isCreate) {
+
     lastSyncRound = round;
     console.log({ lastSyncRound });
     console.log(`Adding new contract ${contractId} to tokens table`);
+
     const token = await getToken(ci, contractId);
-    console.log({ token });
-    await db.insertOrUpdateContract0200(token);
-    console.log(
-      `Minted token ${contractId} by ${token.creator} on round ${round}`
-    );
+    if(token) {
+    	await db.insertOrUpdateContract0200(token);
+   	console.log(
+    	  `Minted token ${contractId} by ${token.creator} on round ${round}`
+    	);
+	await db.insertOrUpdateContractStub({ contractId, hash: app.appApprovalHash, creator: app.creator, active: 0 });
+    } else {
+	await db.insertOrUpdateContractStub({ contractId, hash: app.appApprovalHash, creator: app.creator, active: 0 });
+    }
   } else {
-    lastSyncRound = (await db.getContract0200LastSync(contractId)) ?? 0;
+    lastSyncRound = await db.getContract0200LastSync(contractId);
     console.log({ lastSyncRound });
-    //lastSyncRound = round;
     console.log(`Updating contract ${contractId} in tokens table`);
     const token = await getToken(ci, contractId);
     console.log({ token });

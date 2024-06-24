@@ -394,6 +394,29 @@ GROUP BY
         ); 
     }
 
+    // STUBS
+
+    async insertOrUpdateContractStub({ contractId, hash, creator, active }) {
+        const result = await this.run(
+            `
+            UPDATE contract_stubs
+            SET active = ?                                                                                      
+            WHERE contractId = ?
+            `,
+            [active, contractId]
+        );
+
+        if (result.changes === 0) {
+            return await this.run(
+                `
+                INSERT INTO contract_stubs (contractId, hash, creator) VALUES (?, ?, ?)
+                `,
+                [contractId, hash, creator]
+            );
+        }
+        return result;
+    }
+
     // MP-0206
 
     async marketExists(contractId) {

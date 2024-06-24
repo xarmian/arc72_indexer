@@ -129,8 +129,7 @@ while (true) {
         }
         // for each app, run contract specific indexer task
         for (const app of apps) {
-            const contractId = app.apid;
-            const contractType = await getContractType(contractId);
+            const contractType = await getContractType(app);
             switch (contractType) {
                 case CONTRACT_TYPE_ARC72: {
                     console.log("ARC72", app, rnd);
@@ -159,7 +158,7 @@ while (true) {
 		}
                 case CONTRACT_TYPE_UNKNOWN:
                 default: {
-                    console.log(`Contract ${contractId} type unknown, skipping`);
+                    console.log(`Contract ${app.apid} type unknown, skipping`);
                 }
             }
         }

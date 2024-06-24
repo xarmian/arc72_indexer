@@ -1,5 +1,6 @@
 import algosdk from "algosdk";
 import readline from "readline";
+import crypto from "crypto";
 import { CONTRACT, abi, swap } from "ulujs";
 import {
     CONTRACT_TYPE_UNKNOWN,
@@ -12,6 +13,11 @@ import {
 import Database from "./database.js";
 import dotenv from "dotenv";
 dotenv.config();
+
+// create a SHA-256 hash
+function createHash(data) {
+  return crypto.createHash('sha256').update(data).digest('hex');
+}
 
 const {
     ALGOD_TOKEN = "",
@@ -138,8 +144,11 @@ export async function isLPT(contractId) {
 
 // TODO support multiple contract types
 //      for example if what-if a contract is an arc72 and an arc200
-export async function getContractType(contract) {
-    if (await isARC72(contract)) return CONTRACT_TYPE_ARC72;
+export async function getContractType(app) {
+    const contract = app.apid; // contractid
+    const hash = app.appApprovalHash; // 256hash of approval program
+    if(hash === "e80b280db0d1ae7ee02c5138235a7ceb9ca3817bcd1c254ccc3693e6646e7ab6") return CONTRACT_TYPE_LPT;
+    else if (await isARC72(contract)) return CONTRACT_TYPE_ARC72;
     else if (await isMP(contract)) return CONTRACT_TYPE_MP;
     else if (await isARC200(contract)) {
         if(await isLPT(contract)) {
@@ -189,14 +198,19 @@ export function getAllAppIdsIdx(txns) {
     if (txns === undefined) return apps;
     for (const t of txns) {
         if (t["created-application-index"]) {
+	    console.log(t);
             apps.push({
                 apid: t["created-application-index"],
                 isCreate: true,
+		appApproval: t["application-transaction"]["approval-program"],
+		appApprovalHash: createHash(t["application-transaction"]["approval-program"]),
+		creator: t.sender
             });
         } else if (t["application-transaction"]) {
             apps.push({
                 apid: t["application-transaction"]["application-id"],
                 isCreate: t["on-completion"] === 0 ? true : false,
+		appApproval: t["application-transaction"]["approval-app"],
             });
         }
         if (t["inner-txns"]) apps = apps.concat(getAllAppIdsIdx(t["inner-txns"]));
