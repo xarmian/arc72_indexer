@@ -372,6 +372,7 @@ const doIndex = async (app, round) => {
   } else {
     lastSyncRound = await db.getContract0200LastSync(contractId);
     console.log({ lastSyncRound });
+    await db.insertOrUpdateContractStub({ contractId, hash: "", creator: "", active: 1 });
     console.log(`Updating contract ${contractId} in tokens table`);
     const token = await getToken(ci, contractId);
     console.log({ token });
