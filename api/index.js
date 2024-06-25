@@ -20,6 +20,7 @@ import { prices0200Endpoint } from "./endpoints/arc200/prices.js";
 import { arc200TransfersEndpoint } from "./endpoints/arc200/transfers.js";
 import { approvals0200Endpoint } from "./endpoints/arc200/approvals.js";
 import { dexPoolsEndpoint } from "./endpoints/dex/pools.js";
+import { dexPoolStubEndpoint } from "./endpoints/dex/stubs.js";}
 import { stakePoolsEndpoint } from "./endpoints/stake/pools.js";
 import { stakeAccountsEndpoint } from "./endpoints/stake/accounts.js";
 import dotenv from "dotenv";
@@ -86,6 +87,10 @@ const endpoints = [
   {
     path: "/nft-indexer/v1/dex/pools",
     handler: dexPoolsEndpoint,
+  },
+  {
+    path: "/nft-indexer/v1/dex/stubs/pool",
+    handler: dexPoolStubEndpoint,
   },
   {
     path: "/nft-indexer/v1/stake/pools",
