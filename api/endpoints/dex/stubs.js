@@ -89,7 +89,7 @@ export const dexPoolStubEndpoint = async (req, res, db) => {
 
   // Extract query parameters
   const contractId = req.query.contractId;
-  const appApprovalHash = req.query["app-approval-hash"];
+  const hash = req.query["hash"]; // app approval hash
   const active = req.query.active;
   const creator = req.query.creator;
   const next = req.query.next ?? 0;
@@ -115,7 +115,8 @@ export const dexPoolStubEndpoint = async (req, res, db) => {
   let params = {};
  
     query += `
-    select * from contract_stubs
+    select p.*
+    from contract_stubs p
     `;
 
   if (contractId) {
@@ -123,9 +124,9 @@ export const dexPoolStubEndpoint = async (req, res, db) => {
     params.$contractId = contractId;
   }
 
-  if (appApprovalHash) {
-    conditions.push(`p.appApprovalHash = $appApprovalHash`);
-    params.$appApprovalHash = appApprovalHash;
+  if (hash) {
+    conditions.push(`p.hash = $hash`);
+    params.$hash = hash;
   }
 
   if (active) {
