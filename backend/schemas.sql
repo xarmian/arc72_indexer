@@ -164,49 +164,173 @@ CREATE INDEX IF NOT EXISTS idx_deletes_timestamp ON deletes(timestamp);
 ------------------------------------------
 -- ARC-0200 Contract Tables
 ------------------------------------------
-/*
+
 -- contract metadata for arc-0200 contracts
-CREATE TABLE contracts_0200 (
+CREATE TABLE IF NOT EXISTS contracts_0200 (
     contractId TEXT,
     name TEXT,
     symbol TEXT,
     decimals INTEGER,
     totalSupply TEXT,
-    minter TEXT,
-    metadata BLOB,
+    creator TEXT,
+    createRound INTEGER,
+    lastSyncRound INTEGER,
+    isBlacklisted INTEGER,
+    PRIMARY KEY (contractId)
+);
+
+-- associated tokens
+CREATE TABLE IF NOT EXISTS contract_tokens_0200 (
+    contractId TEXT,
+    tokenId TEXT,
     PRIMARY KEY (contractId, tokenId)
 );
 
+-- metadata attached to token
+CREATE TABLE IF NOT EXISTS contract_metadata_0200 (
+    contractId TEXT,      
+    metadata BLOB,
+    PRIMARY KEY (contractId)
+);  
+
 -- map of account balances for arc-0200 contracts
-CREATE TABLE accounts_0200 {
+CREATE TABLE IF NOT EXISTS account_balances_0200 (
     accountId TEXT,
     contractId TEXT,
-    tokenId TEXT,
     balance TEXT,
-    PRIMARY KEY (accountId, contractId, tokenId)
-};
+    PRIMARY KEY (accountId, contractId)
+);
+
+-- map of account approvals for arc-0200 contracts
+CREATE TABLE IF NOT EXISTS account_approvals_0200 (
+    contractId TEXT,
+    owner TEXT,
+    spender TEXT,
+    approval TEXT,
+    PRIMARY KEY (contractId, owner, spender)
+);
 
 -- transfer history for arc-0200 contracts
-CREATE TABLE transfers_0200 {
+CREATE TABLE IF NOT EXISTS transfers_0200 (
     transactionId TEXT,
     contractId TEXT,
-    tokenId TEXT,
-    from TEXT,
-    to TEXT,
+    timestamp INTEGER,
+    round INTEGER,
+    sender TEXT, 
+    receiver TEXT, 
     amount TEXT,
-    timestamp TEXT,
-    PRIMARY KEY (transferId)
-};
+    PRIMARY KEY (transactionId)
+);
 
 -- approval history for arc-0200 contracts
-CREATE TABLE approvals_0200 {
+CREATE TABLE IF NOT EXISTS approvals_0200 (
     transactionId TEXT,
     contractId TEXT,
-    tokenId TEXT,
+    timestamp INTEGER,
+    round INTEGER,
     owner TEXT,
-    approved TEXT,
-    timestamp TEXT,
+    spender TEXT,
+    amount TEXT,
     PRIMARY KEY (transactionId)
-};
-*/
+);
+
+--- dex ---
+
+-- prices for arc-0200 contracts
+CREATE TABLE IF NOT EXISTS prices_0200 (
+    contractId TEXT,
+    price TEXT,
+    PRIMARY KEY (contractId)
+);
+
+-- price history for arc-0200 contracts
+CREATE TABLE IF NOT EXISTS price_history_0200 (
+    contractId TEXT,
+    timestamp INTEGER,
+    round INTEGER,
+    price TEXT,
+    PRIMARY KEY (contractId, round)
+);
+
+-- deposit activity for dex contracts
+CREATE TABLE IF NOT EXISTS event_dex_deposits (
+    transactionId TEXT,
+    contractId TEXT,
+    timestamp INTEGER,
+    round INTEGER,
+    inBalA TEXT,
+    inBalB TEXT,
+    lpOut TEXT,
+    poolBalA TEXT,
+    poolBalB TEXT,
+    PRIMARY KEY (transactionId)
+);
+
+-- withdraw activity for dex contracts
+CREATE TABLE IF NOT EXISTS event_dex_withdrawals (
+    transactionId TEXT,
+    contractId TEXT,
+    timestamp INTEGER,
+    round INTEGER,
+    lpIn TEXT,
+    outBalA TEXT,
+    outBalB TEXT,
+    poolBalA TEXT,
+    poolBalB TEXT,
+    PRIMARY KEY (transactionId)
+);
+
+-- swap activity for dex contracts
+CREATE TABLE IF NOT EXISTS event_dex_swaps (
+    transactionId TEXT,
+    contractId TEXT,
+    timestamp INTEGER,
+    round INTEGER,
+    inBalA TEXT,
+    inBalB TEXT,
+    outBalA TEXT,
+    outBalB TEXT,
+    poolBalA TEXT,
+    poolBalB TEXT,
+    PRIMARY KEY (transactionId)
+);
+
+CREATE TABLE IF NOT EXISTS dex_pool (
+    contractId TEXT,
+    providerId TEXT,
+    poolId TEXT,
+    tokAId TEXT,
+    tokBId TEXT,
+    symbolA TEXT,
+    symbolB TEXT,
+    poolBalA TEXT,
+    poolBalB TEXT,
+    tvlA TEXT,
+    tvlB TEXT,
+    volA TEXT,
+    volB TEXT,
+    apr TEXT,
+    supply TEXT,
+    lastSyncRound INTEGER,
+    PRIMARY KEY (contractId)
+)
+
+------------------------------------------
+-- ARC-0200 Indexes
+------------------------------------------
+
+-- TODO add arc-200 indexes
+
+-- /contracts_0200
+
+-- / accounts_0200
+
+-- / transfers_0200
+
+-- / approvals_0200
+
 -- Path: backend/schemas.sql
+
+------------------------------------------
+-- DEX-0200 Indexes
+------------------------------------------

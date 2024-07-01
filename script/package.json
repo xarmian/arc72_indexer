@@ -1,0 +1,17 @@
+{
+  "name": "script",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "algosdk": "^2.7.0",
+    "axios": "^1.6.8",
+    "bignumber.js": "^9.1.2",
+    "ulujs": "^0.9.12"
+  }
+}

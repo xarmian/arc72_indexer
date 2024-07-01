@@ -95,11 +95,13 @@ export default class Database {
         );
     }
 
+    // ARC-0072
+
     async getCollections() {
         return await this.all("SELECT * FROM collections");
     }
 
-    async insertOrUpdateToken({contractId, tokenId, tokenIndex, owner, metadataURI, metadata, approved, mintRound}) {
+    async insertOrUpdateToken({ contractId, tokenId, tokenIndex, owner, metadataURI, metadata, approved, mintRound }) {
         let result = undefined;
         if (metadataURI) {
             result = await this.run(
@@ -135,7 +137,7 @@ export default class Database {
         return result;
     }
 
-    async insertOrUpdateCollection({contractId, totalSupply, createRound, lastSyncRound, creator, globalState}) {
+    async insertOrUpdateCollection({ contractId, totalSupply, createRound, lastSyncRound, creator, globalState }) {
         const result = await this.run(
             `
             UPDATE collections 
@@ -178,7 +180,7 @@ export default class Database {
         return await this.run("UPDATE collections SET createRound = ? WHERE contractId = ?", [createRound, contractId]);
     }
 
-    async insertTransaction({transactionId, contractId, tokenId, round, fromAddr, toAddr, timestamp}) {
+    async insertTransaction({ transactionId, contractId, tokenId, round, fromAddr, toAddr, timestamp }) {
         return await this.run("INSERT OR IGNORE INTO transfers (transactionId, contractId, tokenId, round, fromAddr, toAddr, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?)", [transactionId, contractId, String(tokenId), round, fromAddr, toAddr, timestamp]);
     }
 
@@ -195,7 +197,8 @@ export default class Database {
         return await this.run("UPDATE tokens SET approved = ? WHERE contractId = ? AND tokenId = ?", [approved, contractId, String(tokenId)]);
     }
 
-    // marketplace queries
+    // MP-0206
+
     async marketExists(contractId) {
         const market = await this.get("SELECT mpContractId FROM markets WHERE mpContractId = ?", [contractId]);
         return (market) ? true : false;
@@ -214,7 +217,7 @@ export default class Database {
         return await this.all("SELECT * FROM markets");
     }
 
-    async insertOrUpdateMarket({contractId, escrowAddr, createRound, lastSyncRound, isBlacklisted}) {
+    async insertOrUpdateMarket({ contractId, escrowAddr, createRound, lastSyncRound, isBlacklisted }) {
         const result = await this.run(
             `
             UPDATE markets
@@ -235,7 +238,7 @@ export default class Database {
         return result;
     }
 
-    async insertOrUpdateMarketListing({transactionId, mpContractId, mpListingId, contractId, tokenId, seller, price, currency, createRound, createTimestamp, endTimestamp, royalty, sales_id, delete_id}) {
+    async insertOrUpdateMarketListing({ transactionId, mpContractId, mpListingId, contractId, tokenId, seller, price, currency, createRound, createTimestamp, endTimestamp, royalty, sales_id, delete_id }) {
         const updateSQL = `UPDATE listings
                             SET mpContractId = ?, mpListingId = ?, contractId = ?, tokenId = ?, seller = ?, price = ?, currency = ?, createRound = ?, createTimestamp = ?, endTimestamp = ?, royalty = ?, sales_id = ?, delete_id = ?
                             WHERE transactionId = ?`;
@@ -245,7 +248,7 @@ export default class Database {
             updateSQL,
             [String(mpContractId), String(mpListingId), String(contractId), String(tokenId), seller, price, currency, createRound, createTimestamp, endTimestamp, royalty, sales_id, delete_id, transactionId]
         );
-    
+
         if (result.changes === 0) {
             const insertSQL = `INSERT INTO listings (transactionId, mpContractId, mpListingId, contractId, tokenId, seller, price, currency, createRound, createTimestamp, endTimestamp, royalty, sales_id, delete_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
             // console.log(`insertOrUpdateMarketListing insertSQL: ${insertSQL}`);
@@ -257,7 +260,7 @@ export default class Database {
         return result;
     }
 
-    async insertOrUpdateMarketSale({transactionId, mpContractId, mpListingId, contractId, tokenId, seller, buyer, currency, price, round, timestamp}) {
+    async insertOrUpdateMarketSale({ transactionId, mpContractId, mpListingId, contractId, tokenId, seller, buyer, currency, price, round, timestamp }) {
         const result = await this.run(
             `
             UPDATE sales
@@ -279,7 +282,7 @@ export default class Database {
         return result;
     }
 
-    async insertOrUpdateMarketDelete({transactionId, mpContractId, mpListingId, contractId, tokenId, owner, round, timestamp}) {
+    async insertOrUpdateMarketDelete({ transactionId, mpContractId, mpListingId, contractId, tokenId, owner, round, timestamp }) {
         const result = await this.run(
             `
             UPDATE deletes
@@ -315,6 +318,277 @@ export default class Database {
         return await this.get("SELECT * FROM deletes WHERE mpContractId = ? AND mpListingId = ?", [String(mpContractId), String(mpListingId)]);
     }
 
+    // ARC-0200
+
+    async getContracts0200() {
+	return await this.all("SELECT * from contracts_0200");
+    }
+
+    async getContract0200ById(contractId) {
+        return await this.get(`
+SELECT 
+    c.*,
+    group_concat(t.tokenId) as tokenId,
+    p.price as price
+FROM 
+    contracts_0200 c
+LEFT JOIN 
+    contract_tokens_0200 t 
+ON 
+    c.contractId = t.contractId
+LEFT JOIN 
+    prices_0200 p 
+ON 
+    c.contractId = p.contractId
+WHERE c.contractId = ?
+GROUP BY c.contractId;
+`, [contractId])   
+    }
+
+    async getContract0200ContractIdByTokenId(tokenId) {
+	return (await this.all(`
+WITH aggregated_tokens AS (
+    SELECT 
+        t.contractId, 
+        group_concat(t.tokenId) as tokenId
+    FROM
+        contract_tokens_0200 t 
+    GROUP BY  
+        t.contractId
+)
+SELECT 
+    at.contractId
+FROM 
+    aggregated_tokens at
+WHERE 
+    at.tokenId = ?;
+`, [tokenId])).map(({ contractId }) => contractId)
+    }
+
+    async getContract0200LastSync(contractId) {
+        const contract = await this.get("SELECT lastSyncRound FROM contracts_0200 WHERE contractId = ?", [contractId]);
+        return (contract) ? contract.lastSyncRound : 0;
+    }
+
+    async updateContract0200LastSync(contractId, lastSyncRound) {
+        return await this.run("UPDATE contracts_0200 SET lastSyncRound = ? WHERE contractId = ?", [lastSyncRound, contractId]);
+    }
+
+    async updateContract0200TokenId(contractId, tokenId) {
+        return await this.run("UPDATE contracts_0200 SET tokenId = ? WHERE contractId = ?", [tokenId, contractId]);
+    }
+
+    async insertOrUpdateContract0200({ contractId, name, symbol, decimals, totalSupply, createRound, lastSyncRound, creator }) {
+        const result = await this.run(
+            `
+            UPDATE contracts_0200
+            SET totalSupply = ?, lastSyncRound = ?, creator = ?
+            WHERE contractId = ?
+            `,
+            [totalSupply, lastSyncRound, creator, contractId]
+        );
+
+        if (result.changes === 0) {
+            return await this.run(
+                `
+                INSERT INTO contracts_0200 (contractId, name, symbol, decimals, totalSupply, creator, createRound, lastSyncRound, isBlacklisted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                `,
+                [contractId, name, symbol, Number(decimals), totalSupply, creator, createRound, lastSyncRound, 0]
+            );
+        }
+        return result;
+    }
+
+    async insertContractToken0200({ contractId, tokenId }) {
+            return await this.run(
+                `
+                INSERT OR IGNORE INTO contract_tokens_0200 (contractId, tokenId) VALUES (?, ?)
+                `,
+                [contractId, tokenId]
+        );
+    }
+
+    async insertOrUpdatePool({ contractId, providerId, poolId, tokAId, tokBId, symbolA, symbolB, poolBalA, poolBalB, tvlA, tvlB, volA, volB, apr, supply }) {
+        const result = await this.run(
+            `
+            UPDATE dex_pool
+            SET poolBalA = ?, poolBalB = ?, tvlA = ?, tvlB = ?, volA = ?, volB = ?, apr = ?, supply = ?
+            WHERE contractId = ?
+            `,
+            [poolBalA, poolBalB, tvlA, tvlB, volA, volB, apr, supply, contractId]
+        );
+                
+        if (result.changes === 0) {
+            return await this.run(
+                `
+                INSERT INTO dex_pool (contractId, providerId, poolId, tokAId, tokBId, symbolA, symbolB, poolBalA, poolBalB, tvlA, tvlB, volA, volB, apr, supply) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                `,
+                [contractId, providerId, poolId, tokAId, tokBId, symbolA, symbolB, poolBalA, poolBalB, tvlA, tvlB, supply]
+            );
+        }
+        return result;
+    }
+
+
+    // delete these, use arc200 token last sync round
+
+    async updatePoolLastSync(contractId, lastSyncRound) {
+        return await this.run("UPDATE dex_pool SET lastSyncRound = ? WHERE contractId = ?", [lastSyncRound, contractId]);
+    }
+
+    async getPoolLastSync(contractId) {
+        const contract = await this.get("SELECT lastSyncRound FROM dex_pool WHERE contractId = ?", [contractId]);
+        return (contract) ? contract.lastSyncRound : 0;
+    }
+
+    async insertOrUpdatePrice0200({ contractId, price }) {
+        const result = await this.run(
+            `
+            UPDATE prices_0200
+            SET price = ?
+            WHERE contractId = ?
+            `,
+            [price, contractId]
+        );
+
+        if (result.changes === 0) {
+            return await this.run(
+                `
+                INSERT INTO prices_0200 (contractId, price) VALUES (?, ?)
+                `,
+                [contractId, price]
+            );
+        }
+        return result;
+    }
+
+
+    async insertOrUpdatePriceHistory0200({ contractId, price, round, timestamp }) {
+        const result = await this.run(
+            `
+            UPDATE price_history_0200
+            SET price = ?
+            WHERE contractId = ? AND round = ?
+            `,
+            [price, contractId, round]
+        );
+
+        if (result.changes === 0) {
+            return await this.run(
+                `
+                INSERT INTO price_history_0200 (contractId, price, round, timestamp) VALUES (?, ?, ?, ?)
+                `,
+                [contractId, price, round, timestamp]
+            );
+        }
+        return result;
+    }
+
+
+    async insertOrUpdateAccountBalance0200({ accountId, contractId, balance }) {
+        const result = await this.run(
+            `
+            UPDATE account_balances_0200
+            SET balance = ?
+            WHERE accountId = ? AND contractId = ?
+            `,
+            [balance, accountId, contractId]
+        );
+
+        if (result.changes === 0) {
+            return await this.run(
+                `
+                INSERT INTO account_balances_0200 (accountId, contractId, balance) VALUES (?, ?, ?)
+                `,
+                [accountId, contractId, balance]
+            );
+        }
+        return result;
+    }
+
+    async insertOrUpdateAccountApproval0200({ contractId, owner, spender, approval }) {
+        const result = await this.run(
+            `
+            UPDATE account_approvals_0200
+            SET approval = ?
+            WHERE contractId = ? AND owner = ? AND spender = ?
+            `,
+            [approval, contractId, owner, spender]
+        );
+
+        if (result.changes === 0) {
+            return await this.run(
+                `
+                INSERT INTO account_approvals_0200 (contractId, owner, spender, approval) VALUES (?, ?, ?, ?)
+                `,
+                [contractId, owner, spender, approval]
+            );
+        }
+        return result;
+    }
+
+    async insertTransfer0200({ transactionId, contractId, timestamp, round, sender, receiver, amount }) {
+        return await this.run(
+            `
+            INSERT OR IGNORE INTO transfers_0200 (transactionId, contractId, timestamp, round, sender, receiver, amount) VALUES (?, ?, ?, ?, ?, ?, ?)
+            `,
+            [transactionId, contractId, timestamp, round, sender, receiver, amount]
+        );
+    }
+
+    async insertApproval0200({ transactionId, contractId, timestamp, round, owner, spender, amount }) {
+        return await this.run(
+            `
+            INSERT OR IGNORE INTO approvals_0200 (transactionId, contractId, timestamp, round, owner, spender, amount) VALUES (?, ?, ?, ?, ?, ?, ?)
+            `,
+            [transactionId, contractId, timestamp, round, owner, spender, amount]
+        );
+    }
+
+    async insertEventDexDeposit({ transactionId, contractId, timestamp, round, inBalA, inBalB, lpOut, poolBalA, poolBalB }) {
+        return await this.run(
+            `
+            INSERT OR IGNORE INTO event_dex_deposits (transactionId, contractId, timestamp, round, inBalA, inBalB, lpOut, poolBalA, poolBalB)
+	    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `,
+            [transactionId, contractId, timestamp, round, inBalA, inBalB, lpOut, poolBalA, poolBalB]
+        );
+    }
+
+    async insertEventDexWithdraw({ transactionId, contractId, timestamp, round, lpIn, outBalA, outBalB, poolBalA, poolBalB }) {
+        return await this.run(
+            `
+            INSERT OR IGNORE INTO event_dex_withdrawals (transactionId, contractId, timestamp, round, lpIn, outBalA, outBalB, poolBalA, poolBalB)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `,
+            [transactionId, contractId, timestamp, round, lpIn, outBalA, outBalB, poolBalA, poolBalB]
+        );
+    }
+
+    async insertEventDexSwap({ transactionId, contractId, timestamp, round, inBalA, inBalB, outBalA, outBalB, poolBalA, poolBalB }) {
+        return await this.run(
+            `
+            INSERT OR IGNORE INTO event_dex_swaps (transactionId, contractId, timestamp, round, inBalA, inBalB, outBalA, outBalB, poolBalA, poolBalB)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `,
+            [transactionId, contractId, timestamp, round, inBalA, inBalB, outBalA, outBalB, poolBalA, poolBalB]
+        );
+    }
+
+
+    async getPoolVolume(contractId, timestamp = 0) {
+	return await this.get(
+		`
+		SELECT contractId, SUM(inBalA) as volA, SUM(inBalB) as volB
+		FROM event_dex_swaps
+		WHERE contractId = ? AND timestamp >= ?
+		GROUP BY contractId
+		`,
+		[contractId, timestamp]
+	);
+    }
+
+    // TODO add arc-0200 
     async initDB() {
         const tables = [
             `
@@ -419,6 +693,61 @@ export default class Database {
                 FOREIGN KEY (contractId, tokenId) REFERENCES tokens (contractId, tokenId),
                 FOREIGN KEY (contractId) REFERENCES collections (contractId)
             )`,
+            `
+            CREATE TABLE IF NOT EXISTS contracts_0200 (
+                contractId TEXT PRIMARY KEY,
+                tokenId TEXT,
+                name TEXT,
+                symbol TEXT,
+                decimals INTEGER,
+                totalSupply INTEGER,
+                creator TEXT,
+                metadata BLOB,
+                createRound INTEGER,
+                lastSyncRound INTEGER,
+                isBlacklisted INTEGER
+            )`,
+            `
+            CREATE TABLE IF NOT EXISTS account_balances_0200 (
+                accountId TEXT,
+                contractId TEXT,
+                balance TEXT,
+                PRIMARY KEY (accountId, contractId)
+            )
+            `,
+            `
+            CREATE TABLE IF NOT EXISTS account_approvals_0200 (
+                contractId TEXT,
+                owner TEXT,
+                spender TEXT,
+		approval TEXT,
+                PRIMARY KEY (contractId, owner, spender)
+            )
+            `,
+            `
+            CREATE TABLE IF NOT EXISTS transfers_0200 (
+                transactionId TEXT,
+                contractId TEXT,
+                timestamp INTEGER,
+                round INTEGER,
+                sender TEXT,
+                receiver TEXT,
+                amount TEXT,
+                PRIMARY KEY (transactionId)
+            )
+            `,
+            `
+            CREATE TABLE IF NOT EXISTS approvals_0200 (
+                transactionId TEXT,
+                contractId TEXT,
+                timestamp INTEGER,
+                round INTEGER,
+                sender TEXT,
+                receiver TEXT,
+                amount TEXT,
+                PRIMARY KEY (transactionId)
+            )
+            `,
         ];
 
         for (let table of tables) {
@@ -468,6 +797,4 @@ CREATE INDEX idx_tokens_contractId ON tokens(contractId, tokenId);
 CREATE INDEX idx_tokens_owner ON tokens(owner);
 CREATE INDEX idx_tokens_approved ON tokens(approved);
 CREATE INDEX idx_tokens_mintRound ON tokens(mintRound);
-
-
 */
