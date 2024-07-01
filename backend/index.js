@@ -37,12 +37,14 @@ import {
     CONTRACT_TYPE_ARC200,
     CONTRACT_TYPE_LPT,
     CONTRACT_TYPE_STAKE,
+    CONTRACT_TYPE_SCS,
 } from "./constants.js";
 import onARC72 from "./router/task/arc72.js";
 import onMP206 from "./router/task/mp206.js";
 import onARC200 from "./router/task/arc200.js";
 import onDex from "./router/task/dex.js";
 import onStake from "./router/task/stake.js";
+import onSCS from "./router/task/smart-contract-staking.js";
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -129,31 +131,37 @@ while (true) {
         }
         // for each app, run contract specific indexer task
         for (const app of apps) {
+	    console.log(app);
             const contractType = await getContractType(app);
             switch (contractType) {
+                case CONTRACT_TYPE_SCS: {
+                    console.log("SCS", app, rnd);
+		    await onSCS(app, rnd);
+		    break;
+		}
                 case CONTRACT_TYPE_ARC72: {
                     console.log("ARC72", app, rnd);
-                    await onARC72(app, rnd);
+                    //await onARC72(app, rnd);
                     break;
                 }
                 case CONTRACT_TYPE_MP /*206*/: {
                     console.log("MP206", app, rnd);
-                    await onMP206(app, rnd);
+                    //await onMP206(app, rnd);
                     break;
                 }
                 case CONTRACT_TYPE_ARC200: {
                     console.log("ARC200", app, rnd);
-                    await onARC200(app, rnd);
+                    //await onARC200(app, rnd);
                     break;
                 }
                 case CONTRACT_TYPE_LPT: {
                     console.log("LPT", app, rnd);
-                    await onDex(app, rnd);
+                    //await onDex(app, rnd);
                     break;
                 }
 		case CONTRACT_TYPE_STAKE: {
                     console.log("STAKE", app, rnd);
-                    await onStake(app, rnd);
+                    //await onStake(app, rnd);
 		    break;
 		}
                 case CONTRACT_TYPE_UNKNOWN:

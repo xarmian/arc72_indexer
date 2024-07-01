@@ -9,6 +9,7 @@ import {
     CONTRACT_TYPE_MP,
     CONTRACT_TYPE_LPT,
     CONTRACT_TYPE_STAKE,
+    CONTRACT_TYPE_SCS,
 } from "./constants.js";
 import Database from "./database.js";
 import dotenv from "dotenv";
@@ -101,6 +102,29 @@ async function isSupported(contractId, interfaceSelector) {
     }
 }
 
+export async function isSCS(contractId, app) {
+	const exists = await db.scsExists(contractId);
+	if(!exists) {
+		const {
+			globalStateSchema,
+			globalStateDelta,
+		} = app;
+		const keys = globalStateDelta?.map(el => el.key) || [];
+		return (
+			// check schema
+			app.isCreate &&
+			'num-byte-slice' in globalStateSchema &&
+			'num-uint' in globalStateSchema &&
+			globalStateSchema['num-byte-slice'] === 2 &&
+			globalStateSchema['num-uint'] === 3 &&
+			// check keys
+			['ZnVuZGVy', 'ZnVuZGluZw==', 'b3duZXI=', 'cGVyaW9k', 'dG90YWw='].every(key => keys.includes(key))
+			// check initial state 
+		);
+	}
+	return true;
+}
+
 export async function isStake(contractId) {
 	const stakeExists = await db.stakeExists(contractId);
 	return stakeExists;
@@ -147,17 +171,23 @@ export async function isLPT(contractId) {
 export async function getContractType(app) {
     const contract = app.apid; // contractid
     const hash = app.appApprovalHash; // 256hash of approval program
-    if(hash === "e80b280db0d1ae7ee02c5138235a7ceb9ca3817bcd1c254ccc3693e6646e7ab6") return CONTRACT_TYPE_LPT;
+    console.log("hash", hash);
+    console.log(app);
+    // check appApproval hash
+    // check db or global state delta
+    // check only db
+    // check simulate supportsInterface
+    // check simulate other
+    if(hash === "e80b280db0d1ae7ee02c5138235a7ceb9ca3817bcd1c254ccc3693e6646e7ab6") return CONTRACT_TYPE_LPT; // ARC200LP 
+    else if (await isSCS(contract, app)) return CONTRACT_TYPE_SCS;
+    else if (await isStake(contract)) return CONTRACT_TYPE_STAKE;
     else if (await isARC72(contract)) return CONTRACT_TYPE_ARC72;
     else if (await isMP(contract)) return CONTRACT_TYPE_MP;
     else if (await isARC200(contract)) {
-        if(await isLPT(contract)) {
-            return CONTRACT_TYPE_LPT;
+        if(await isLPT(contract)) { 
+            return CONTRACT_TYPE_LPT; // LPT
         }
         return CONTRACT_TYPE_ARC200;
-    }
-    else if (await isStake(contract)) {
-	return CONTRACT_TYPE_STAKE;
     }
     return CONTRACT_TYPE_UNKNOWN;
 }
@@ -204,13 +234,20 @@ export function getAllAppIdsIdx(txns) {
                 isCreate: true,
 		appApproval: t["application-transaction"]["approval-program"],
 		appApprovalHash: createHash(t["application-transaction"]["approval-program"]),
-		creator: t.sender
+		creator: t.sender,
+		globalStateSchema: t["application-transaction"]["global-state-schema"],
+		globalStateDelta: t['global-state-delta'],
+		sender: t.sender
             });
         } else if (t["application-transaction"]) {
+	    console.log(t);
             apps.push({
                 apid: t["application-transaction"]["application-id"],
                 isCreate: t["on-completion"] === 0 ? true : false,
-		appApproval: t["application-transaction"]["approval-app"],
+		globalStateDelta: t['global-state-delta'],
+                appArgs: t["application-transaction"]["application-args"],
+		sender: t.sender
+
             });
         }
         if (t["inner-txns"]) apps = apps.concat(getAllAppIdsIdx(t["inner-txns"]));

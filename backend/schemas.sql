@@ -296,7 +296,7 @@ CREATE TABLE IF NOT EXISTS event_dex_swaps (
 );
 
 CREATE TABLE IF NOT EXISTS dex_pool (
-    contractId TEXT,
+    contractId TEXT PRIMARY KEY,
     providerId TEXT,
     poolId TEXT,
     tokAId TEXT,
@@ -311,9 +311,8 @@ CREATE TABLE IF NOT EXISTS dex_pool (
     volB TEXT,
     apr TEXT,
     supply TEXT,
-    lastSyncRound INTEGER,
-    PRIMARY KEY (contractId)
-)
+    lastSyncRound INTEGER
+);
 
 -- stake tables
 
@@ -455,6 +454,28 @@ CREATE TABLE IF NOT EXISTS contract_stubs (
 	hash TEXT NOT NULL,
 	creator TEXT NOT NULL,
 	active INTEGER DEFAULT 0
+);
+
+-- scs
+
+CREATE TABLE IF NOT EXISTS contract_scsc (
+        contractId TEXT PRIMARY KEY,
+	contractAddress TEXT,
+        creator TEXT,
+	createRound INTEGER,
+	lastSyncRound INTEGER,
+	global_funder TEXT,
+	global_funding INTEGER,
+	global_owner TEXT,
+	global_period INTEGER,
+	global_total TEXT,
+	part_vote_k TEXT,
+        part_sel_k TEXT,
+        part_vote_fst INTEGER,
+        part_vote_lst INTEGER,
+        part_vote_kd INTEGER,
+        part_sp_key TEXT,
+	deleted INTEGER
 )
 
 ------------------------------------------

@@ -197,6 +197,53 @@ export default class Database {
         return await this.run("UPDATE tokens SET approved = ? WHERE contractId = ? AND tokenId = ?", [approved, contractId, String(tokenId)]);
     }
 
+
+    // SCS
+
+    async getSCSById(contractId) {
+        const stake = await this.get("SELECT * FROM contract_scsc WHERE contractId = ?", [contractId]);
+        return stake
+    }
+
+    async scsExists(contractId) {
+        const stake = await this.get("SELECT contractId FROM contract_scsc WHERE contractId = ?", [contractId]);
+        return (stake) ? true : false;
+    }
+
+    async getSCSLastSync(contractId) {
+        const stake = await this.get("SELECT lastSyncRound FROM contract_scsc WHERE contractId = ?", [contractId]);
+        return (stake) ? stake.lastSyncRound : 0;
+    }
+
+    async updateSCSLastSync(contractId, lastSyncRound) {
+        return await this.run("UPDATE contract_scsc SET lastSyncRound = ? WHERE contractId = ?", [lastSyncRound, contractId]);
+    }
+
+    async insertOrUpdateSCS({ contractId, contractAddress, creator, createRound, global_funder, global_funding, global_owner, global_period, global_total, part_vote_k, part_sel_k, part_vote_fst, part_vote_lst, part_vote_kd, part_sp_key }) {
+        const result = await this.run(
+            `
+            UPDATE contract_scsc
+            SET global_funder = ?, global_funding = ?, global_owner = ?, global_period = ?, global_total = ?, part_vote_k = ?, part_sel_k = ?, part_vote_fst = ?, part_vote_lst = ?, part_vote_kd = ?, part_sp_key = ?
+            WHERE contractId = ?
+            `,
+            [global_funder, global_funding, global_owner, global_period, global_total,
+ part_vote_k, part_sel_k, part_vote_fst, part_vote_lst, part_vote_kd, part_sp_key, contractId]
+        );
+
+        if (result.changes === 0) {                                                                      
+            return await this.run(                                                                       
+                `
+                INSERT INTO contract_scsc (contractId, contractAddress, creator, createRound) VALUES (?, ?, ?, ?)
+                `,                                                                                       
+                [contractId, contractAddress, creator, createRound]
+            );
+        }
+        return result;
+    }
+
+    
+  
+
     // Stake
 
     async stakeExists(contractId) {
