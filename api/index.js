@@ -23,6 +23,7 @@ import { dexPoolsEndpoint } from "./endpoints/dex/pools.js";
 import { dexPoolStubEndpoint } from "./endpoints/dex/stubs.js";
 import { stakePoolsEndpoint } from "./endpoints/stake/pools.js";
 import { stakeAccountsEndpoint } from "./endpoints/stake/accounts.js";
+import { scsContractsEndpoint } from "./endpoints/scs/accounts.js";
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -99,6 +100,10 @@ const endpoints = [
   {
     path: "/nft-indexer/v1/stake/accounts",
     handler: stakeAccountsEndpoint,
+  },
+  {
+    path: "/v1/scs/accounts",
+    handler: scsContractsEndpoint,
   },
   {
     path: "/stats",
