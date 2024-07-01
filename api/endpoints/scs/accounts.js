@@ -1,30 +1,50 @@
 /**
  * @swagger
+ 
+  const contractAddress = req.query.contractAddress;
+  const creator = req.query.creator;
+  const funder = req.query.funder;
+  const owner = req.query.owner;
+  const createRound = req.query["create-round"];
+  const minCreateRound = req.query["mint-min-round"] ?? 0;
+  const maxCreateRound = req.query["mint-max-round"];
+  const deleted = req.query.deleted;
+
  * /v1/scs/accounts:
  *  get:
  *   summary: Retrieves arc200 token data
  *   description: Fetch arc200 token details based on query parameters (this is a NON-STANDARD endpoint)
  *   parameters:
- *     - in: query
+ *      - in: query
  *       name: contractId
  *       schema:
  *         type: integer
  *         description: Limit to only results with the given contractId
- *     - in: query
- *       name: holder
+ *      - in: query
+ *       name: contractAddress
  *       schema:
  *         type: string
- *         description: Include results where the given wallet address is the holder of the token
- *     - in: query
- *       name: mint-min-round
+ *         description: Limit to only results with the given contractAddress
+ *      - in: query
+ *       name: creator
+ *       schema:
+ *         type: stirng
+ *         description: Limit to only results with the given creator
+ *      - in: query
+ *       name: funder
+ *       schema:
+ *         type: string
+ *         description: Limit to only results with the given funder
+ *      - in: query
+ *       name: owner
+ *       schema:
+ *         type: string
+ *         description: Limit to only results with the given owner 
+ *      - in: query
+ *       name: deleted
  *       schema:
  *         type: integer
- *         description: Include results minted on or after the given round.
- *     - in: query
- *       name: mint-min-round
- *       schema:
- *         type: integer
- *         description: Include results minted on or before the given round.
+ *         description: Limit to only results with the given deleted status
  *     - in: query
  *       name: next
  *       schema:
@@ -35,16 +55,6 @@
  *       schema:
  *         type: integer
  *         description: Maximum number of results to return. There could be additional pages even if the limit is not reached.
- *     - in: query
- *       name: includes
- *       schema:
- *         type: string
- *         description: Comma separated list of additional properties to include in the response.
- *     - in: query
- *       name: creator
- *       schema:
- *         type: string
- *         description: Wallet address of the creator of the collection
  *   responses:
  *     200:
  *       description: A successful response
@@ -128,6 +138,11 @@ FROM
   if (contractId) {
     conditions.push(`c.contractId = $contractId`);
     params.$contractId = contractId;
+  }
+
+  if (contractAddress) {
+    conditions.push(`c.contractAddress = $contractAddress`);
+    params.$contractAddress = contractAddress;
   }
 
   if (createRound) {
