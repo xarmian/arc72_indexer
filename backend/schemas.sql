@@ -467,7 +467,7 @@ CREATE TABLE IF NOT EXISTS contract_scsc (
 	global_funder TEXT,
 	global_funding INTEGER,
 	global_owner TEXT,
-	global_period INTEGER,
+	global_period INTEGER DEFAULT 0,
 	global_total TEXT,
 	part_vote_k TEXT,
         part_sel_k TEXT,
@@ -475,7 +475,7 @@ CREATE TABLE IF NOT EXISTS contract_scsc (
         part_vote_lst INTEGER,
         part_vote_kd INTEGER,
         part_sp_key TEXT,
-	deleted INTEGER
+	deleted INTEGER DEFAULT 0
 )
 
 ------------------------------------------

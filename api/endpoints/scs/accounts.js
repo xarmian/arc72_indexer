@@ -120,28 +120,28 @@ export const scsAccountsEndpoint = async (req, res, db) => {
 
   query += `
 SELECT 
-    p.*,
+    c.*
 FROM 
-    contract_scsc p
+    contract_scsc c
     `;
 
   if (contractId) {
-    conditions.push(`p.contractId = $contractId`);
+    conditions.push(`c.contractId = $contractId`);
     params.$contractId = contractId;
   }
 
   if (createRound) {
-    conditions.push(`p.createRound = $createRound`);
+    conditions.push(`c.createRound = $createRound`);
     params.$createRound = createRound;
   }
 
   if (minCreateRound > 0) {
-    conditions.push(`p.createRound >= $minCreateRound`);
+    conditions.push(`c.createRound >= $minCreateRound`);
     params.$minCreateRound = minCreateRound;
   }
 
   if (maxCreateRound) {
-    conditions.push(`p.createRound <= $maxCreateRound`);
+    conditions.push(`c.createRound <= $maxCreateRound`);
     params.$maxCreateRound = maxCreateRound;
   }
 

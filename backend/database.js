@@ -219,15 +219,15 @@ export default class Database {
         return await this.run("UPDATE contract_scsc SET lastSyncRound = ? WHERE contractId = ?", [lastSyncRound, contractId]);
     }
 
-    async insertOrUpdateSCS({ contractId, contractAddress, creator, createRound, global_funder, global_funding, global_owner, global_period, global_total, part_vote_k, part_sel_k, part_vote_fst, part_vote_lst, part_vote_kd, part_sp_key }) {
+    async insertOrUpdateSCS({ contractId, contractAddress, creator, createRound, global_funder, global_funding, global_owner, global_period, global_total, part_vote_k, part_sel_k, part_vote_fst, part_vote_lst, part_vote_kd, part_sp_key, deleted }) {
         const result = await this.run(
             `
             UPDATE contract_scsc
-            SET global_funder = ?, global_funding = ?, global_owner = ?, global_period = ?, global_total = ?, part_vote_k = ?, part_sel_k = ?, part_vote_fst = ?, part_vote_lst = ?, part_vote_kd = ?, part_sp_key = ?
+            SET global_funder = ?, global_funding = ?, global_owner = ?, global_period = ?, global_total = ?, part_vote_k = ?, part_sel_k = ?, part_vote_fst = ?, part_vote_lst = ?, part_vote_kd = ?, part_sp_key = ?, deleted = ?
             WHERE contractId = ?
             `,
             [global_funder, global_funding, global_owner, global_period, global_total,
- part_vote_k, part_sel_k, part_vote_fst, part_vote_lst, part_vote_kd, part_sp_key, contractId]
+ part_vote_k, part_sel_k, part_vote_fst, part_vote_lst, part_vote_kd, part_sp_key, deleted, contractId]
         );
 
         if (result.changes === 0) {                                                                      
