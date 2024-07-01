@@ -141,27 +141,27 @@ while (true) {
 		}
                 case CONTRACT_TYPE_ARC72: {
                     console.log("ARC72", app, rnd);
-                    //await onARC72(app, rnd);
+                    await onARC72(app, rnd);
                     break;
                 }
                 case CONTRACT_TYPE_MP /*206*/: {
                     console.log("MP206", app, rnd);
-                    //await onMP206(app, rnd);
+                    await onMP206(app, rnd);
                     break;
                 }
                 case CONTRACT_TYPE_ARC200: {
                     console.log("ARC200", app, rnd);
-                    //await onARC200(app, rnd);
+                    await onARC200(app, rnd);
                     break;
                 }
                 case CONTRACT_TYPE_LPT: {
                     console.log("LPT", app, rnd);
-                    //await onDex(app, rnd);
+                    await onDex(app, rnd);
                     break;
                 }
 		case CONTRACT_TYPE_STAKE: {
                     console.log("STAKE", app, rnd);
-                    //await onStake(app, rnd);
+                    await onStake(app, rnd);
 		    break;
 		}
                 case CONTRACT_TYPE_UNKNOWN:
