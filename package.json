@@ -11,8 +11,5 @@
   },
   "type": "module",
   "author": "David Runion",
-  "license": "ISC",
-  "dependencies": {
-    "ulujs": "^0.9.14"
-  }
+  "license": "ISC"
 }
