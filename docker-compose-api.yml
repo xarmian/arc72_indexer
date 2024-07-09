@@ -1,0 +1,63 @@
+services:
+  nginx-proxy:
+    image: nginxproxy/nginx-proxy:1.5.1
+    container_name: nginx-proxy
+    restart: unless-stopped
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - conf:/etc/nginx/conf.d
+      - vhost:/etc/nginx/vhost.d
+      - html:/usr/share/nginx/html
+      - dhparam:/etc/nginx/dhparam
+      - certs:/etc/nginx/certs:ro
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+    environment:
+      - ENABLE_IPV6=true
+    networks:
+      - nginx-proxy
+
+  acme-companion:
+    image: nginxproxy/acme-companion
+    container_name: acme-companion
+    restart: unless-stopped
+    volumes_from:
+      - nginx-proxy
+    volumes:
+      - certs:/etc/nginx/certs:rw
+      - acme:/etc/acme.sh
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - DEFAULT_EMAIL=
+    networks:
+      - nginx-proxy
+
+  arc72-indexer-api:
+    build:
+      context: .
+      dockerfile: Dockerfile-api
+    image: xarmian/arc72-indexer-api
+    container_name: arc72-indexer-api
+    restart: unless-stopped
+    volumes:
+      - ./db:/app/db:ro
+    expose:
+      - 3000
+    environment:
+      - VIRTUAL_HOST=
+      - LETSENCRYPT_HOST=
+      - LETSENCRYPT_EMAIL=
+    networks:
+      - nginx-proxy
+
+volumes:
+  conf: {}
+  vhost: {}
+  html: {}
+  dhparam: {}
+  certs: {}
+  acme: {}
+
+networks:
+  nginx-proxy: {}
