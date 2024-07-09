@@ -3,6 +3,9 @@ import algosdk from "algosdk";
 import { CONTRACT, abi } from "ulujs";
 import { db, algodClient, indexerClient } from "../backend/utils.js";
 
+
+// snippet: extract address from openarc200 contract balance box
+
 /*
 const addrs = new Set()
 for(const box of boxes) {
@@ -15,13 +18,12 @@ for(const box of boxes) {
 }
 */
 
-//const tokens = (await axios.get(`https://api.nomadex.app/tokens`))?.data || [];
+// snippet: return create round for nomadex pools
+
+/*
 const tokens = (await axios.get(`https://api.nomadex.app/pools`))?.data || [];
 
-console.log(tokens);
-
 for(const token of tokens) {
-  //const { id } = token;
   const { pool_id: id } = token;
   const {
                 data: {
@@ -31,9 +33,11 @@ for(const token of tokens) {
   const round = application["created-at-round"];
   console.log(round);
 }
+*/
 
-process.exit(0);
+// snippet: updates balances for openarc200 token
 
+/*
 for(const token of tokens) {
 	const { contractId, symbol } = token;
 	console.log(contractId, symbol);
@@ -64,4 +68,4 @@ for(const token of tokens) {
         	}
 	}
 }
-
+*/
