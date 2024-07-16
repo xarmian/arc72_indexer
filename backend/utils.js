@@ -161,7 +161,9 @@ export async function isLPT(contractId) {
   const ciSwap = new swap(contractId, algodClient, indexerClient)
   const infoR = await ciSwap.Info();
   const isARC200LT = infoR.success;
-  const isLPT = appGlobalState.find(el => el.key === "cmF0aW8=" /*ratio*/) && accountAssets.assets.length === 0;
+  const isLPT = appGlobalState.find(el => el.key === "cmF0aW8=" /*ratio*/) && 
+		!appGlobalState.find(el => el.key === "dG9rZW5feV9hcHBfaWQ=" /*token_y_app_id*/) && 
+		accountAssets.assets.length === 0;
   if(isARC200LT || isLPT) return true;
   return false;
 }

@@ -28,9 +28,10 @@ const isLPT = async (contractId, globalState) => {
   const accountAssets = await indexerClient
     .lookupAccountAssets(algosdk.getApplicationAddress(contractId))
     .do();
-  const isLPT =
-    globalState.find((el) => el.key === "cmF0aW8=" /*ratio*/) &&
-    accountAssets.assets.length === 0;
+  
+  const isLPT = globalState.find(el => el.key === "cmF0aW8=" /*ratio*/) &&
+                !globalState.find(el => el.key === "dG9rZW5feV9hcHBfaWQ=" /*token_y_app_id*/) &&
+                accountAssets.assets.length === 0;
   return isLPT;
 };
 
