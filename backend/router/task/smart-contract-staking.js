@@ -20,29 +20,72 @@ const doIndex = async (app, round) => {
   let lastSyncRound;
   if (app.isCreate) {
     lastSyncRound = round;
+    // expect globalStateDelta
+    const global_period_seconds = app.globalStateDelta.find(el => el.key === "cGVyaW9kX3NlY29uZHM=")?.value?.uint || 0n;
+    const global_period_limit = app.globalStateDelta.find(el => el.key === "cGVyaW9kX2xpbWl0")?.value?.uint || 0n;
+    const global_lockup_delay = app.globalStateDelta.find(el => el.key === "bG9ja3VwX2RlbGF5")?.value?.uint || 0n;
+    const global_vesting_delay = app.globalStateDelta.find(el => el.key === "dmVzdGluZ19kZWxheQ==")?.value?.uint || 0n;
+    const global_parent_id = app.globalStateDelta.find(el => el.key === "cGFyZW50X2lk")?.value?.uint || 0n;
+    const global_messenger_id = app.globalStateDelta.find(el => el.key === "bWVzc2VuZ2VyX2lk")?.value?.uint || 0n;
+    const globalStateDelta = { global_period_seconds, global_period_limit, global_lockup_delay, global_vesting_delay, global_parent_id, global_messenger_id };
     await db.insertOrUpdateSCS({
 	contractId,
 	contractAddress: algosdk.getApplicationAddress(contractId),
 	creator: app.sender,
-	createRound: round
+	createRound: round,
+	global_period_seconds,
+	global_lockup_delay,
+	global_vesting_delay,
+	global_period_limit,
+	global_parent_id,
+	global_messenger_id
     })
   } else {
     lastSyncRound = (await db.getSCSLastSync(contractId)) ?? 0;
     // handleMethod
     switch(app.appArgs[0]) {
+	    // setup(address,address,uint64,uint64)void
+	    // isAirdrop
+	    case "8i/zjQ==": {
+		const stake = await db.getSCSById(contractId);
+		const args = app.appArgs.slice(1)
+                const [ownerB64, funderB64, deadlineB64, initialB64] = args;
+		const global_owner = algosdk.encodeAddress(new Uint8Array(Buffer.from(ownerB64,"base64")))
+                const global_funder = algosdk.encodeAddress(new Uint8Array(Buffer.from(funderB64,"base64")))
+		const global_deadline = Number(algosdk.bytesToBigInt(new Uint8Array(Buffer.from(deadlineB64,"base64"))))
+		const global_initial = algosdk.bytesToBigInt(new Uint8Array(Buffer.from(initialB64,"base64"))).toString()
+                const globalStateDelta = { global_funder, global_owner, global_deadline, global_initial };
+                await db.insertOrUpdateSCS({ ...stake, ...globalStateDelta });
+		break;
+	    }
 	    // setup(address,address)void
-	    // globalStateDelta in funder and owner
+	    // globalStateDelta in funder and owner // depreciate
             //   address funder is sender 
             //   address owner is argv[1]
+	    // globalStateDelta in owner, delegate
+            //   address owner is argv[1]
+            //   address delegate is argv[1]
 	    case "rHzvGw==": {
 		    const stake = await db.getSCSById(contractId);
+		    const isAirdrop = [
+			stake.global_period_seconds,
+		    	stake.global_lockup_delay,
+			stake.global_vesting_delay
+		    ].every(t => t > 0);
+		    // !funder
 		    const args = app.appArgs.slice(1)
-		    const [addressB64] = args;
-		    const global_owner = algosdk.encodeAddress(new Uint8Array(Buffer.from(addressB64,"base64")))
-		    const global_funder = app.sender;
-		    const globalStateDelta = { global_funder, global_owner };
-		    console.log({ globalStateDelta })
-		    await db.insertOrUpdateSCS({ ...stake, ...globalStateDelta });
+		    const [addressB64, address2B64] = args;
+		    if(isAirdrop) {
+		    	const global_owner = algosdk.encodeAddress(new Uint8Array(Buffer.from(addressB64,"base64")))
+		    	const global_funder = algosdk.encodeAddress(new Uint8Array(Buffer.from(address2B64,"base64")))
+		    	const globalStateDelta = { global_funder, global_owner };
+		    	await db.insertOrUpdateSCS({ ...stake, ...globalStateDelta });
+		    } else {
+			const global_owner = algosdk.encodeAddress(new Uint8Array(Buffer.from(addressB64,"base64")))
+                        const global_delegate = algosdk.encodeAddress(new Uint8Array(Buffer.from(address2B64,"base64")))
+                        const globalStateDelta = { global_owner, global_delegate };
+                        await db.insertOrUpdateSCS({ ...stake, ...globalStateDelta });
+		    }
 		    break;
 	    }
 	    // configure(uint64)void
@@ -53,7 +96,6 @@ const doIndex = async (app, round) => {
                     const [periodB64] = args;
                     const global_period = algosdk.bytesToBigInt(new Uint8Array(Buffer.from(periodB64,"base64")))
                     const globalStateDelta = { global_period: Number(global_period) };
-		    console.log({ globalStateDelta })
                     await db.insertOrUpdateSCS({ ...stake, ...globalStateDelta });
                     break;
 	    }
@@ -66,7 +108,6 @@ const doIndex = async (app, round) => {
                     const global_funding = algosdk.bytesToBigInt(new Uint8Array(Buffer.from(fundingB64,"base64")))
 		    const global_total = app.globalStateDelta.find(el => el.key === "dG90YWw=")?.value?.uint || 0n;
                     const globalStateDelta = { global_funding: Number(global_funding), global_total: global_total.toString() };
-                    console.log({ globalStateDelta })
                     await db.insertOrUpdateSCS({ ...stake, ...globalStateDelta });
 		    break;
 	    }
@@ -74,20 +115,25 @@ const doIndex = async (app, round) => {
 	    // participate(byte[],byte[],uint64,uint64,uint64,byte[])void
 	    case "eTLtXg==": {
 		    const stake = await db.getSCSById(contractId);
-                    const args = app.appArgs.slice(1)
-                    const [vote_kB64, sel_kB64, vote_fstB64, vote_lstB64, vote_kdB64, sp_keyB64] = args;
-                    const part_vote_fst = algosdk.bytesToBigInt(new Uint8Array(Buffer.from(vote_fstB64,"base64")))
-                    const part_vote_lst = algosdk.bytesToBigInt(new Uint8Array(Buffer.from(vote_lstB64,"base64")))
-                    const part_vote_kd = algosdk.bytesToBigInt(new Uint8Array(Buffer.from(vote_kdB64,"base64")))
-                    const globalStateDelta = { 
-			part_vote_k: vote_kB64,
-			part_sel_k: sel_kB64,
-			part_vote_fst: Number(part_vote_fst),
-			part_vote_lst: Number(part_vote_lst),
-			part_vote_kd: Number(part_vote_kd),
-			part_sp_key: sp_keyB64
-		    };
-		    console.log({ globalStateDelta })
+		    const [{
+        		["keyreg-transaction"]: keyRegTxn
+		    }] = app.innerTxns;
+		    const {
+        		["selection-participation-key"]: sel_k,
+        		["state-proof-key"]: sp_key,
+        		["vote-first-valid"]: part_vote_fst,
+        		["vote-last-valid"]: part_vote_lst,
+        		["vote-key-dilution"]: part_vote_kd,
+        		["vote-participation-key"]: vote_k
+		    } = keyRegTxn;
+		    const globalStateDelta = {
+        		part_vote_k: vote_k,
+        		part_sel_k: sel_k,
+        		part_vote_fst: part_vote_fst,
+        		part_vote_lst: part_vote_lst,
+        		part_vote_kd: part_vote_kd,
+        		part_sp_key: sp_key
+		    }
                     await db.insertOrUpdateSCS({ ...stake, ...globalStateDelta });
 		    break;
 	    }
@@ -107,7 +153,6 @@ const doIndex = async (app, round) => {
                     const [addressB64] = args;
                     const global_owner = algosdk.encodeAddress(new Uint8Array(Buffer.from(addressB64,"base64")))
                     const globalStateDelta = { global_owner };
-                    console.log({ globalStateDelta })
                     await db.insertOrUpdateSCS({ ...stake, ...globalStateDelta });
 		    break;
 	    }

@@ -113,12 +113,34 @@ export async function isSCS(contractId, app) {
 		return (
 			// check schema
 			app.isCreate &&
-			'num-byte-slice' in globalStateSchema &&
-			'num-uint' in globalStateSchema &&
-			globalStateSchema['num-byte-slice'] === 2 &&
-			globalStateSchema['num-uint'] === 3 &&
+			//'num-byte-slice' in globalStateSchema &&
+			//'num-uint' in globalStateSchema &&
+			//globalStateSchema['num-byte-slice'] === 2 &&
+			//globalStateSchema['num-uint'] === 7 &&
+			// TODO maybe require global schema larger than base
 			// check keys
-			['ZnVuZGVy', 'ZnVuZGluZw==', 'b3duZXI=', 'cGVyaW9k', 'dG90YWw='].every(key => keys.includes(key))
+			[
+				'b3duZXI=', // owner
+				'ZGVsZWdhdGU=', // delegate
+				'Y29udHJhY3RfdmVyc2lvbg==', // contract_version
+				'ZGVwbG95bWVudF92ZXJzaW9u', // deployment version
+				'bWVzc2VuZ2VyX2lk', // messenger_id
+				'cGFyZW50X2lk', // parent_id
+				'c3Rha2VhYmxl', // stakeable
+				'dXBkYXRhYmxl', // updatable
+			].every(key => keys.includes(key))
+			// TODO maybe use to flag conctract as airdrop
+			// optionals (Airdrop-only)
+			//   period_limit cGVyaW9kX2xpbWl0
+			//   period_seconds cGVyaW9kX3NlY29uZHM=
+			//   funder ZnVuZGVy
+			//   funding ZnVuZGluZw==
+			//   period cGVyaW9k
+			//   total dG90YWw=
+			//   lockup_delay bG9ja3VwX2RlbGF5
+			//   vesting_delay dmVzdGluZ19kZWxheQ==
+			//   initial
+			//   deadline
 			// check initial state 
 		);
 	}
@@ -248,15 +270,17 @@ export function getAllAppIdsIdx(txns) {
                 isCreate: t["on-completion"] === 0 ? true : false,
 		globalStateDelta: t['global-state-delta'],
                 appArgs: t["application-transaction"]["application-args"],
-		sender: t.sender
-
+		sender: t.sender,
+		innerTxns: t["inner-txns"]
             });
         }
         if (t["inner-txns"]) apps = apps.concat(getAllAppIdsIdx(t["inner-txns"]));
     }
 
     // return array of unique apps objects { apid: number, isCreate: boolean }
-    return apps.filter((v, i, a) => a.findIndex((t) => t.apid === v.apid) === i);
+    return apps;//.filter((v, i, a) => a.findIndex((t) => t.apid === v.apid) === i);
+    // removed filter above because if a create is followed by a method call in an inner txns such
+    // as in the case of a factory deployment the method call will be ignored
 }
 
 export const decodeGlobalState = (globalState) => {

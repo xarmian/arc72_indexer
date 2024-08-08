@@ -131,7 +131,6 @@ while (true) {
         }
         // for each app, run contract specific indexer task
         for (const app of apps) {
-	    console.log(app);
             const contractType = await getContractType(app);
             switch (contractType) {
                 case CONTRACT_TYPE_SCS: {

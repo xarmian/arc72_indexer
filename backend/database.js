@@ -219,30 +219,28 @@ export default class Database {
         return await this.run("UPDATE contract_scsc SET lastSyncRound = ? WHERE contractId = ?", [lastSyncRound, contractId]);
     }
 
-    async insertOrUpdateSCS({ contractId, contractAddress, creator, createRound, global_funder, global_funding, global_owner, global_period, global_total, part_vote_k, part_sel_k, part_vote_fst, part_vote_lst, part_vote_kd, part_sp_key, deleted }) {
+    async insertOrUpdateSCS({ contractId, contractAddress, creator, createRound, global_funder, global_funding, global_owner, global_period, global_total, global_period_seconds, global_lockup_delay, global_vesting_delay, global_period_limit, part_vote_k, part_sel_k, part_vote_fst, part_vote_lst, part_vote_kd, part_sp_key, deleted, global_parent_id, global_messenger_id, global_delegate, global_deadline, global_initial }) {
         const result = await this.run(
             `
             UPDATE contract_scsc
-            SET global_funder = ?, global_funding = ?, global_owner = ?, global_period = ?, global_total = ?, part_vote_k = ?, part_sel_k = ?, part_vote_fst = ?, part_vote_lst = ?, part_vote_kd = ?, part_sp_key = ?, deleted = ?
+            SET global_funder = ?, global_funding = ?, global_owner = ?, global_period = ?, global_total = ?, part_vote_k = ?, part_sel_k = ?, part_vote_fst = ?, part_vote_lst = ?, part_vote_kd = ?, part_sp_key = ?, deleted = ?, global_delegate = ?, global_deadline = ?, global_initial = ?
             WHERE contractId = ?
             `,
             [global_funder, global_funding, global_owner, global_period, global_total,
- part_vote_k, part_sel_k, part_vote_fst, part_vote_lst, part_vote_kd, part_sp_key, deleted, contractId]
+ part_vote_k, part_sel_k, part_vote_fst, part_vote_lst, part_vote_kd, part_sp_key, deleted, global_delegate, global_deadline, global_initial,
+	contractId]
         );
 
         if (result.changes === 0) {                                                                      
             return await this.run(                                                                       
                 `
-                INSERT INTO contract_scsc (contractId, contractAddress, creator, createRound) VALUES (?, ?, ?, ?)
+                INSERT INTO contract_scsc (contractId, contractAddress, creator, createRound, global_period_seconds, global_lockup_delay, global_vesting_delay, global_period_limit, global_parent_id, global_messenger_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 `,                                                                                       
-                [contractId, contractAddress, creator, createRound]
+                [contractId, contractAddress, creator, createRound, global_period_seconds, global_lockup_delay, global_vesting_delay, global_period_limit, global_parent_id, global_messenger_id]
             );
         }
         return result;
     }
-
-    
-  
 
     // Stake
 
