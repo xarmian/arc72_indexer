@@ -36,6 +36,11 @@
  *         type: string
  *         description: Limit to only the sales with the given buyer (also accepts array of strings)
  *     - in: query
+ *       name: user
+ *       schema:
+ *         type: string
+ *         description: Limit all sales involving the given user as buyer or seller (also accepts array of strings)
+ *     - in: query
  *       name: min-round
  *       schema:
  *         type: integer
@@ -127,6 +132,7 @@ export const salesEndpoint = async (req, res, db) => {
     const tokenId = req.query.tokenId;
     const seller = req.query.seller;
     const buyer = req.query.buyer;
+    const user = req.query.user;
     const minRound = req.query['min-round']??0;
     const maxRound = req.query['max-round'];
     const minPrice = req.query['min-price'];
@@ -206,7 +212,19 @@ export const salesEndpoint = async (req, res, db) => {
             params.$buyer = buyer;
         }
     }
-    
+
+    if (user) {
+        if (Array.isArray(user)) {
+            conditions.push(`buyer IN (${user.map((_, i) => `$user${i}`).join(',')}) OR seller IN (${user.map((_, i) => `$user${i}`).join(',')})`);
+            user.forEach((u, i) => {
+                params[`$user${i}`] = u;
+            });
+        } else {
+            conditions.push(`buyer = $user OR seller = $user`);
+            params.$user = user;
+        }
+    }
+
     if (minRound) {
         conditions.push(`round >= $minRound`);
         params.$minRound = minRound;
