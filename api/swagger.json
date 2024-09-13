@@ -14,6 +14,10 @@
             {
                 "url": "https://arc72-idx.voirewards.com",
                 "description": "Prototype Server"
+            },
+            {
+                "url": "https://arc72-idx.nautilus.sh",
+                "description": "Prototype Server"
             }
         ],
         "components": {
@@ -236,7 +240,10 @@
             "./endpoints/arc72/collections.js",
             "./endpoints/mp/listings.js",
             "./endpoints/mp/sales.js",
-            "./endpoints/mp/deletes.js"
+            "./endpoints/mp/deletes.js",
+            "./endpoints/arc200/tokens.js",
+            "./endpoints/arc200/balances.js",
+            "./endpoints/scs/accounts.js"
         ]
     }
 }

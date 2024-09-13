@@ -1,17 +1,17 @@
 {
-  "name": "test",
+  "name": "script",
   "version": "1.0.0",
-  "description": "Test Utilities",
+  "description": "",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "type": "module",
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "algosdk": "^2.8.0",
-    "axios": "^1.6.7",
-    "diff": "^5.2.0"
+    "algosdk": "^2.7.0",
+    "axios": "^1.6.8",
+    "bignumber.js": "^9.1.2",
+    "ulujs": "^0.9.12"
   }
 }

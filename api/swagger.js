@@ -1,9 +1,9 @@
 export const swaggerOptions = {
-    swaggerDefinition: {
-      openapi: '3.0.0',
-      info: {
-        title: 'ARC-72 NFT Indexer API',
-        description: `<p>This is an API for accessing ARC-72 NFT data based on the ARC-74 indexer specification at 
+  swaggerDefinition: {
+    openapi: "3.0.0",
+    info: {
+      title: "ARC-72 NFT Indexer API",
+      description: `<p>This is an API for accessing ARC-72 NFT data based on the ARC-74 indexer specification at 
                       <a href="https://arc.algorand.foundation/ARCs/arc-0074" target="_blank">https://arc.algorand.foundation/ARCs/arc-0074</a>.
                       The endpoints described below are under active development and may change without notice.
                       Data is provided for informational purposes only and may not be accurate or complete. Use at your own risk.</p>
@@ -12,238 +12,257 @@ export const swaggerOptions = {
                       <a href="https://github.com/xarmian/arc72_indexer" target="_blank">https://github.com/xarmian/arc72_indexer</a>.</p>
                       <p>A reference application is available at <a href="https://nftnavigator.xyz">https://nftnavigator.xyz</a> with source
                       available at <a href="https://github.com/xarmian/nft_navigator">https://github.com/xarmian/nft_navigator</a></p>`,
-      },
-      servers: [
-        {
-          url: 'https://arc72-idx.nftnavigator.xyz',
-          description: 'Prototype Server',
-        },
-        {
-          url: 'https://arc72-idx.voirewards.com',
-          description: 'Prototype Server',
-        },
-      ],
-      components: {
-          schemas: {
-            Token: {
-              type: 'object',
-              properties: {
-                owner: {
-                  type: 'string',
-                  description: 'The current owner of the NFT.'
-                },
-                approved: {
-                  type: 'string',
-                  description: 'The address that is approved to transfer the NFT.'
-                },
-                contractId: {
-                  type: 'integer',
-                  description: 'The ID of the ARC-72 contract that defines the NFT.'
-                },
-                tokenId: {
-                  type: 'integer',
-                  description: 'The tokenID of the NFT, which along with the contractId addresses a unique ARC-72 token.'
-                },
-                mintRound: {
-                  type: 'integer',
-                  description: 'The round at which the NFT was minted.'
-                },
-                metadataURI: {
-                  type: 'string',
-                  description: 'The URI given for the token by the metadataURI API of the contract.'
-                },
-                metadata: {
-                  type: 'string',
-                  description: 'The cached metadata of the NFT, should be JSON.'
-                }
-              }
-            },
-            Transfer: {
-              type: 'object',
-              properties: {
-                contractId: {
-                  type: 'string',
-                  description: 'The ID of the ARC-72 contract that defines the NFT.'
-                },
-                tokenId: {
-                  type: 'string',
-                  description: 'The tokenID of the NFT, which along with the contractId addresses a unique ARC-72 token.'
-                },
-                from: {
-                  type: 'string',
-                  description: 'The sender of the transaction.'
-                },
-                to: {
-                  type: 'string',
-                  description: 'The receiver of the transaction.'
-                },
-                round: {
-                  type: 'integer',
-                  description: 'The round of the transfer.'
-                },
-                transactionId: {
-                  type: 'string',
-                  description: 'The unique identifier of the transaction.'
-                },
-                timestamp: {
-                  type: 'integer',
-                  format: 'int64',
-                  description: 'Timestamp of the transaction.'
-                },
-              }
-            },
-            Collection: {
-              type: 'object',
-              properties: {
-                contractId: {
-                  type: 'string',
-                  description: 'The ID of the ARC-72 contract that defines the NFT collection.'
-                },
-                totalSupply: {
-                  type: 'integer',
-                  description: 'The total number of tokens minted by the contract.'
-                },
-                mintRound: {
-                  type: 'integer',
-                  description: 'The round at which the NFT collection contract was created.'
-                },
-                firstToken: {
-                  "$ref": "#/components/schemas/Token",
-                  description: 'The first token in the collection, null if the collection is empty.'
-                },
-                globalState: {
-                  type: 'array',
-                  description: 'Array of global state key-value pairs'
-                },
-                isBlacklisted: {
-                  type: 'boolean',
-                  description: 'Whether the collection is blacklisted.'
-                },
-                creator: {
-                  type: 'string',
-                  description: 'The address of the creator of the collection.'
-                },
-              }
-            },
-            Listing: {
-              type: 'object',
-              properties: {
-                transactionId: {
-                  type: 'string',
-                  description: 'The transaction ID of the listing'
-                },
-                mpContractId: {
-                  type: 'string',
-                  description: 'The ID of a Marketplace contract'
-                },
-                mpListingId: {
-                  type: 'string',
-                  description: 'The ID of a listing in the marketplace'
-                },
-                collectionId: {
-                  type: 'string',
-                  description: 'The contract ID of the collection being listed'
-                },
-                tokenId: {
-                  type: 'string',
-                  description: 'The ID of the token being listed'
-                },
-                seller: {
-                  type: 'string',
-                  description: 'The address of the seller'
-                },
-                escrowAddr: {
-                  type: 'string',
-                  description: 'The escrow address of the marketplace contract'
-                },
-                price: {
-                  type: 'integer',
-                  description: 'The price of the listing'
-                },
-                currency: {
-                  type: 'string',
-                  description: 'The currency of the listing, 0 = Native Token, otherwise ASA or ARC-200 token ID'
-                },
-                createRound: {
-                  type: 'integer',
-                  description: 'The round the listing was created'
-                },
-                createTimestamp: {
-                  type: 'integer',
-                  description: 'The timestamp when the listing was created'
-                },
-                royalty: {
-                  type: 'integer',
-                  description: 'The royalty for the listing'
-                },
-                token: {
-                  "$ref": "#/components/schemas/Token",
-                  description: 'The token being listed'
-                }
-              },
-            },
-            "Sale": {
-              type: 'object',
-              properties: {
-                transactionId: {
-                  type: 'string',
-                  description: 'The transaction ID of the sale'
-                },
-                mpContractId: {
-                  type: 'string',
-                  description: 'The ID of a Marketplace contract'
-                },
-                mpListingId: {
-                  type: 'string',
-                  description: 'The ID of a listing in the marketplace'
-                },
-                collectionId: {
-                  type: 'string',
-                  description: 'The contract ID of the collection being sold'
-                },
-                tokenId: {
-                  type: 'string',
-                  description: 'The ID of the token being sold'
-                },
-                seller: {
-                  type: 'string',
-                  description: 'The address of the seller'
-                },
-                buyer: {
-                  type: 'string',
-                  description: 'The address of the buyer'
-                },
-                price: {
-                  type: 'integer',
-                  description: 'The price of the sale'
-                },
-                currency: {
-                  type: 'string',
-                  description: 'The currency of the sale, 0 = Native Token, otherwise ASA or ARC-200 token ID'
-                },
-                round: {
-                  type: 'integer',
-                  description: 'The round of the sale'
-                },
-                createTimestamp: {
-                  type: 'integer',
-                  description: 'The timestamp of the sale'
-                },
-                listing: {
-                  "$ref": "#/components/schemas/Listing",
-                  description: 'The listing of the sale'
-                },
-              }
-            }
-          }
-      }
     },
-    apis: [
-            './endpoints/arc72/tokens.js',
-            './endpoints/arc72/transfers.js',
-            './endpoints/arc72/collections.js',
-            './endpoints/mp/listings.js',
-            './endpoints/mp/sales.js',
-            './endpoints/mp/deletes.js',
-          ],
-  };
+    servers: [
+      {
+        url: "https://arc72-idx.nftnavigator.xyz",
+        description: "Prototype Server",
+      },
+      {
+        url: "https://arc72-idx.voirewards.com",
+        description: "Prototype Server",
+      },
+      {
+        url: "https://arc72-idx.nautilus.sh",
+        description: "Prototype Server",
+      },
+    ],
+    components: {
+      schemas: {
+        Token: {
+          type: "object",
+          properties: {
+            owner: {
+              type: "string",
+              description: "The current owner of the NFT.",
+            },
+            approved: {
+              type: "string",
+              description: "The address that is approved to transfer the NFT.",
+            },
+            contractId: {
+              type: "integer",
+              description:
+                "The ID of the ARC-72 contract that defines the NFT.",
+            },
+            tokenId: {
+              type: "integer",
+              description:
+                "The tokenID of the NFT, which along with the contractId addresses a unique ARC-72 token.",
+            },
+            mintRound: {
+              type: "integer",
+              description: "The round at which the NFT was minted.",
+            },
+            metadataURI: {
+              type: "string",
+              description:
+                "The URI given for the token by the metadataURI API of the contract.",
+            },
+            metadata: {
+              type: "string",
+              description: "The cached metadata of the NFT, should be JSON.",
+            },
+          },
+        },
+        Transfer: {
+          type: "object",
+          properties: {
+            contractId: {
+              type: "string",
+              description:
+                "The ID of the ARC-72 contract that defines the NFT.",
+            },
+            tokenId: {
+              type: "string",
+              description:
+                "The tokenID of the NFT, which along with the contractId addresses a unique ARC-72 token.",
+            },
+            from: {
+              type: "string",
+              description: "The sender of the transaction.",
+            },
+            to: {
+              type: "string",
+              description: "The receiver of the transaction.",
+            },
+            round: {
+              type: "integer",
+              description: "The round of the transfer.",
+            },
+            transactionId: {
+              type: "string",
+              description: "The unique identifier of the transaction.",
+            },
+            timestamp: {
+              type: "integer",
+              format: "int64",
+              description: "Timestamp of the transaction.",
+            },
+          },
+        },
+        Collection: {
+          type: "object",
+          properties: {
+            contractId: {
+              type: "string",
+              description:
+                "The ID of the ARC-72 contract that defines the NFT collection.",
+            },
+            totalSupply: {
+              type: "integer",
+              description: "The total number of tokens minted by the contract.",
+            },
+            mintRound: {
+              type: "integer",
+              description:
+                "The round at which the NFT collection contract was created.",
+            },
+            firstToken: {
+              $ref: "#/components/schemas/Token",
+              description:
+                "The first token in the collection, null if the collection is empty.",
+            },
+            globalState: {
+              type: "array",
+              description: "Array of global state key-value pairs",
+            },
+            isBlacklisted: {
+              type: "boolean",
+              description: "Whether the collection is blacklisted.",
+            },
+            creator: {
+              type: "string",
+              description: "The address of the creator of the collection.",
+            },
+          },
+        },
+        Listing: {
+          type: "object",
+          properties: {
+            transactionId: {
+              type: "string",
+              description: "The transaction ID of the listing",
+            },
+            mpContractId: {
+              type: "string",
+              description: "The ID of a Marketplace contract",
+            },
+            mpListingId: {
+              type: "string",
+              description: "The ID of a listing in the marketplace",
+            },
+            collectionId: {
+              type: "string",
+              description: "The contract ID of the collection being listed",
+            },
+            tokenId: {
+              type: "string",
+              description: "The ID of the token being listed",
+            },
+            seller: {
+              type: "string",
+              description: "The address of the seller",
+            },
+            escrowAddr: {
+              type: "string",
+              description: "The escrow address of the marketplace contract",
+            },
+            price: {
+              type: "integer",
+              description: "The price of the listing",
+            },
+            currency: {
+              type: "string",
+              description:
+                "The currency of the listing, 0 = Native Token, otherwise ASA or ARC-200 token ID",
+            },
+            createRound: {
+              type: "integer",
+              description: "The round the listing was created",
+            },
+            createTimestamp: {
+              type: "integer",
+              description: "The timestamp when the listing was created",
+            },
+            royalty: {
+              type: "integer",
+              description: "The royalty for the listing",
+            },
+            token: {
+              $ref: "#/components/schemas/Token",
+              description: "The token being listed",
+            },
+          },
+        },
+        Sale: {
+          type: "object",
+          properties: {
+            transactionId: {
+              type: "string",
+              description: "The transaction ID of the sale",
+            },
+            mpContractId: {
+              type: "string",
+              description: "The ID of a Marketplace contract",
+            },
+            mpListingId: {
+              type: "string",
+              description: "The ID of a listing in the marketplace",
+            },
+            collectionId: {
+              type: "string",
+              description: "The contract ID of the collection being sold",
+            },
+            tokenId: {
+              type: "string",
+              description: "The ID of the token being sold",
+            },
+            seller: {
+              type: "string",
+              description: "The address of the seller",
+            },
+            buyer: {
+              type: "string",
+              description: "The address of the buyer",
+            },
+            price: {
+              type: "integer",
+              description: "The price of the sale",
+            },
+            currency: {
+              type: "string",
+              description:
+                "The currency of the sale, 0 = Native Token, otherwise ASA or ARC-200 token ID",
+            },
+            round: {
+              type: "integer",
+              description: "The round of the sale",
+            },
+            createTimestamp: {
+              type: "integer",
+              description: "The timestamp of the sale",
+            },
+            listing: {
+              $ref: "#/components/schemas/Listing",
+              description: "The listing of the sale",
+            },
+          },
+        },
+      },
+    },
+  },
+  apis: [
+    "./endpoints/arc72/tokens.js",
+    "./endpoints/arc72/transfers.js",
+    "./endpoints/arc72/collections.js",
+    "./endpoints/mp/listings.js",
+    "./endpoints/mp/sales.js",
+    "./endpoints/mp/deletes.js",
+    "./endpoints/arc200/tokens.js",
+    "./endpoints/arc200/balances.js",
+    "./endpoints/arc200/transfers.js",
+    "./endpoints/arc200/approvals.js",
+    "./endpoints/scs/accounts.js",
+  ],
+};
