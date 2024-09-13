@@ -1,6 +1,6 @@
-export const DELAY_END_BLOCK = 3000;
+export const DELAY_END_BLOCK = 2000;
 export const DELAY_FAILED_HEALTH_CHECK = 10000;
-export const DELAY_LOOKUP_BLOCK = 5000;
+export const DELAY_LOOKUP_BLOCK = 2000;
 export const DELAY_ERROR = 10000;
 
 export const CONTRACT_TYPE_UNKNOWN = 0;

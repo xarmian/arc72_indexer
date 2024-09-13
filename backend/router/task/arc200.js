@@ -244,7 +244,7 @@ export const onApproval = async (ci, events) => {
 
 const updateLastSync = async (contractId, round) => {
   // update lastSyncRound in collections table
-  await db.updateContract0200LastSync(contractId, round);
+  await db.updateContract0200LastSync(contractId, Number(round));
   console.log(`Updated lastSyncRound for contract ${contractId} to ${round}`);
 };
 

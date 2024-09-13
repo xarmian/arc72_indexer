@@ -475,10 +475,13 @@ CREATE TABLE IF NOT EXISTS contract_scsc (
 	global_vesting_delay INTEGER,
 	global_period_limit INTEGER,
 	global_delegate TEXT,
+	global_deployer TEXT,
 	global_parent_id INTEGER,
 	global_messenger_id INTEGER,
 	global_initial TEXT,
 	global_deadline INTEGER,
+	global_distribution_count INTEGER,
+	global_distribution_seconds INTEGER,
 	--- partkey info
 	part_vote_k TEXT,
         part_sel_k TEXT,

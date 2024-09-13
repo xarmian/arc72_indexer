@@ -83,12 +83,18 @@ export const scsAccountsEndpoint = async (req, res, db) => {
   // Extract query parameters
   const contractId = req.query.contractId;
   const contractAddress = req.query.contractAddress;
+  const parentId = req.query.parentId;
   const creator = req.query.creator;
   const funder = req.query.funder;
   const owner = req.query.owner;
+  const delegate = req.query.delegate;
+  const deployer = req.query.deployer;
+  const operator = req.query.operator; // owner or delegate
   const createRound = req.query["create-round"];
-  const minCreateRound = req.query["mint-min-round"] ?? 0;
-  const maxCreateRound = req.query["mint-max-round"];
+  const minCreateRound = req.query["min-create-round"] ?? 0;
+  const maxCreateRound = req.query["max-create-round"];
+  const minDeadline = req.query["min-deadline"] ?? 0
+  const maxDeadline = req.query["max-deadline"];
   const deleted = req.query.deleted;
 
   const next = req.query.next ?? 0;
@@ -145,9 +151,24 @@ FROM
     params.$maxCreateRound = maxCreateRound;
   }
 
+  if (minDeadline > 0) {
+    conditions.push(`c.global_deadline >= $minDeadline`);
+    params.$minDeadline = minDeadline;
+  }
+
+  if (maxDeadline) {
+    conditions.push(`c.global_deadline <= $maxDeadline`);
+    params.$maxCreateRound = maxCreateRound;
+  }
+
   if (creator) {
-    conditions.push(`c.contractAddress = $creator`);
+    conditions.push(`c.creator = $creator`);
     params.$creator = creator;
+  }
+
+  if (parentId) {
+    conditions.push(`c.global_parent_id = $parentId`);
+    params.$parentId = parentId;
   }
 
   if (funder) {
@@ -158,6 +179,21 @@ FROM
   if (owner) {
     conditions.push(`c.global_owner = $owner`);
     params.$owner = owner;
+  }
+
+  if (delegate) {
+    conditions.push(`c.global_delegate = $delegate`);
+    params.$delegate = delegate;
+  }
+
+  if (deployer) {
+    conditions.push(`c.global_deployer = $deployer`);
+    params.$deployer = deployer;
+  }
+
+  if (operator) {
+    conditions.push(`(c.global_owner = $operator OR c.global_delegate = $operator)`);
+    params.$operator = operator;
   }
 
   if (deleted) {

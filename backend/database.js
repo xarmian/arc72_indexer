@@ -219,24 +219,34 @@ export default class Database {
         return await this.run("UPDATE contract_scsc SET lastSyncRound = ? WHERE contractId = ?", [lastSyncRound, contractId]);
     }
 
-    async insertOrUpdateSCS({ contractId, contractAddress, creator, createRound, global_funder, global_funding, global_owner, global_period, global_total, global_period_seconds, global_lockup_delay, global_vesting_delay, global_period_limit, part_vote_k, part_sel_k, part_vote_fst, part_vote_lst, part_vote_kd, part_sp_key, deleted, global_parent_id, global_messenger_id, global_delegate, global_deadline, global_initial }) {
+    async insertOrUpdateSCS({ contractId, contractAddress, creator, createRound, global_funder, global_funding, global_owner, global_period, global_total, global_period_seconds, global_lockup_delay, global_vesting_delay, global_period_limit, part_vote_k, part_sel_k, part_vote_fst, part_vote_lst, part_vote_kd, part_sp_key, deleted, global_parent_id, global_messenger_id, global_delegate, global_deadline, global_initial, global_deployer, global_distribution_count, global_distribution_seconds }) {
         const result = await this.run(
             `
             UPDATE contract_scsc
-            SET global_funder = ?, global_funding = ?, global_owner = ?, global_period = ?, global_total = ?, part_vote_k = ?, part_sel_k = ?, part_vote_fst = ?, part_vote_lst = ?, part_vote_kd = ?, part_sp_key = ?, deleted = ?, global_delegate = ?, global_deadline = ?, global_initial = ?
+            SET global_funder = ?, global_funding = ?, global_owner = ?, global_period = ?, global_total = ?, 
+	    	part_vote_k = ?, part_sel_k = ?, part_vote_fst = ?, part_vote_lst = ?, part_vote_kd = ?, part_sp_key = ?, 
+		deleted = ?, global_delegate = ?, global_deadline = ?, global_initial = ?, global_deployer = ?,
+		global_vesting_delay = ?, global_distribution_count = ?, global_period_seconds = ?, global_lockup_delay = ?,
+		global_period_limit = ?, global_distribution_seconds = ?, global_messenger_id = ?
             WHERE contractId = ?
             `,
-            [global_funder, global_funding, global_owner, global_period, global_total,
- part_vote_k, part_sel_k, part_vote_fst, part_vote_lst, part_vote_kd, part_sp_key, deleted, global_delegate, global_deadline, global_initial,
-	contractId]
+            [	
+		global_funder, global_funding, global_owner, global_period, global_total,
+ 		part_vote_k, part_sel_k, part_vote_fst, part_vote_lst, part_vote_kd, part_sp_key, 
+		deleted, global_delegate, global_deadline, global_initial, global_deployer, 
+		global_vesting_delay, global_distribution_count, global_period_seconds, global_lockup_delay,global_period_limit, global_distribution_seconds,
+		global_messenger_id,
+	     	contractId
+	    ]
         );
 
-        if (result.changes === 0) {                                                                      
+        if (result.changes === 0) {                                
+	    console.log("NEW");
             return await this.run(                                                                       
                 `
-                INSERT INTO contract_scsc (contractId, contractAddress, creator, createRound, global_period_seconds, global_lockup_delay, global_vesting_delay, global_period_limit, global_parent_id, global_messenger_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO contract_scsc (contractId, contractAddress, creator, createRound, global_period_seconds, global_lockup_delay, global_vesting_delay, global_period_limit, global_parent_id, global_messenger_id, global_distribution_count, global_distribution_seconds) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 `,                                                                                       
-                [contractId, contractAddress, creator, createRound, global_period_seconds, global_lockup_delay, global_vesting_delay, global_period_limit, global_parent_id, global_messenger_id]
+                [contractId, contractAddress, creator, createRound, global_period_seconds, global_lockup_delay, global_vesting_delay, global_period_limit, global_parent_id, global_messenger_id, global_distribution_count, global_distribution_seconds]
             );
         }
         return result;

@@ -2,3 +2,5 @@ node_modules
 db/*
 .env
 blocks
+*.csv
+*.py

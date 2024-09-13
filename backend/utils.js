@@ -183,9 +183,12 @@ export async function isLPT(contractId) {
   const ciSwap = new swap(contractId, algodClient, indexerClient)
   const infoR = await ciSwap.Info();
   const isARC200LT = infoR.success;
-  const isLPT = appGlobalState.find(el => el.key === "cmF0aW8=" /*ratio*/) && 
-		!appGlobalState.find(el => el.key === "dG9rZW5feV9hcHBfaWQ=" /*token_y_app_id*/) && 
+  /*
+  const isLPT = appGlobalState.find(el => el.key === "cmF0aW8=" ) &&  // ratio
+		!appGlobalState.find(el => el.key === "dG9rZW5feV9hcHBfaWQ=") &&  // token_y_app_id
 		accountAssets.assets.length === 0;
+  */
+  const isLPT = false;
   if(isARC200LT || isLPT) return true;
   return false;
 }
@@ -195,13 +198,13 @@ export async function isLPT(contractId) {
 export async function getContractType(app) {
     const contract = app.apid; // contractid
     const hash = app.appApprovalHash; // 256hash of approval program
-    console.log("hash", hash);
-    console.log(app);
+    console.log({hash,app});
     // check appApproval hash
     // check db or global state delta
     // check only db
     // check simulate supportsInterface
     // check simulate other
+    if(hash === "f0800159ade5b919904b6878670570683990aea35dd73af2ac2cba8e44b0b54f") return CONTRACT_TYPE_LPT; // ARC200LP 
     if(hash === "e80b280db0d1ae7ee02c5138235a7ceb9ca3817bcd1c254ccc3693e6646e7ab6") return CONTRACT_TYPE_LPT; // ARC200LP 
     else if (await isSCS(contract, app)) return CONTRACT_TYPE_SCS;
     else if (await isStake(contract)) return CONTRACT_TYPE_STAKE;
@@ -209,7 +212,7 @@ export async function getContractType(app) {
     else if (await isMP(contract)) return CONTRACT_TYPE_MP;
     else if (await isARC200(contract)) {
         if(await isLPT(contract)) { 
-            return CONTRACT_TYPE_LPT; // LPT
+            return CONTRACT_TYPE_LPT; // LPT|ARC200LP
         }
         return CONTRACT_TYPE_ARC200;
     }
@@ -278,7 +281,7 @@ export function getAllAppIdsIdx(txns) {
     }
 
     // return array of unique apps objects { apid: number, isCreate: boolean }
-    return apps;//.filter((v, i, a) => a.findIndex((t) => t.apid === v.apid) === i);
+    return apps.filter((v, i, a) => a.findIndex((t) => t.apid === v.apid) === i);
     // removed filter above because if a create is followed by a method call in an inner txns such
     // as in the case of a factory deployment the method call will be ignored
 }

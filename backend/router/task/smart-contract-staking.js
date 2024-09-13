@@ -12,11 +12,266 @@ const updateLastSync = async (contractId, round) => {
   console.log(`Updated lastSyncRound for contract ${contractId} to ${round}`);
 };
 
+// process events
+
+const onTemplate = async (ci, events) => {
+  const contractId = ci.getContractId();
+  const stake = await db.getSCSById(contractId);
+  const appEvents = events.find(el => el.name === "Template").events;
+  console.log(
+    `Processing ${appEvents.length} template events for contract ${contractId}`
+  );
+  for await (const event of appEvents) {
+          const [
+		  txid, 
+		  round, 
+		  ts,
+		  periodLimit,
+		  vestingDelay,
+		  lockupDelay,
+		  periodSeconds,
+		  messengerId,
+		  distributionCount,
+		  distributionSeconds,
+		  period,
+		  deadline,
+		  total,
+		  initial,
+		  delegate
+	  ] = event;
+          const update = ({
+                contractId,
+                ...stake,
+                global_period_limit: Number(periodLimit),
+                global_vesting_delay: Number(vestingDelay),
+                global_lockup_delay: Number(lockupDelay),
+                global_period_seconds: Number(periodSeconds),
+                global_messenger_id: Number(messengerId),
+                global_distribution_count: Number(distributionCount),
+                global_distribution_seconds: Number(distributionSeconds),
+                global_period: Number(period),
+                global_deadline: Number(deadline),
+		global_total: total.toString(),
+                global_initial: initial.toString(),
+                global_delegate: delegate
+          })
+          console.log({update})
+          await db.insertOrUpdateSCS(update);
+  }
+}
+
+
+const onSetup = async (ci, events) => {
+  const contractId = ci.getContractId();
+  const stake = await db.getSCSById(contractId);
+  const appEvents = events.find(el => el.name === "Setup").events;
+  console.log(
+    `Processing ${appEvents.length} setup events for contract ${contractId}`
+  );
+  for await (const event of appEvents) {
+          const [txid, round, ts, deployer, owner, funder, initial] = event;
+          const update = ({
+                contractId,
+		...stake,
+		global_deployer: deployer,
+		global_owner: owner,
+		global_funder: funder,
+		global_initial: initial.toString()
+          })
+	  console.log({update})
+          await db.insertOrUpdateSCS(update);
+  }
+};
+
+const onDelegateUpdated = async (ci, events) => {
+  const contractId = ci.getContractId();
+  const stake = await db.getSCSById(contractId);
+  const appEvents = events.find(el => el.name === "DelegateUpdated").events;
+  console.log(
+    `Processing ${appEvents.length} delegate updated events for contract ${contractId}`
+  );
+  for await (const event of appEvents) {
+          const [txid, round, ts,, delegate] = event;
+          const update = ({
+                contractId,
+		...stake,
+                global_delegate: delegate
+          })
+	  console.log({update})
+          await db.insertOrUpdateSCS(update);
+  }
+};
+
+
+const onFundingSet = async (ci, events) => {
+  const contractId = ci.getContractId();
+  const stake = await db.getSCSById(contractId);
+  const appEvents = events.find(el => el.name === "FundingSet").events;
+  console.log(
+    `Processing ${appEvents.length} funding set events for contract ${contractId}`
+  );
+  for await (const event of appEvents) {
+          const [txid, round, ts, funding] = event;
+          const update = ({
+                contractId,
+		...stake,
+                global_funding: Number(funding)
+          })
+	  console.log({update})
+	  await db.insertOrUpdateSCS(update);
+  }
+};
+
+const onFunderGranted = async (ci, events) => {
+  const contractId = ci.getContractId();
+  const stake = await db.getSCSById(contractId);
+  const appEvents = events.find(el => el.name === "FunderGranted").events;
+  console.log(
+    `Processing ${appEvents.length} funder granted events for contract ${contractId}`
+  );
+  for await (const event of appEvents) {
+          const [txid, round, ts,,funder] = event;
+          const update = ({
+                contractId,
+		...stake,
+                global_funder: funder
+          })
+	  console.log({update})
+          await db.insertOrUpdateSCS(update);
+  }
+};
+
+const onClosed = async (ci, events) => {
+  const contractId = ci.getContractId();
+  const stake = await db.getSCSById(contractId);
+  const appEvents = events.find(el => el.name === "Closed").events;
+  console.log(
+    `Processing ${appEvents.length} closed events for contract ${contractId}`
+  );
+  for await (const event of appEvents) {
+          const [txid, round, ts,,] = event;
+          const update = ({
+                contractId,
+                ...stake,
+		deleted: 1
+          })
+          console.log({update})
+          await db.insertOrUpdateSCS(update);
+  }
+}
+
+const spec = {
+	name: "",
+	desc: "",
+	methods: [],
+	events: [
+		{
+                        "name": "Setup",
+                        "args": [
+                                {
+                                        "type": "address"
+                                },
+				{
+                                        "type": "address"
+                                },
+				{
+                                        "type": "address"
+                                },
+				{
+                                        "type": "uint64"
+                                },
+                        ]
+                },
+		{
+                        "name": "DelegateUpdated",
+                        "args": [
+                                {
+                                        "type": "address"
+                                },
+                                {
+                                        "type": "address"
+                                },
+                        ]
+                },
+		{
+                        "name": "FundingSet",
+                        "args": [
+                                {
+                                        "type": "uint64"
+                                },
+                        ]
+                },
+		{
+                        "name": "FunderGranted",
+                        "args": [
+                                {
+                                        "type": "address"
+                                },
+				{
+                                        "type": "address"
+                                },
+                        ]
+                },
+		{
+                        "name": "Closed",
+                        "args": [
+                                {
+                                        "type": "address"
+                                },
+                                {
+                                        "type": "address"
+                                },
+                        ]
+                },
+		{
+                        "name": "Template",
+                        "args": [
+                                {
+                                        "type": "uint64"
+                                },
+                                {
+                                        "type": "uint64"
+                                },
+                                {
+                                        "type": "uint64"
+                                },
+                                {
+                                        "type": "uint64"
+                                },
+                                {
+                                        "type": "uint64"
+                                },
+                                {
+                                        "type": "uint64"
+                                },
+                                {
+                                        "type": "uint64"
+                                },
+                                {
+                                        "type": "uint64"
+                                },
+                                {
+                                        "type": "uint64"
+                                },
+                                {
+                                        "type": "uint64"
+                                },
+                                {
+                                        "type": "uint64"
+				},
+                                {
+                                        "type": "address"
+				}
+                        ]
+                },
+	]
+}
+
 // doIndex
 //  - process new and existing apps
 const doIndex = async (app, round) => {
   const contractId = app.apid;
-  const ci = makeContract(contractId, abi.stakr200);
+  const ci = makeContract(contractId, spec);
   let lastSyncRound;
   if (app.isCreate) {
     lastSyncRound = round;
@@ -27,51 +282,86 @@ const doIndex = async (app, round) => {
     const global_vesting_delay = app.globalStateDelta.find(el => el.key === "dmVzdGluZ19kZWxheQ==")?.value?.uint || 0n;
     const global_parent_id = app.globalStateDelta.find(el => el.key === "cGFyZW50X2lk")?.value?.uint || 0n;
     const global_messenger_id = app.globalStateDelta.find(el => el.key === "bWVzc2VuZ2VyX2lk")?.value?.uint || 0n;
-    const globalStateDelta = { global_period_seconds, global_period_limit, global_lockup_delay, global_vesting_delay, global_parent_id, global_messenger_id };
-    await db.insertOrUpdateSCS({
+    const global_distribution_count = app.globalStateDelta.find(el => el.key === "ZGlzdHJpYnV0aW9uX2NvdW50")?.value?.uint || 0n; 
+    const global_distribution_seconds = app.globalStateDelta.find(el => el.key === "ZGlzdHJpYnV0aW9uX3NlY29uZHM=")?.value?.uint || 0n;
+    const globalStateDelta = {
+	    global_period_seconds, 
+	    global_period_limit, 
+	    global_lockup_delay, 
+	    global_vesting_delay, 
+	    global_parent_id, 
+	    global_messenger_id, 
+	    global_distribution_count, 
+	    global_distribution_seconds 
+    };
+    const update = ({
 	contractId,
-	contractAddress: algosdk.getApplicationAddress(contractId),
-	creator: app.sender,
+        contractAddress: algosdk.getApplicationAddress(contractId),
+        creator: app.sender,
 	createRound: round,
-	global_period_seconds,
-	global_lockup_delay,
-	global_vesting_delay,
-	global_period_limit,
-	global_parent_id,
-	global_messenger_id
-    })
+	...globalStateDelta
+    });
+    console.log({update});
+    await db.insertOrUpdateSCS(update);
   } else {
     lastSyncRound = (await db.getSCSLastSync(contractId)) ?? 0;
     // handleMethod
     switch(app.appArgs[0]) {
-	    // reward
-	    // setup(address,address,address,uint64)void
-	    case "u9Dy+A==": {
+	    // set_funding(uint64)void
+	    case "aA7tQA==": {	
 		const stake = await db.getSCSById(contractId);
-		const args = app.appArgs.slice(1)
-		const [ownerB64, funderB64, delegateB64, periodB64] = args;
-		const global_owner = algosdk.encodeAddress(new Uint8Array(Buffer.from(ownerB64,"base64")))
-                const global_funder = algosdk.encodeAddress(new Uint8Array(Buffer.from(funderB64,"base64")))
-                const global_delegate = Number(algosdk.bytesToBigInt(new Uint8Array(Buffer.from(delegateB64,"base64"))))
-                const global_period = algosdk.bytesToBigInt(new Uint8Array(Buffer.from(periodB64,"base64"))).toString()
-                const globalStateDelta = { global_funder, global_owner, global_delegate, global_period };
+                const args = app.appArgs.slice(1)
+                const [fundingB64] = args;
+                const global_funding = algosdk.bytesToBigInt(new Uint8Array(Buffer.from(fundingB64,"base64"))).toString()
+                const globalStateDelta = { global_funding };
+                console.log(globalStateDelta);
                 await db.insertOrUpdateSCS({ ...stake, ...globalStateDelta });
-
+ 		break;
+	    }
+            // fill()void
+	    case "XNP3ig==": {
+                const stake = await db.getSCSById(contractId);
+		const global_total = app.globalStateDelta.find(el => el.key === "dG90YWw=")?.value?.uint || 0n;
+                const globalStateDelta = { global_total };
+                await db.insertOrUpdateSCS({ ...stake, ...globalStateDelta });
+                break;
+            }
+ 	    // set_delegate(address)void
+	    case "X36iSA==": {
+		const stake = await db.getSCSById(contractId);
+                const args = app.appArgs.slice(1)
+                const [delegateB64] = args;
+                const global_delegate = algosdk.encodeAddress(new Uint8Array(Buffer.from(delegateB64,"base64")))
+                const globalStateDelta = { global_delegate };
+		console.log(globalStateDelta);
+                await db.insertOrUpdateSCS({ ...stake, ...globalStateDelta });
 		break;
 	    }
-	    // aidrop
-	    // setup(address,address,uint64,uint64)void
-	    case "8i/zjQ==": {
+	    // preconfigure(uint64,uint64)void
+	    case "hqho9g==": {
 		const stake = await db.getSCSById(contractId);
-		const args = app.appArgs.slice(1)
-                const [ownerB64, funderB64, deadlineB64, initialB64] = args;
-		const global_owner = algosdk.encodeAddress(new Uint8Array(Buffer.from(ownerB64,"base64")))
-                const global_funder = algosdk.encodeAddress(new Uint8Array(Buffer.from(funderB64,"base64")))
-		const global_deadline = Number(algosdk.bytesToBigInt(new Uint8Array(Buffer.from(deadlineB64,"base64"))))
-		const global_initial = algosdk.bytesToBigInt(new Uint8Array(Buffer.from(initialB64,"base64"))).toString()
-                const globalStateDelta = { global_funder, global_owner, global_deadline, global_initial };
+                const args = app.appArgs.slice(1)
+                const [periodB64, deadlineB64] = args;
+                const global_deadline = algosdk.bytesToBigInt(new Uint8Array(Buffer.from(deadlineB64,"base64"))).toString()
+                const global_period = algosdk.bytesToBigInt(new Uint8Array(Buffer.from(periodB64,"base64"))).toString()
+                const globalStateDelta = { global_deadline, global_period };
                 await db.insertOrUpdateSCS({ ...stake, ...globalStateDelta });
 		break;
+	    }
+	    // airdrop
+	    // setup(address,address,uint64)void
+	    case "u9Dy+A==": {
+		const stake = await db.getSCSById(contractId);
+                const args = app.appArgs.slice(1)
+                const [deployerB64, ownerB64, funderB64, initialB64] = args;
+                const global_deployer = algosdk.encodeAddress(new Uint8Array(Buffer.from(deployerB64,"base64")))
+                const global_owner = algosdk.encodeAddress(new Uint8Array(Buffer.from(ownerB64,"base64")))
+                const global_funder = algosdk.encodeAddress(new Uint8Array(Buffer.from(funderB64,"base64")))
+                const global_initial = algosdk.bytesToBigInt(new Uint8Array(Buffer.from(initialB64,"base64"))).toString()
+                const globalStateDelta = { global_funder, global_owner, global_initial, global_deployer };
+		console.log({globalStateDelta})
+                await db.insertOrUpdateSCS({ ...stake, ...globalStateDelta });
+                break;
 	    }
 	    // base
 	    // setup(address,address)void
@@ -81,6 +371,7 @@ const doIndex = async (app, round) => {
 	    // globalStateDelta in owner, delegate
             //   address owner is argv[1]
             //   address delegate is argv[1]
+	    // depreciate
 	    case "rHzvGw==": {
 		    const stake = await db.getSCSById(contractId);
 		    const isAirdrop = [
@@ -112,6 +403,7 @@ const doIndex = async (app, round) => {
                     const [periodB64] = args;
                     const global_period = algosdk.bytesToBigInt(new Uint8Array(Buffer.from(periodB64,"base64")))
                     const globalStateDelta = { global_period: Number(global_period) };
+		    console.log({globalStateDelta})
                     await db.insertOrUpdateSCS({ ...stake, ...globalStateDelta });
                     break;
 	    }
@@ -192,9 +484,18 @@ const doIndex = async (app, round) => {
 	    }
       }
   }
-  console.log({ lastSyncRound })
+
   if (lastSyncRound <= round) {
-    // handleEvents
+    const events = await ci.getEvents({
+      minRound: lastSyncRound,
+      maxRound: round,
+    });
+    await onTemplate(ci, events);
+    await onSetup(ci, events);
+    await onDelegateUpdated(ci, events);
+    await onFundingSet(ci, events);
+    await onFunderGranted(ci, events);
+    await onClosed(ci, events);
     await updateLastSync(contractId, round);
   }
 };
