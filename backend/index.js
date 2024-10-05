@@ -107,6 +107,7 @@ while (true) {
                     const escrowAddr = algosdk.getApplicationAddress(Number(contractId));
                     await db.insertOrUpdateMarket({ contractId, escrowAddr, createRound, lastSyncRound, isBlacklisted: 0 });
                     contractType = 2;
+		    ctc = new MPContract(contractId, algodClient, indexerClient);
                 }
                 else {
                     console.log(`Contract ${contractId} is not an ARC72 or MP contract, skipping`);
@@ -163,7 +164,11 @@ while (true) {
                         if (from == zeroAddress) {
                             // new token mint
                             const metadataURI = (await ctc.arc72_tokenURI(tokenId)).returnValue;
-                            const metadata = JSON.stringify(await fetch(metadataURI).then((res) => res.json()));
+			    let metadata = '';
+			    try {
+	                            metadata = JSON.stringify(await fetch(metadataURI).then((res) => res.json()));
+			    }
+			    catch(err) {}
                             const totalSupply = (await ctc.arc72_totalSupply()).returnValue;
 
                             await db.insertOrUpdateToken({ contractId, tokenId, tokenIndex: 0, owner: to, metadataURI, metadata, approved: zeroAddress, mintRound: round});
