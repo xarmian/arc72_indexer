@@ -8,11 +8,75 @@ const makeContract = (contractId, spec) =>
 
 // update lastSyncRound in collections table
 const updateLastSync = async (contractId, round) => {
-  await db.updateSCSLastSync(contractId, round);
+  await db.updateSCSLastSync(contractId, Number(round));
   console.log(`Updated lastSyncRound for contract ${contractId} to ${round}`);
 };
 
 // process events
+
+const onOwnershipTransfer = async (ci, events) => {
+  const contractId = ci.getContractId();
+  const stake = await db.getSCSById(contractId);
+  const appEvents = events.find(el => el.name === "OwnershipTransferred").events;
+  console.log(                   
+    `Processing ${appEvents.length} ownership transfer events for contract ${contractId}`
+  );                             
+  for await (const event of appEvents) {
+          const [
+                  txid,         
+                  round,        
+                  ts,          
+		  oldOwner,
+		  newOwner
+          ] = event;             
+          console.log({
+                  txid,
+                  round,
+                  ts,
+		  oldOwner,
+		  newOwner
+          })
+          const update = ({    
+                contractId,             
+                ...stake,       
+                global_owner: newOwner
+          })  
+          console.log({update})
+          await db.insertOrUpdateSCS(update);
+  }
+}
+
+const onConfigured = async (ci, events) => {
+  const contractId = ci.getContractId();
+  const stake = await db.getSCSById(contractId);
+  const appEvents = events.find(el => el.name === "Configured").events;
+  console.log(                  
+    `Processing ${appEvents.length} configure events for contract ${contractId}`
+  );                            
+  for await (const event of appEvents) {
+          const [                       
+                  txid,         
+                  round,        
+                  ts,                   
+		  oldPeriod,
+		  newPeriod
+          ] = event;            
+	  console.log({
+		  txid,
+                  round,
+                  ts,
+                  oldPeriod,
+                  newPeriod,
+	  })
+          const update = ({     
+                contractId,             
+                ...stake,       
+                global_period: Number(newPeriod)
+          })            
+          console.log({update})
+          await db.insertOrUpdateSCS(update);
+  }
+}
 
 const onTemplate = async (ci, events) => {
   const contractId = ci.getContractId();
@@ -224,6 +288,28 @@ const spec = {
                         ]
                 },
 		{
+                        "name": "Configured",
+                        "args": [
+                                {
+                                        "type": "address"
+                                },
+                                {
+                                        "type": "address"
+                                },
+                        ]
+                },
+		{
+                        "name": "OwnershipTransferred",
+                        "args": [
+                                {
+                                        "type": "address"
+                                },
+                                {
+                                        "type": "address"
+                                },
+                        ]
+                },
+		{
                         "name": "Template",
                         "args": [
                                 {
@@ -303,8 +389,18 @@ const doIndex = async (app, round) => {
     });
     console.log({update});
     await db.insertOrUpdateSCS(update);
+     const events = await ci.getEvents({
+      minRound: lastSyncRound,
+      maxRound: round,
+    });
+    console.log(events)
+    await onTemplate(ci, events);
+    await onSetup(ci, events);
+    await updateLastSync(contractId, round);
+
   } else {
     lastSyncRound = (await db.getSCSLastSync(contractId)) ?? 0;
+    console.log({lastSyncRound});
     // handleMethod
     switch(app.appArgs[0]) {
 	    // set_funding(uint64)void
@@ -398,13 +494,17 @@ const doIndex = async (app, round) => {
 	    // configure(uint64)void
 	    // globalStateDelta in period
 	    case "ZxVD+Q==": {
+		    console.log("ASDFASDFASDFASDF");
 		    const stake = await db.getSCSById(contractId);
+		    console.log(stake);
                     const args = app.appArgs.slice(1)
+		    console.log(args);
                     const [periodB64] = args;
                     const global_period = algosdk.bytesToBigInt(new Uint8Array(Buffer.from(periodB64,"base64")))
+		    console.log(global_period);
                     const globalStateDelta = { global_period: Number(global_period) };
-		    console.log({globalStateDelta})
-                    await db.insertOrUpdateSCS({ ...stake, ...globalStateDelta });
+		    console.log({contractId, globalStateDelta})
+                    await db.updateSCSPeriod(contractId, Number(global_period));
                     break;
 	    }
             // reward
@@ -485,17 +585,24 @@ const doIndex = async (app, round) => {
       }
   }
 
+  console.log({lastSyncRound, round});
+
   if (lastSyncRound <= round) {
     const events = await ci.getEvents({
       minRound: lastSyncRound,
       maxRound: round,
     });
+    console.log(events)
+    /*
     await onTemplate(ci, events);
     await onSetup(ci, events);
+    */
+    await onConfigured(ci, events);
     await onDelegateUpdated(ci, events);
     await onFundingSet(ci, events);
     await onFunderGranted(ci, events);
     await onClosed(ci, events);
+    await onOwnershipTransfer(ci, events);
     await updateLastSync(contractId, round);
   }
 };

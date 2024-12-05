@@ -308,6 +308,7 @@ export const listingsEndpoint = async (req, res, db) => {
 
         row.sale = await db.get(`SELECT * FROM sales WHERE transactionId = ?`, [row.sales_id]) ?? null;
         row.delete = await db.get(`SELECT * FROM deletes WHERE transactionId = ?`, [row.delete_id]) ?? null;
+	row.staking = await db.get(`SELECT * FROM contract_scsc WHERE contractId = ?`, [row.tokenId]) ?? null;
 
         delete row.sales_id;
         delete row.delete_id;

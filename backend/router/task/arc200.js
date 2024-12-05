@@ -7,6 +7,7 @@ import {
   prepareString,
 } from "../../utils.js";
 import { ZERO_ADDRESS } from "../../constants.js";
+import axios from "axios";
 
 // makeContract
 //  - returns contract instance
@@ -64,9 +65,9 @@ const getToken = async (ci, contractId) => {
   );
   // get application info from indexer
   const app = await indexerClient.lookupApplications(contractId).do();
+  console.log(app);
   const creator = app.application.params.creator;
   const createRound = app.application["created-at-round"];
-  // get application assets from indexer
   const accountAssets = await indexerClient
     .lookupAccountAssets(algosdk.getApplicationAddress(contractId))
     .do();
@@ -136,12 +137,13 @@ const onMint = async (ci, event) => {
   const contractId = ci.getContractId();
   const { round, timestamp, to } = getTransferEvent(event);
   const token = await getToken(ci, contractId);
+  console.log({token});
   await db.insertOrUpdateAccountBalance0200({
     contractId: String(contractId),
     accountId: to,
     balance: token.totalSupply,
   });
-  //await db.insertOrUpdateContract0200(token);
+  await db.insertOrUpdateContract0200(token);
   console.log(`Minted token ${contractId} by ${to} on round ${round}`);
 };
 
@@ -252,7 +254,9 @@ const doIndex = async (app, round) => {
   const contractId = app.apid;
   const ci = makeContract(contractId, abi.arc200);
   let lastSyncRound;
-  if (app.isCreate) {
+  if (app.isDelete) {
+    await db.softDeleteContract0200(contractId)
+  } else if (app.isCreate) {
     lastSyncRound = round;
     console.log({lastSyncRound});
     console.log(`Adding new contract ${contractId} to tokens table`);
@@ -261,11 +265,12 @@ const doIndex = async (app, round) => {
     console.log(
       `Minted token ${contractId} by ${token.creator} on round ${round}`
     );
+    await db.insertOrUpdateContractStub({ contractId, hash: app.appApprovalHash, creator: app.creator, active: 0 });
   } else {
+    const stubUpdate = { contractId, hash: "", creator: "", active: 1 };
+    await db.insertOrUpdateContractStub(stubUpdate);
     lastSyncRound = (await db.getContract0200LastSync(contractId)) ?? 0;
-    console.log({lastSyncRound});
     lastSyncRound = round;
-    console.log({lastSyncRound});
     console.log(`Updating contract ${contractId} in tokens table`);
     const token = await getToken(ci, contractId); 
     await db.insertOrUpdateContract0200(token); // ideally we would not need this step

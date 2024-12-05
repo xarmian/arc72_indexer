@@ -22,6 +22,7 @@ import {
     db,
     getAllAppIdsIdx,
     getContractType,
+    algodClient,
     indexerClient,
     output,
     sleep,
@@ -64,11 +65,22 @@ if (isDebugMode) {
     console.log("Debug mode enabled");
 }
 
+
+export const getStatus = async () => {
+    const status = await algodClient.status().do();
+    console.log("status", status);
+    return status;
+}
+
 export const getEndBlock = async () => {
     // end_block = (await algodClient.status().do())['last-round'];
     // end_block = (await indexerClient.lookupAccountByID(ZERO_ADDRESS).do())['current-round'];
-    const hc = await indexerClient.makeHealthCheck().do();
-    const end_block = hc.round;
+    // use algod
+    const status = await getStatus();
+    const end_block = Number(status['last-round']);
+    // use indexer
+    // const hc = await indexerClient.makeHealthCheck().do();
+    // const end_block = hc.round;
     return end_block;
 };
 
@@ -118,11 +130,21 @@ while (true) {
             }, DELAY_LOOKUP_BLOCK); // 5 second timeout
         });
 
+	console.log({last_block});
+
         const blk = await Promise.race([
             indexerClient.lookupBlock(last_block).do(),
             timeoutPromise,
         ]);
+
+
+	console.log(blk);
+
         const rnd = blk["round"];
+
+	const transactions = blk.transactions || blk.block?.txns || [];
+
+	console.log(transactions);
 
         // get all app calls from block
         const apps = getAllAppIdsIdx(blk.transactions);
@@ -131,13 +153,30 @@ while (true) {
         }
         // for each app, run contract specific indexer task
         for (const app of apps) {
+
+	    // skip blacklist accounts
+	    if(app.isCreate && [
+		//"FZPGANXMQIHVSWYN6ZXS63QO5A5X4LEYCB4O52IP37HR6LY5RJY6FRC3LA"
+	    ].includes(app.creator)) {
+		console.log(`skip blacklist addr ${app.creator}`);
+		continue;
+	    }
+
             const contractType = await getContractType(app);
+
+	    console.log({contractType});
+
             switch (contractType) {
                 case CONTRACT_TYPE_SCS: {
                     console.log("SCS", app, rnd);
 		    await onSCS(app, rnd);
 		    break;
 		}
+		case CONTRACT_TYPE_ARC200: {
+                    console.log("ARC200", app, rnd);
+                    await onARC200(app, rnd);
+                    break;
+                }
                 case CONTRACT_TYPE_ARC72: {
                     console.log("ARC72", app, rnd);
                     await onARC72(app, rnd);
@@ -151,11 +190,6 @@ while (true) {
 		case CONTRACT_TYPE_LPT: {
                     console.log("LPT", app, rnd);
                     await onDex(app, rnd);
-                    break;
-                }
-                case CONTRACT_TYPE_ARC200: {
-                    console.log("ARC200", app, rnd);
-                    await onARC200(app, rnd);
                     break;
                 }
 		case CONTRACT_TYPE_STAKE: {

@@ -176,6 +176,7 @@ CREATE TABLE IF NOT EXISTS contracts_0200 (
     createRound INTEGER,
     lastSyncRound INTEGER,
     isBlacklisted INTEGER,
+    deleted INTEGER DEFAULT 0,
     PRIMARY KEY (contractId)
 );
 

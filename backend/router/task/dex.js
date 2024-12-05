@@ -1,8 +1,11 @@
 import algosdk from "algosdk";
 import { CONTRACT, abi, swap } from "ulujs";
 import BigNumber from "bignumber.js";
+import { getStatus } from "../../index.js";
 import { algodClient, indexerClient, db, prepareString } from "../../utils.js";
 import { getMetadata, onTransfer, onApproval } from "./arc200.js";
+import axios from "axios";
+import moment from "moment";
 
 const getTimestampOneWeekBefore = () => {
     // Get the current date and time
@@ -22,17 +25,21 @@ const tokenId = (token) => nts.includes(token.contractId) ? 0 : Number(token.con
 const symbol = (token) => nts.includes(token.contractId) ? "VOI" : token.symbol;
 const poolId = (tokenA, tokenB) => ((tokA, tokB) => tokA > tokB ? `${tokB}-${tokA}` : `${tokA}-${tokB}`)(tokenId(tokenA),tokenId(tokenB));
 
+// NOMADEX SPECIFIC
 // isLPT
 //  - checks if lpt
 const isLPT = async (contractId, globalState) => {
+  return false;
+  /*
   const accountAssets = await indexerClient
-    .lookupAccountAssets(algosdk.getApplicationAddress(contractId))
-    .do();
+   .lookupAccountAssets(algosdk.getApplicationAddress(contractId))
+   .do();
   
-  const isLPT = globalState.find(el => el.key === "cmF0aW8=" /*ratio*/) &&
-                !globalState.find(el => el.key === "dG9rZW5feV9hcHBfaWQ=" /*token_y_app_id*/) &&
+  const isLPT = globalState.find(el => el.key === "cmF0aW8=") && // ratio
+                !globalState.find(el => el.key === "dG9rZW5feV9hcHBfaWQ=") && // token_y_app_id
                 accountAssets.assets.length === 0;
   return isLPT;
+  */
 };
 
 const saveEvents = async (contractId, events, f) => {
@@ -163,14 +170,13 @@ const getToken = async (ci, contractId) => {
   const app = await indexerClient.lookupApplications(contractId).do();
   const globalState = app.application.params["global-state"];
 
-  console.log(globalState);
-
   const creator = app.application.params.creator;
   const createRound = app.application["created-at-round"];
 
   // checks if arc200 lt
   const ciSwap = new swap(contractId, algodClient, indexerClient);
   const infoR = await ciSwap.Info();
+
   const isARC200LT = infoR.success;
 
   // for each lp type set tokenId and maybe update price
@@ -215,7 +221,7 @@ const getToken = async (ci, contractId) => {
     // calculate apr
     const vol = volA.plus(volB);
     const tvl = tvlA.plus(tvlB);
-    const weeklyFees = vol.multipliedBy(new BigNumber(30)).dividedBy(new BigNumber(10000)) // using 0.3% fee
+    const weeklyFees = vol.multipliedBy(new BigNumber(99)).dividedBy(new BigNumber(10000)) // using 0.3% fee
     const fees = weeklyFees.multipliedBy(52); // annualized
     const apr = fees.dividedBy(tvl).multipliedBy(new BigNumber(100)).toFixed(2);
     // get supply
@@ -275,11 +281,25 @@ const getToken = async (ci, contractId) => {
         ratio = balBBn.dividedBy(balABn);
         whichToken = tokA;
       }
+      console.log({ratio, infoR})
       if (!isNaN(ratio)) {
         await db.insertOrUpdatePrice0200({
           contractId: String(whichToken),
           price: String(ratio),
         });
+	const lastRound = (await getStatus())["last-round"]
+	console.log(lastRound)
+	if(lastRound) {
+	const priceHistoryUpdate = {
+	  contractId: String(whichToken),
+          price: String(ratio),
+          round: lastRound,
+          timestamp: moment().unix()
+	}
+	console.log(priceHistoryUpdate);
+	await db.insertOrUpdatePriceHistory0200(priceHistoryUpdate);
+	}
+
       } else {
         await db.insertOrUpdatePrice0200({
           contractId: String(whichToken),
@@ -360,7 +380,7 @@ const doIndex = async (app, round) => {
     console.log({ lastSyncRound });
     console.log(`Adding new contract ${contractId} to tokens table`);
 
-    const token = await getToken(ci, contractId);
+    const token = await getToken(ci, contractId)
     if(token) {
     	await db.insertOrUpdateContract0200(token);
    	console.log(
@@ -373,9 +393,10 @@ const doIndex = async (app, round) => {
   } else {
     lastSyncRound = await db.getContract0200LastSync(contractId);
     console.log({ lastSyncRound });
-    await db.insertOrUpdateContractStub({ contractId, hash: "", creator: "", active: 1 });
+    const stubUpdate = { contractId, hash: "", creator: "", active: 1 };
+    await db.insertOrUpdateContractStub(stubUpdate);
     console.log(`Updating contract ${contractId} in tokens table`);
-    const token = await getToken(ci, contractId);
+    const token = await getToken(ci, contractId)
     console.log({ token });
     await db.insertOrUpdateContract0200(token); // ideally we would not need this
   }

@@ -196,9 +196,11 @@ FROM
     params.$operator = operator;
   }
 
-  if (deleted) {
-    conditions.push(`c.deleted = $deleted`);
-    params.$deleted = deleted;
+  if (deleted == '1') {
+  	conditions.push(`c.deleted = 1`);
+  } else {
+
+	conditions.push(`(c.deleted IS NULL OR c.deleted = 0)`);
   }
 
   if (next) {

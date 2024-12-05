@@ -200,6 +200,40 @@ export default class Database {
 
     // SCS
 
+    async getPhaseISCSs() {
+        const stake = await this.all(`
+SELECT global_owner, contractId, contractAddress,  global_period, global_initial, global_period_seconds, global_vesting_delay, global_lockup_delay, global_distribution_count, global_distribution_seconds
+FROM contract_scsc
+WHERE TRUE 
+AND global_initial != '0'
+AND global_funder = '62TIVJSZOS4DRSSYYDDZELQAGFYQC5JWKCHRBPPYKTZN2OOOXTGLB5ZJ4E'
+AND global_parent_id = 5211;
+`);
+	return stake;
+    }
+
+    async getPhaseIISCSs() {
+        const stake = await this.all(`
+SELECT global_owner, contractId, contractAddress,  global_period, global_initial, global_period_seconds, global_vesting_delay, global_lockup_delay, global_distribution_count, global_distribution_seconds
+FROM contract_scsc 
+WHERE TRUE 
+AND global_initial = '0'
+AND global_funder = '62TIVJSZOS4DRSSYYDDZELQAGFYQC5JWKCHRBPPYKTZN2OOOXTGLB5ZJ4E'
+AND global_parent_id = 5211;
+`);
+        return stake;
+    }
+
+    async getSCSs() {
+        const stake = await this.all("SELECT * FROM contract_scsc");
+        return stake
+    }
+
+    async getSCSsById(contractId) {
+        const stake = await this.all("SELECT * FROM contract_scsc WHERE contractId = ?", [contractId]);
+        return stake
+    }
+
     async getSCSById(contractId) {
         const stake = await this.get("SELECT * FROM contract_scsc WHERE contractId = ?", [contractId]);
         return stake
@@ -217,6 +251,10 @@ export default class Database {
 
     async updateSCSLastSync(contractId, lastSyncRound) {
         return await this.run("UPDATE contract_scsc SET lastSyncRound = ? WHERE contractId = ?", [lastSyncRound, contractId]);
+    }
+
+    async updateSCSPeriod(contractId, period) {
+        return await this.run("UPDATE contract_scsc SET global_period = ? WHERE contractId = ?", [period, contractId]);
     }
 
     async insertOrUpdateSCS({ contractId, contractAddress, creator, createRound, global_funder, global_funding, global_owner, global_period, global_total, global_period_seconds, global_lockup_delay, global_vesting_delay, global_period_limit, part_vote_k, part_sel_k, part_vote_fst, part_vote_lst, part_vote_kd, part_sp_key, deleted, global_parent_id, global_messenger_id, global_delegate, global_deadline, global_initial, global_deployer, global_distribution_count, global_distribution_seconds }) {
@@ -653,14 +691,19 @@ WHERE
         return await this.run("UPDATE contracts_0200 SET tokenId = ? WHERE contractId = ?", [tokenId, contractId]);
     }
 
+    async softDeleteContract0200(contractId) {
+       return await this.run("UPDATE contracts_0200 SET deleted = 1 WHERE contractId = ?", [contractId]);
+
+    }
+
     async insertOrUpdateContract0200({ contractId, name, symbol, decimals, totalSupply, createRound, lastSyncRound, creator }) {
         const result = await this.run(
             `
             UPDATE contracts_0200
-            SET totalSupply = ?, lastSyncRound = ?, creator = ?
+            SET totalSupply = ?, lastSyncRound = ?, creator = ?, name = ?, symbol = ?, decimals = ?, totalSupply = ?
             WHERE contractId = ?
             `,
-            [totalSupply, lastSyncRound, creator, contractId]
+            [totalSupply, lastSyncRound, creator, name, symbol, decimals, totalSupply, contractId]
         );
 
         if (result.changes === 0) {

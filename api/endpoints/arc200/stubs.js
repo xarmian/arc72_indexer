@@ -1,14 +1,8 @@
-const zeroAddress =
-  "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ";
-
-function intersect(a, b) {
-  var setB = new Set(b);
-  return [...new Set(a)].filter(x => setB.has(x));
-}
+const appApprovalHash = "d71decf73ba8c1c5e34f7a124e1e7b393667fcae2d0f76f9d7b7217d53d5eab4";
 
 /**
  * @swagger
- * /nft-indexer/v1/dex/pools:
+ * /nft-indexer/v1/arc200/stubs/token:
  *  get:
  *   summary: Retrieves arc200 token data
  *   description: Fetch arc200 token details based on query parameters (this is a NON-STANDARD endpoint)
@@ -75,7 +69,7 @@ function intersect(a, b) {
  *       description: Server error
  */
 
-export const dexPoolsEndpoint = async (req, res, db) => {
+export const arc200TokenStubEndpoint = async (req, res, db) => {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Response-Type", "application/json");
 
@@ -95,21 +89,17 @@ export const dexPoolsEndpoint = async (req, res, db) => {
 
   // Extract query parameters
   const contractId = req.query.contractId;
-  const minContractId = req.query["min-contract-id"] ?? 0;
-  const maxContractId = req.query["max-contract-id"];
-  const tokenId = req.query["tokenId"];
-  const mintRound = req.query["mint-round"];
-  const mintMinRound = req.query["mint-min-round"] ?? 0;
-  const mintMaxRound = req.query["mint-max-round"];
+  const hash = req.query["hash"]; // app approval hash
+  const active = req.query.active;
   const creator = req.query.creator;
   const next = req.query.next ?? 0;
   const limit = req.query.limit;
 
-  const sortBy = req.query.sort_by || 'tvl'; // Default sort field
+  const sortBy = req.query.sort_by || 'contractId'; // Default sort field
   const sortOrder = req.query.sort_order || 'desc'; // Default sort order
 
   // Sanitize input to prevent SQL injection
-  const validSortFields = ['tvl', 'createRound', 'contractId'];
+  const validSortFields = ['contractId', 'creator'];
   if (!validSortFields.includes(sortBy)) {
         return res.status(400).send('Invalid sort field');
   }
@@ -118,7 +108,6 @@ export const dexPoolsEndpoint = async (req, res, db) => {
         return res.status(400).send('Invalid sort order');
   }
 
-
   // Construct SQL query
 
   let query = "";
@@ -126,30 +115,8 @@ export const dexPoolsEndpoint = async (req, res, db) => {
   let params = {};
  
     query += `
-SELECT 
-    p.*,
-    cA.decimals as tokADecimals,
-    cB.decimals as tokADecimals,
-    CASE
-     WHEN CAST(tvlA AS REAL) < CAST(tvlB AS REAL) THEN CAST(tvlA as REAL) * 2
-     ELSE CAST(tvlB as REAL) * 2
-    END AS tvl,
-    c.createRound as createRound,
-    c.creator as creator
-FROM 
-    dex_pool p
-INNER JOIN 
-    contracts_0200 c
-ON 
-    p.contractId = c.contractId
-INNER JOIN 
-    contracts_0200 cA
-ON 
-    p.tokAId = cA.contractId
-INNER JOIN 
-    contracts_0200 cB
-ON 
-    p.tokBId = cB.contractId
+    select p.*
+    from contract_stubs p
     `;
 
   if (contractId) {
@@ -157,51 +124,33 @@ ON
     params.$contractId = contractId;
   }
 
-  if (minContractId > 0) {
-    conditions.push(`p.contractId >= $minContractId`);
-    params.$minContractId = minContractId;
+  if (hash) {
+    conditions.push(`p.hash = $hash`);
+    params.$hash = hash;
+  } else {
+    conditions.push(`p.hash like $appApprovalHash`);
+    params.$appApprovalHash = appApprovalHash;
   }
 
-  if (maxContractId > 0) {
-    conditions.push(`p.contractId <= $maxContractId`);
-    params.$maxContractId = maxContractId;
-  }
-
-  if (mintRound) {
-    conditions.push(`c.createRound = $mintRound`);
-    params.$mintRound = mintRound;
-  }
-
-  if (mintMinRound > 0) {
-    conditions.push(`c.createRound >= $mintMinRound`);
-    params.$mintMinRound = mintMinRound;
-  }
-
-  if (mintMaxRound) {
-    conditions.push(`c.createRound <= $mintMaxRound`);
-    params.$mintMaxRound = mintMaxRound;
-  }
-
-  if (tokenId) {
-    conditions.push(`(p.tokAId = $tokenId OR p.tokBId = $tokenId)`);
-    params.$tokenId = tokenId;
+  if (active) {
+    conditions.push(`p.active = $active`);
+    params.$active = active;
   }
 
   if (creator) {
-    conditions.push(`c.creator = $creator`);
+    conditions.push(`p.creator = $creator`);
     params.$creator = creator;
   }
 
   if (next) {
-    conditions.push(`c.createRound >= $next`);
+    conditions.push(`p.createRound >= $next`);
     params.$next = next;
   }
-
-  conditions.push(`p.deleted = 0`);
 
   if (conditions.length > 0) {
     query += ` WHERE ` + conditions.join(" AND ");
   }
+
 
   query += ` ORDER BY ${sortBy} ${sortOrder.toUpperCase()}`
 
@@ -215,11 +164,7 @@ ON
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
-
     row.contractId = Number(row.contractId);
-    row.mintRound = Number(row.createRound);
-    delete row.lastSyncRound;
-    delete row.createRound;
   }
 
   // get round of last row
@@ -228,7 +173,7 @@ ON
     maxRound = rows[rows.length - 1].mintRound;
   }
 
-  response["pools"] = rows;
+  response["stubs"] = rows;
   response["next-token"] = maxRound + 1;
   res.status(200).json(response);
 

@@ -9,6 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@algorandfoundation/algokit-utils": "^6.2.1",
     "algosdk": "^2.7.0",
     "axios": "^1.6.8",
     "bignumber.js": "^9.1.2",

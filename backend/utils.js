@@ -1,6 +1,7 @@
 import algosdk from "algosdk";
 import readline from "readline";
 import crypto from "crypto";
+import axios from "axios";
 import { CONTRACT, abi, swap } from "ulujs";
 import {
     CONTRACT_TYPE_UNKNOWN,
@@ -22,11 +23,13 @@ function createHash(data) {
 
 const {
     ALGOD_TOKEN = "",
-    ALGOD_HOST = "https://testnet-api.voi.nodly.io",
+    //ALGOD_HOST = "https://testnet-api.voi.nodly.io",
+    ALGOD_HOST = "https://mainnet-api.voi.nodely.dev",
     ALGOD_PORT = "443",
 
     INDEXER_TOKEN = "",
-    INDEXER_HOST = "https://testnet-idx.voi.nodly.io",
+    //INDEXER_HOST = "https://testnet-idx.voi.nodly.io",
+    INDEXER_HOST = "https://mainnet-idx.voi.nodely.dev",
     INDEXER_PORT = "443",
 } = process.env;
 
@@ -93,6 +96,7 @@ async function isSupported(contractId, interfaceSelector) {
         ))
         const sim = await ci.supportsInterface(bytesFromHex(interfaceSelector));
         const sim2 = await ci2.supportsInterface(bytesFromHex(interfaceSelector));
+	console.log({sim,sim2})
         if (sim.success || sim2.success) {
             return sim.returnValue;
         }
@@ -177,13 +181,14 @@ export async function isARC200(contractId) {
 }
 
 export async function isLPT(contractId) {
-  const accountAssets = await indexerClient.lookupAccountAssets(algosdk.getApplicationAddress(contractId)).do();
   const app = await indexerClient.lookupApplications(contractId).do();
   const appGlobalState = app.application.params["global-state"];
   const ciSwap = new swap(contractId, algodClient, indexerClient)
   const infoR = await ciSwap.Info();
   const isARC200LT = infoR.success;
+  // NOMADEX-SPECIFIC
   /*
+  const accountAssets = await indexerClient.lookupAccountAssets(algosdk.getApplicationAddress(contractId)).do();
   const isLPT = appGlobalState.find(el => el.key === "cmF0aW8=" ) &&  // ratio
 		!appGlobalState.find(el => el.key === "dG9rZW5feV9hcHBfaWQ=") &&  // token_y_app_id
 		accountAssets.assets.length === 0;
@@ -204,11 +209,17 @@ export async function getContractType(app) {
     // check only db
     // check simulate supportsInterface
     // check simulate other
-    if(hash === "f0800159ade5b919904b6878670570683990aea35dd73af2ac2cba8e44b0b54f") return CONTRACT_TYPE_LPT; // ARC200LP 
-    if(hash === "e80b280db0d1ae7ee02c5138235a7ceb9ca3817bcd1c254ccc3693e6646e7ab6") return CONTRACT_TYPE_LPT; // ARC200LP 
+    // skip potentially harmful contracts
+    if([
+	"13d9b75afb30e9bc7639237e003257e51f7739900df49dd1c4eb55e918f854fb" // nomadex ARC200
+    ].includes(hash)) return CONTRACT_TYPE_ARC200; 
+    if([
+	"1da34c4d6eedce49b3795a3ee5040d32039d206ca55d0d7b2db179c995c3f381",
+	"cdcee196cdf3cf3a0bedc9f742f41fb8cb28241774e18219cacbedeca3718123",
+	"1365fd96882cef38c711ca95a04f8b933ca151ad6a2470dae62c3036bfdd8147"
+    ].includes(hash)) return CONTRACT_TYPE_LPT; // ARC200LP 
     else if (await isSCS(contract, app)) return CONTRACT_TYPE_SCS;
     else if (await isStake(contract)) return CONTRACT_TYPE_STAKE;
-    else if (await isARC72(contract)) return CONTRACT_TYPE_ARC72;
     else if (await isMP(contract)) return CONTRACT_TYPE_MP;
     else if (await isARC200(contract)) {
         if(await isLPT(contract)) { 
@@ -216,6 +227,7 @@ export async function getContractType(app) {
         }
         return CONTRACT_TYPE_ARC200;
     }
+    else if (await isARC72(contract)) return CONTRACT_TYPE_ARC72;
     return CONTRACT_TYPE_UNKNOWN;
 }
 
@@ -271,6 +283,7 @@ export function getAllAppIdsIdx(txns) {
             apps.push({
                 apid: t["application-transaction"]["application-id"],
                 isCreate: t["on-completion"] === 0 ? true : false,
+                isDelete: t["application-transaction"]["on-completion"] === "delete" ? true : false,
 		globalStateDelta: t['global-state-delta'],
                 appArgs: t["application-transaction"]["application-args"],
 		sender: t.sender,

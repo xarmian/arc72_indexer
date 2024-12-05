@@ -7,6 +7,10 @@ import {
 } from "../../utils.js";
 import { ZERO_ADDRESS } from "../../constants.js";
 
+function stripNullBytes(input) {
+    return input.replace(/\0/g, '');
+}
+
 // makeContract
 //  - returns arc72 contract instance
 const makeContract = (contractId) =>
@@ -63,17 +67,30 @@ const getCollection = async (ci, contractId) => {
 // onMint
 //  - asset is minted, update token and collection
 const onMint = async (ci, event) => {
+  console.log("MINT");
   const contractId = ci.getContractId();
   const { round, to, tokenId } = getTransferEvent(event);
   const tokenIndex = 0; // not sure what this does
   const owner = to;
 
-  // metadataURI could be undefined
-  const metadataURI = (await ci.arc72_tokenURI(tokenId)).returnValue; // TODO strip null bytes ???
-  console.log({metadataURI})
+  console.log({contractId, round, to, tokenId })
 
-  const metadata = metadataURI ? await fetch(metadataURI).then((res) => res.json()).catch(() => {}) || "{}" : "{}";
-  console.log({metadata})
+  // metadataURI could be undefined
+
+  const arc72_tokenURIR = await ci.arc72_tokenURI(tokenId);
+
+  console.log({arc72_tokenURIR});
+
+  const metadataURI = stripNullBytes((await ci.arc72_tokenURI(tokenId)).returnValue || "");
+
+  const fetchURI = metadataURI.indexOf("ipfs://") >= 0 ? `https://ipfs.io/ipfs/${metadataURI.slice(7)}` : metadataURI;
+
+  console.log("fetchURI", fetchURI);
+
+  const metadata = metadataURI ? await fetch(fetchURI).then((res) => res.json()).catch(() => {}) || "{}" : "{}";
+
+  console.log("metadata", metadata);
+ 
   
   const totalSupply = (await ci.arc72_totalSupply()).returnValue;
   const approved = ZERO_ADDRESS;

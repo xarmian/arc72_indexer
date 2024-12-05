@@ -102,6 +102,7 @@ export const contracts0200Endpoint = async (req, res, db) => {
   const creator = req.query.creator;
   const next = req.query.next ?? 0;
   const limit = req.query.limit;
+  const verified = req.query.verified;
 
   // "includes" is a query parameter that can be used to include additional data in the response
   const includes = req.query.includes?.split(",") ?? [];
@@ -120,7 +121,8 @@ SELECT
   c.decimals,
   c.totalSupply,
   c.creator,
-  c.createRound
+  c.createRound,
+  c.deleted
 `;
 if(includes.includes('all') || includes.includes("prices")) {
 query += `
@@ -131,6 +133,11 @@ query += `
 if(includes.includes('all') || includes.includes("tokens")) {
 query += `
     ,t.tokenId                         
+`
+}
+if(includes.includes('all') || includes.includes("verify")) {
+query += `
+    ,v.verified
 `
 }
 query += `
@@ -158,6 +165,14 @@ LEFT JOIN
     prices_0200 p 
 ON 
     c.contractId = p.contractId
+`;
+}
+if(includes.includes('all') || includes.includes("verify")) {
+query += `
+LEFT JOIN 
+    verification_requests v
+ON 
+    CAST(c.contractId AS TEXT) = v.assetId
 `;
 }
 
@@ -193,6 +208,15 @@ ON
 
   conditions.push(`isBlacklisted = '0'`);
 
+  if((includes.includes('all') || includes.includes("verify")) && verified) {
+    conditions.push(`v.verified = $verified`);
+    params.$verified = verified;
+  }
+
+  conditions.push(`c.totalSupply <> '0'`);
+
+  conditions.push(`c.deleted = 0`);
+
   if (conditions.length > 0) {
     query += ` WHERE ` + conditions.join(" AND ");
   }
@@ -215,6 +239,79 @@ ON
     row.contractId = Number(row.contractId);
     row.mintRound = Number(row.createRound);
     row.globalState = JSON.parse(row?.globalState ?? "{}");
+
+
+    row.change_1h = await db.get(`
+WITH PriceData AS (
+    SELECT 
+        timestamp,
+        price,
+        ROW_NUMBER() OVER (ORDER BY timestamp DESC) AS rn
+    FROM 
+        price_history_0200
+    WHERE 
+        timestamp >= (strftime('%s', 'now') - 3600) AND contractId = ? 
+)
+SELECT 
+    MAX(price) AS latest_price,
+    MIN(price) AS earliest_price,
+    CASE 
+        WHEN MIN(price) IS NOT NULL AND MAX(price) IS NOT NULL 
+        THEN (MAX(price) - MIN(price)) / MIN(price) * 100 
+        ELSE NULL 
+    END AS percent_change
+FROM 
+    PriceData;
+`, [row.contractId]) ?? null;
+
+    row.change_24h = await db.get(`
+WITH PriceData AS (
+    SELECT 
+        timestamp,
+        price,
+        ROW_NUMBER() OVER (ORDER BY timestamp DESC) AS rn
+    FROM 
+        price_history_0200
+    WHERE 
+        timestamp >= (strftime('%s', 'now') - 86400) AND contractId = ? 
+)
+SELECT 
+    MAX(price) AS latest_price,
+    MIN(price) AS earliest_price,
+    CASE 
+        WHEN MIN(price) IS NOT NULL AND MAX(price) IS NOT NULL 
+        THEN (MAX(price) - MIN(price)) / MIN(price) * 100 
+        ELSE NULL 
+    END AS percent_change
+FROM 
+    PriceData;
+`, [row.contractId]) ?? null;
+
+
+    row.change_7d = await db.get(`
+WITH PriceData AS (
+    SELECT 
+        timestamp,
+        price,
+        ROW_NUMBER() OVER (ORDER BY timestamp DESC) AS rn
+    FROM 
+        price_history_0200
+    WHERE 
+        timestamp >= (strftime('%s', 'now') - 7 * 86400) AND contractId = ? 
+)
+SELECT 
+    MAX(price) AS latest_price,
+    MIN(price) AS earliest_price,
+    CASE 
+        WHEN MIN(price) IS NOT NULL AND MAX(price) IS NOT NULL 
+        THEN (MAX(price) - MIN(price)) / MIN(price) * 100 
+        ELSE NULL 
+    END AS percent_change
+FROM 
+    PriceData;
+`, [row.contractId]) ?? null;
+    
+
     delete row.lastSyncRound;
     delete row.createRound;
   }

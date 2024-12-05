@@ -4,3 +4,4 @@ db/*
 blocks
 *.csv
 *.py
+uploads

@@ -174,8 +174,9 @@ export const tokensEndpoint = async (req, res, db) => {
         params.$limit = limit;
     }
 
+	
     // Execute query
-    db.db.all(query, params, (err, rows) => {
+    db.db.all(query, params, async (err, rows) => {
         if (err) {
             console.log(err);
             res.status(500).json({ message: 'Error querying the database' });
@@ -183,12 +184,20 @@ export const tokensEndpoint = async (req, res, db) => {
         }
 
         // for all rows, change remove tokenIndex and change mintRound to mint-round
-        rows.forEach((row) => {
+	// Process each row asynchronously
+    	for (const row of rows) {
+        //rows.forEach((row) => {
             delete row.tokenIndex;
             row.contractId = Number(row.contractId);
             row.tokenId = Number(row.tokenId);
             row['mint-round'] = row.mintRound;
             delete row.mintRound;
+
+    	    const staking = await db.get(`SELECT * FROM contract_scsc WHERE contractId = ?`, [row.tokenId]) ?? null;
+
+	    const metadata = JSON.parse(row.metadata || "{}");
+	    const collectionName = metadata.name ? String(metadata.name).replace(/[ ]?[#]?[0-9]*$/, "") : "Unknown";
+	    row.collectionName = collectionName;
 
             // if a round is provided, find the owner at that round based on the last transfer that occurred on or before `round`
             if (round && row.toAddr) {
@@ -198,12 +207,7 @@ export const tokensEndpoint = async (req, res, db) => {
 
             row.isBurned = (row.owner == zeroAddress && (row.approved == null || row.approved == zeroAddress));
 
-            /*try {
-                row.metadata = JSON.parse(row.metadata);
-            } catch (err) {
-                // leave metadata as a string
-            }*/
-        });
+        }
 
         // get round of last row
         let maxRound = 0;
@@ -221,4 +225,5 @@ export const tokensEndpoint = async (req, res, db) => {
         const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
         console.log(`${date.toISOString()}: ${ip} ${query} ${JSON.stringify(params)}`);
     });
+
 };
