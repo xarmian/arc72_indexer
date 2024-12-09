@@ -121,20 +121,27 @@ while (true) {
                     console.log(`\nContract ${contractId} not found in collections table, skipping`);
                 }
                 else {
+                    console.log(`\nUpdating contract ${contractId} in collections table`);
                     contractType = 1;
-                    ctc = new Contract(contractId, algodClient, indexerClient);
-                    console.log(`Updating contract ${contractId} in collections table`);
 
-                    const totalSupply = (await ctc.arc72_totalSupply()).returnValue;
+		    try {
+	                    ctc = new Contract(contractId, algodClient, indexerClient);
 
-                    const app = (await indexerClient.lookupApplications(contractId).do());
-                    const creator = app.application.params.creator;
-                    const createRound = app.application['created-at-round'];
+        	            const totalSupply = (await ctc.arc72_totalSupply()).returnValue;
+
+                	    const app = (await indexerClient.lookupApplications(contractId).do());
+	                    const creator = app.application.params.creator;
+        	            const createRound = app.application['created-at-round'];
                 
-                    const globalState = app.application.params['global-state'];
-                    const decodedState = JSON.stringify(decodeGlobalState(globalState));
+	                    const globalState = app.application.params['global-state'];
+        	            const decodedState = JSON.stringify(decodeGlobalState(globalState));
 
-                    await db.insertOrUpdateCollection({ contractId, totalSupply, createRound, lastSyncRound, creator, globalState: decodedState });
+                	    await db.insertOrUpdateCollection({ contractId, totalSupply, createRound, lastSyncRound, creator, globalState: decodedState });
+		    }
+		    catch(error) {
+			console.log(`\nError updating contract: ${error.message}`);
+			continue;
+		    }
                 }
 
                 if (contractType == 0) {
