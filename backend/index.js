@@ -171,11 +171,21 @@ while (true) {
                         if (from == zeroAddress) {
                             // new token mint
                             const metadataURI = (await ctc.arc72_tokenURI(tokenId)).returnValue;
-			    let metadata = '';
-			    try {
-	                            metadata = JSON.stringify(await fetch(metadataURI).then((res) => res.json()));
-			    }
-			    catch(err) {}
+                            let metadata = '';
+                            
+                            try {
+                                // if metadataURI is an ipfs url, adjust it to use the ipfs gateway
+                                if (metadataURI.startsWith('ipfs://')) {
+                                    metadata = await fetch(metadataURI.replace('ipfs://', 'https://ipfs.io/ipfs/')).then((res) => res.json());
+                                }
+                                else {
+                                    metadata = JSON.stringify(await fetch(metadataURI).then((res) => res.json()));
+                                }
+                            }
+                            catch(err) {
+                                console.log(`Error fetching metadata for token ${tokenId}: ${err.message}`);
+                            }
+
                             const totalSupply = (await ctc.arc72_totalSupply()).returnValue;
 
                             await db.insertOrUpdateToken({ contractId, tokenId, tokenIndex: 0, owner: to, metadataURI, metadata, approved: zeroAddress, mintRound: round});
