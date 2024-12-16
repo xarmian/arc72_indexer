@@ -176,7 +176,7 @@ while (true) {
                             try {
                                 // if metadataURI is an ipfs url, adjust it to use the ipfs gateway
                                 if (metadataURI.startsWith('ipfs://')) {
-                                    metadata = await fetch(metadataURI.replace('ipfs://', 'https://ipfs.io/ipfs/')).then((res) => res.json());
+                                    metadata = JSON.stringify(await fetch(metadataURI.replace('ipfs://', 'https://ipfs.io/ipfs/')).then((res) => res.json()));
                                 }
                                 else {
                                     metadata = JSON.stringify(await fetch(metadataURI).then((res) => res.json()));
