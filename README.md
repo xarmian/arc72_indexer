@@ -18,12 +18,12 @@ Production services below are deployed for the VoiNet network.
 This includes a block follower and indexer API.
 
 API Endpoints:
-* Token Endpoint: https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/tokens
-* Transfers Endpoint: https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/transfers
+* Token Endpoint: https://arc72-voi-mainnet.nftnavigator.xyz/nft-indexer/v1/tokens
+* Transfers Endpoint: https://arc72-voi-mainnet.nftnavigator.xyz/nft-indexer/v1/transfers
 
 Additional Links:
-* API Documentation (Swagger) - https://arc72-idx.nftnavigator.xyz/api-docs
-* ARC72 NFT Stats (for testing) - https://arc72-idx.nftnavigator.xyz/stats
+* API Documentation (Swagger) - https://arc72-voi-mainnet.nftnavigator.xyz/api-docs
+* ARC72 NFT Stats (for testing) - https://arc72-voi-mainnet.nftnavigator.xyz/stats
 
 ### Initialize Database
 NOTE: SQLite3 is required to initialize the database. To install SQLite3 with APT package manager:

@@ -1,0 +1,106 @@
+<style>
+    #retrosnap-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    #retrosnap-table th {
+        background-color: #f2f2f2;
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+    }
+
+    #retrosnap-table td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+    }
+
+    #retrosnap-table tr:nth-child(even) {
+        background-color: #f2f2f2;
+    }
+
+    #retrosnap-table tr:hover {
+        background-color: #f1f1f1;
+    }
+</style>
+<body>
+    <form id="input-form">
+        <label for="contractId">Contract ID:</label><br>
+        <select id="contractId" name="contractId"></select><br>
+        <label for="round">Round:</label><br>
+        <div style="display: flex;">
+            <input type="number" id="round" name="round">
+            <div style="cursor: pointer; padding-left: 5px;" onclick="insertValue()">&lt;-</div>
+        </div>
+        <input type="submit" value="Submit">
+    </form>
+    <table id="retrosnap-table">
+        <tr>
+            <th>Token ID</th>
+            <th>Name</th>
+            <th>Owner</th>
+        </tr>
+    </table>
+</body>
+<script>
+    function insertValue() {
+        const round = document.getElementById('round');
+        round.value = '6522332';
+    }
+
+    document.getElementById('input-form').addEventListener('submit', function(event) {
+        event.preventDefault();
+        const contractId = document.getElementById('contractId').value;
+        const round = document.getElementById('round').value;
+
+        const url = new URL('https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/tokens');
+        url.searchParams.append('contractId', contractId);
+        url.searchParams.append('round', round);
+
+        // clear the table
+        const table = document.getElementById('retrosnap-table');
+        table.innerHTML = '<tr><th>Token ID</th><th>Name</th><th>Owner</th></tr>';
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                const tokens = data.tokens;
+                data.tokens.forEach(token => {
+                    const metadata = JSON.parse(token.metadata);
+                    const row = table.insertRow(-1);
+                    const tokenIdCell = row.insertCell(0);
+                    const nameCell = row.insertCell(1);
+                    const ownerCell = row.insertCell(2);
+                    tokenIdCell.innerHTML = token.tokenId;
+                    nameCell.innerHTML = metadata.name;
+                    ownerCell.innerHTML = token.owner;
+                });
+            });
+    });
+
+    fetch('https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/collections')
+        .then(response => response.json())
+        .then(data => {
+            const contractIdSelect = document.getElementById('contractId');
+            data.collections.forEach(contract => {
+                const metadata = (contract.firstToken && contract.firstToken.metadata) ? JSON.parse(contract.firstToken.metadata) : null;
+                if (metadata == null) return;
+                const option = document.createElement('option');
+                option.text = (metadata && metadata.name) ? metadata.name.replace(/[0-9#]+$/, '') : contract.contractId;
+                option.value = contract.contractId;
+                contractIdSelect.appendChild(option);
+            });
+
+            const blankOption = document.createElement('option');
+            blankOption.text = '';
+            blankOption.value = '';
+            contractIdSelect.insertBefore(blankOption, contractIdSelect.firstChild);
+            contractIdSelect.selectedIndex = 0;
+
+            const options = Array.from(contractIdSelect.options).sort((a, b) => a.text.localeCompare(b.text));
+            options.forEach(option => contractIdSelect.appendChild(option));
+        });
+
+</script>

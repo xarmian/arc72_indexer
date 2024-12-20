@@ -49,9 +49,9 @@ const displayDiff = (data1, data2) => {
 };
 
 const testEndpoints = {
-  'tokens': ['http://localhost:5101/nft-indexer/v1/tokens/?contractId=26178469', 'https://arc72-idx.voirewards.com/nft-indexer/v1/tokens/?contractId=26178469'],
-  'collections': ['http://localhost:5101/nft-indexer/v1/collections/?contractId=26178469', 'https://arc72-idx.voirewards.com/nft-indexer/v1/collections/?contractId=26178469'],
-  'transfers': ['http://localhost:5101/nft-indexer/v1/transfers/?contractId=26178469', 'https://arc72-idx.voirewards.com/nft-indexer/v1/transfers/?contractId=26178469']
+  'tokens': ['http://localhost:5101/nft-indexer/v1/tokens/?contractId=26178469', 'https://arc72-voi-mainnet.nftnavigator.xyz/nft-indexer/v1/tokens/?contractId=26178469'],
+  'collections': ['http://localhost:5101/nft-indexer/v1/collections/?contractId=26178469', 'https://arc72-voi-mainnet.nftnavigator.xyz/nft-indexer/v1/collections/?contractId=26178469'],
+  'transfers': ['http://localhost:5101/nft-indexer/v1/transfers/?contractId=26178469', 'https://arc72-voi-mainnet.nftnavigator.xyz/nft-indexer/v1/transfers/?contractId=26178469']
 };
 
 const main = async () => {

@@ -15,13 +15,9 @@ export const swaggerOptions = {
       },
       servers: [
         {
-          url: 'https://arc72-idx.nftnavigator.xyz',
-          description: 'Prototype Server',
-        },
-        {
-          url: 'https://arc72-idx.voirewards.com',
-          description: 'Prototype Server',
-        },
+          url: 'https://arc72-voi-mainnet.nftnavigator.xyz',
+          description: 'Mainnet Server',
+        }
       ],
       components: {
           schemas: {
