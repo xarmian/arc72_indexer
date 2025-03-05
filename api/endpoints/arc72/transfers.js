@@ -56,6 +56,16 @@
  *           type: integer
  *         description: Limit results to transfers made on or before the given round.
  *       - in: query
+ *         name: min-time
+ *         schema:
+ *           type: integer
+ *         description: Limit results to transfers which occurred on or after the given timestamp.
+ *       - in: query
+ *         name: max-time
+ *         schema:
+ *           type: integer
+ *         description: Limit results to transfers which occurred on or before the given timestamp.
+ *       - in: query
  *         name: includes
  *         schema:
  *           type: string
@@ -96,6 +106,9 @@ export const transfersEndpoint = async (req, res, db) => {
     const to = req.query.to;
     let minRound = req.query['min-round']??0;
     const maxRound = req.query['max-round'];
+    const minTime = req.query['min-time'];
+    const maxTime = req.query['max-time'];
+    const sort = (req.query['sort']??'ASC').toUpperCase();
     const includes = req.query.includes;
 
     if (next.length > 0) minRound = Math.max(Number(next), Number(minRound));
@@ -140,13 +153,21 @@ export const transfersEndpoint = async (req, res, db) => {
         conditions.push(`round <= $maxRound`);
         params.$maxRound = maxRound;
     }
+    if (minTime) {
+        conditions.push(`timestamp >= $minTime`);
+        params.$minTime = minTime;
+    }
+    if (maxTime) {
+        conditions.push(`timestamp <= $maxTime`);
+        params.$maxTime = maxTime;
+    }
 
     // Append conditions to the query
     if (conditions.length > 0) {
         query += ' WHERE ' + conditions.join(' AND ');
     }
 
-    query += ' ORDER BY round ASC';
+    query += ` ORDER BY round ${sort === 'DESC' ? 'DESC' : 'ASC'}`;
 
     // Add limit and pagination logic (if applicable)
     if (limit) {
@@ -161,7 +182,7 @@ export const transfersEndpoint = async (req, res, db) => {
         } else {
             rows.forEach((row) => {
                 row.contractId = Number(row.contractId);
-                row.tokenId = Number(row.tokenId);
+                row.tokenId = row.tokenId;
                 delete row.amount;
             }); 
 
