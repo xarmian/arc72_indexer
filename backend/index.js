@@ -107,7 +107,7 @@ while (true) {
                     const escrowAddr = algosdk.getApplicationAddress(Number(contractId));
                     await db.insertOrUpdateMarket({ contractId, escrowAddr, createRound, lastSyncRound, isBlacklisted: 0 });
                     contractType = 2;
-		    ctc = new MPContract(contractId, algodClient, indexerClient);
+		            ctc = new MPContract(contractId, algodClient, indexerClient);
                 }
                 else {
                     console.log(`Contract ${contractId} is not an ARC72 or MP contract, skipping`);
@@ -124,7 +124,7 @@ while (true) {
                     console.log(`\nUpdating contract ${contractId} in collections table`);
                     contractType = 1;
 
-		    try {
+        		    try {
 	                    ctc = new Contract(contractId, algodClient, indexerClient);
 
         	            const totalSupply = (await ctc.arc72_totalSupply()).returnValue;
@@ -137,11 +137,11 @@ while (true) {
         	            const decodedState = JSON.stringify(decodeGlobalState(globalState));
 
                 	    await db.insertOrUpdateCollection({ contractId, totalSupply, createRound, lastSyncRound, creator, globalState: decodedState });
-		    }
-		    catch(error) {
-			console.log(`\nError updating contract: ${error.message}`);
-			continue;
-		    }
+		            }
+		            catch(error) {
+			            console.log(`\nError updating contract: ${error.message}`);
+			            continue;
+		            }
                 }
 
                 if (contractType == 0) {
