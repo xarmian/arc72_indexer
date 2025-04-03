@@ -27,6 +27,27 @@ dotenv.config();
 const DB_PATH = process.env.DB_PATH || '../db/db.sqlite';
 const db = new Database(DB_PATH);
 
+// Helper function to process events in chunks with automatic retries
+async function processEventsInChunks(contractId, ctc, startRound, endRound, processFunction) {
+    let currentRound = startRound;
+    let chunkSize = endRound - startRound;
+
+    while (currentRound < endRound) {
+        const nextRound = Math.min(currentRound + chunkSize, endRound);
+        try {
+            await processFunction(currentRound, nextRound);
+            currentRound = nextRound;
+        } catch (error) {
+            console.log(`Error processing events from ${currentRound} to ${nextRound}: ${error.message}`);
+            // Reduce chunk size by half, minimum 1
+            chunkSize = Math.max(1, Math.floor(chunkSize / 2));
+            console.log(`Reducing chunk size to ${chunkSize} rounds and retrying...`);
+            // Don't update currentRound, so we retry the same range with smaller chunk
+            await sleep(5000); // Wait before retrying
+        }
+    }
+}
+
 // get last sync round from info table
 let last_block = Number((await db.getInfo("syncRound"))?.value-1 ?? 0);
 // let end_block = (await algodClient.status().do())['last-round'];
@@ -159,66 +180,67 @@ while (true) {
 
             if (lastSyncRound <= rnd) {
                 if (contractType == 1) { // NFT Collection
-                    // get transaction history since lastSyncRound
-                    const events = await ctc.arc72_Transfer({ minRound: (lastSyncRound), maxRound: rnd });
+                    console.log(`Processing events for contract ${contractId} from round ${lastSyncRound} to ${rnd}`);
 
-                    console.log(`Processing ${events.length} events for contract ${contractId} from round ${lastSyncRound} to ${rnd}`);
+                    // Process transfer events with chunking
+                    await processEventsInChunks(contractId, ctc, lastSyncRound, rnd, async (startRound, endRound) => {
+                        const events = await ctc.arc72_Transfer({ minRound: startRound, maxRound: endRound });
+                        console.log(`Processing ${events.length} transfer events from round ${startRound} to ${endRound}`);
 
-                    // for each event, record a transaction in the database
-                    for await (const event of events) {
-                        const [transactionId, round, timestamp, from, to, tokenId] = event;
+                        for await (const event of events) {
+                            const [transactionId, round, timestamp, from, to, tokenId] = event;
 
-                        if (from == zeroAddress) {
-                            // new token mint
-                            const metadataURI = (await ctc.arc72_tokenURI(tokenId)).returnValue;
-                            let metadata = '';
-                            
-                            try {
-                                // if metadataURI is an ipfs url, adjust it to use the ipfs gateway
-                                if (metadataURI.startsWith('ipfs://')) {
-                                    metadata = JSON.stringify(await fetch(metadataURI.replace('ipfs://', 'https://ipfs.io/ipfs/')).then((res) => res.json()));
+                            if (from == zeroAddress) {
+                                // new token mint
+                                const metadataURI = (await ctc.arc72_tokenURI(tokenId)).returnValue;
+                                let metadata = '';
+                                
+                                try {
+                                    if (metadataURI.startsWith('ipfs://')) {
+                                        metadata = JSON.stringify(await fetch(metadataURI.replace('ipfs://', 'https://ipfs.io/ipfs/')).then((res) => res.json()));
+                                    }
+                                    else {
+                                        metadata = JSON.stringify(await fetch(metadataURI).then((res) => res.json()));
+                                    }
                                 }
-                                else {
-                                    metadata = JSON.stringify(await fetch(metadataURI).then((res) => res.json()));
+                                catch(err) {
+                                    console.log(`Error fetching metadata for token ${tokenId}: ${err.message}`);
                                 }
+
+                                const totalSupply = (await ctc.arc72_totalSupply()).returnValue;
+
+                                await db.insertOrUpdateToken({ contractId, tokenId, tokenIndex: 0, owner: to, metadataURI, metadata, approved: zeroAddress, mintRound: round});
+                                await db.updateCollectionTotalSupply(contractId, totalSupply);
+
+                                console.log(`Minted token ${tokenId} for contract ${contractId}`);
                             }
-                            catch(err) {
-                                console.log(`Error fetching metadata for token ${tokenId}: ${err.message}`);
+                            else {
+                                await db.updateTokenOwner(contractId, tokenId, to);
+
+                                // check token approval
+                                const approved = (await ctc.arc72_getApproved(tokenId)).returnValue??null;
+                                await db.updateTokenApproved(contractId, tokenId, approved);
+
+                                console.log(`Updated token ${tokenId} owner to ${to}, approval to ${approved}`);
                             }
 
-                            const totalSupply = (await ctc.arc72_totalSupply()).returnValue;
-
-                            await db.insertOrUpdateToken({ contractId, tokenId, tokenIndex: 0, owner: to, metadataURI, metadata, approved: zeroAddress, mintRound: round});
-                            await db.updateCollectionTotalSupply(contractId, totalSupply);
-
-                            console.log(`Minted token ${tokenId} for contract ${contractId}`);
+                            await db.insertTransaction({ transactionId, contractId, tokenId, round, fromAddr: from, toAddr: to, timestamp });
                         }
-                        else {
-                            await db.updateTokenOwner(contractId, tokenId, to);
+                    });
 
-                            // check token approval
+                    // Process approval events with chunking
+                    await processEventsInChunks(contractId, ctc, lastSyncRound, rnd, async (startRound, endRound) => {
+                        const aevents = await ctc.arc72_Approval({ minRound: startRound, maxRound: endRound });
+                        console.log(`Processing ${aevents.length} approval events from round ${startRound} to ${endRound}`);
+
+                        for await (const event of aevents) {
+                            const [transactionId, round, timestamp, from, to, tokenId] = event;
+
                             const approved = (await ctc.arc72_getApproved(tokenId)).returnValue??null;
                             await db.updateTokenApproved(contractId, tokenId, approved);
-
-                            console.log(`Updated token ${tokenId} owner to ${to}, approval to ${approved}`);
+                            console.log(`Updated token ${tokenId} approved to ${approved}`);
                         }
-
-                        await db.insertTransaction({ transactionId, contractId, tokenId, round, fromAddr: from, toAddr: to, timestamp });
-                    }
-                
-                    // get approval history since lastSyncRound
-                    const aevents = await ctc.arc72_Approval({ minRound: (lastSyncRound), maxRound: rnd });
-
-                    console.log(`Processing ${aevents.length} approval events for contract ${contractId} from round ${lastSyncRound} to ${rnd}`);
-
-                    // for each event, record a transaction in the database
-                    for await (const event of aevents) {
-                        const [transactionId, round, timestamp, from, to, tokenId] = event;
-
-                        const approved = (await ctc.arc72_getApproved(tokenId)).returnValue??null;
-                        await db.updateTokenApproved(contractId, tokenId, approved);
-                        console.log(`Updated token ${tokenId} approved to ${approved}`);
-                    }
+                    });
 
                     // update lastSyncRound in collections table
                     await db.updateCollectionLastSync(contractId, rnd);
