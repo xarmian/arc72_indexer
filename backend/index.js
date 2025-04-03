@@ -247,125 +247,131 @@ while (true) {
                     console.log(`Updated lastSyncRound for contract ${contractId} to ${rnd}`);
                 }
                 else if (contractType == 2) { // Nautilus Marketplace Contract
-                    // get listing events since lastSyncRound
-                    const list_events = await ctc.ListEvent({ minRound: (lastSyncRound), maxRound: rnd });
-                    console.log(`Processing ${list_events.length} listing events for contract ${contractId} from round ${lastSyncRound} to ${rnd}`);
+                    // Process listing events with chunking
+                    await processEventsInChunks(contractId, ctc, lastSyncRound, rnd, async (startRound, endRound) => {
+                        const list_events = await ctc.ListEvent({ minRound: startRound, maxRound: endRound });
+                        console.log(`Processing ${list_events.length} listing events from round ${startRound} to ${endRound}`);
 
-                    // for each event, record a transaction in the database
-                    for await (const event of list_events) {
-                        const transactionId = event[0];
-                        const createRound = event[1];
-                        const createTimestamp = event[2];
-                        const mpListingId = event[3];
-                        const collectionId = event[4];
-                        const tokenId = event[5];
-                        const seller = event[6];
-                        const endTimestamp = event[8];
-                        const royalty = event[9];
+                        // for each event, record a transaction in the database
+                        for await (const event of list_events) {
+                            const transactionId = event[0];
+                            const createRound = event[1];
+                            const createTimestamp = event[2];
+                            const mpListingId = event[3];
+                            const collectionId = event[4];
+                            const tokenId = event[5];
+                            const seller = event[6];
+                            const endTimestamp = event[8];
+                            const royalty = event[9];
 
-                        const currencyData = event[7];
-                        const ct = currencyData[0];
-                        const currency = (ct == '00') ? 0 : parseInt(currencyData[1],16);
-                        const price = (ct == '00') ? Number(currencyData[1]) : parseInt(currencyData[2], 16);
-                      
-                        await db.insertOrUpdateMarketListing({ transactionId, mpContractId: contractId, mpListingId, contractId: collectionId, tokenId, seller, price, currency, createRound, createTimestamp, endTimestamp, royalty, sales_id: null, delete_id: null });
-                    }
+                            const currencyData = event[7];
+                            const ct = currencyData[0];
+                            const currency = (ct == '00') ? 0 : parseInt(currencyData[1],16);
+                            const price = (ct == '00') ? Number(currencyData[1]) : parseInt(currencyData[2], 16);
+                          
+                            await db.insertOrUpdateMarketListing({ transactionId, mpContractId: contractId, mpListingId, contractId: collectionId, tokenId, seller, price, currency, createRound, createTimestamp, endTimestamp, royalty, sales_id: null, delete_id: null });
+                        }
+                    });
 
-                    const buy_events = await ctc.BuyEvent({ minRound: (lastSyncRound), maxRound: rnd });
+                    // Process buy events with chunking
+                    await processEventsInChunks(contractId, ctc, lastSyncRound, rnd, async (startRound, endRound) => {
+                        const buy_events = await ctc.BuyEvent({ minRound: startRound, maxRound: endRound });
+                        console.log(`Processing ${buy_events.length} buy events from round ${startRound} to ${endRound}`);
 
-                    console.log(`Processing ${buy_events.length} buy events for contract ${contractId} from round ${lastSyncRound} to ${rnd}`);
+                        // for each event, record a transaction in the database
+                        for await (const event of buy_events) {
+                            const transactionId = event[0];
+                            const round = event[1];
+                            const timestamp = event[2];
+                            const listingId = event[3];
+                            const buyer = event[4];
 
-                    // for each event, record a transaction in the database
-                    for await (const event of buy_events) {
-                        const transactionId = event[0];
-                        const round = event[1];
-                        const timestamp = event[2];
-                        const listingId = event[3];
-                        const buyer = event[4];
+                            // get market listing
+                            const listing = await db.getMarketListing(contractId, listingId);
 
-                        // get market listing
-                        const listing = await db.getMarketListing(contractId, listingId);
-
-                        if (listing) {
-                            // insert or update sale
-                            await db.insertOrUpdateMarketSale({ transactionId, 
-                                                                mpContractId: listing.mpContractId, 
-                                                                mpListingId: listing.mpListingId, 
-                                                                contractId: listing.contractId,
-                                                                tokenId: listing.tokenId, 
-                                                                seller: listing.seller,
-                                                                buyer, 
-                                                                currency: listing.currency, 
-                                                                price: listing.price, 
-                                                                round, 
-                                                                timestamp });
-
-                            await db.insertOrUpdateMarketListing({ transactionId: listing.transactionId, 
+                            if (listing) {
+                                // insert or update sale
+                                await db.insertOrUpdateMarketSale({ transactionId, 
                                                                     mpContractId: listing.mpContractId, 
                                                                     mpListingId: listing.mpListingId, 
-                                                                    tokenId: listing.tokenId, 
                                                                     contractId: listing.contractId,
+                                                                    tokenId: listing.tokenId, 
                                                                     seller: listing.seller,
-                                                                    price: listing.price, 
+                                                                    buyer, 
                                                                     currency: listing.currency, 
-                                                                    createRound: listing.createRound, 
-                                                                    createTimestamp: listing.createTimestamp,
-                                                                    endTimestamp: listing.endTimestamp,
-                                                                    royalty: listing.royalty,
-                                                                    sales_id: transactionId,
-                                                                    delete_id: listing.delete_id,
-                                                                });
+                                                                    price: listing.price, 
+                                                                    round, 
+                                                                    timestamp });
+
+                                await db.insertOrUpdateMarketListing({ transactionId: listing.transactionId, 
+                                                                        mpContractId: listing.mpContractId, 
+                                                                        mpListingId: listing.mpListingId, 
+                                                                        tokenId: listing.tokenId, 
+                                                                        contractId: listing.contractId,
+                                                                        seller: listing.seller,
+                                                                        price: listing.price, 
+                                                                        currency: listing.currency, 
+                                                                        createRound: listing.createRound, 
+                                                                        createTimestamp: listing.createTimestamp,
+                                                                        endTimestamp: listing.endTimestamp,
+                                                                        royalty: listing.royalty,
+                                                                        sales_id: transactionId,
+                                                                        delete_id: listing.delete_id,
+                                                                    });
+                            }
+                            else {
+                                console.log(`Listing ${contractId} ${listingId} not found in database`);
+                            }
                         }
-                        else {
-                            console.log(`Listing ${contractId} ${listingId} not found in database`);
+                    });
+
+                    // Process delete events with chunking
+                    await processEventsInChunks(contractId, ctc, lastSyncRound, rnd, async (startRound, endRound) => {
+                        const del_events = await ctc.DeleteListingEvent({ minRound: startRound, maxRound: endRound });
+                        console.log(`Processing ${del_events.length} delete events from round ${startRound} to ${endRound}`);
+
+                        // for each event, record a transaction in the database
+                        for await (const event of del_events) {
+                            const transactionId = event[0];
+                            const round = event[1];
+                            const timestamp = event[2];
+                            const listingId = event[3];
+
+                            // get market listing
+                            const listing = await db.getMarketListing(contractId, listingId);
+
+                            if (listing) {
+                                await db.insertOrUpdateMarketDelete({ transactionId: transactionId, 
+                                    mpContractId: listing.mpContractId, 
+                                    mpListingId: listing.mpListingId, 
+                                    contractId: listing.contractId,
+                                    tokenId: listing.tokenId, 
+                                    owner: listing.seller,
+                                    round, 
+                                    timestamp 
+                                });
+
+                                await db.insertOrUpdateMarketListing({ transactionId: listing.transactionId, 
+                                    mpContractId: listing.mpContractId, 
+                                    mpListingId: listing.mpListingId, 
+                                    tokenId: listing.tokenId, 
+                                    contractId: listing.contractId,
+                                    seller: listing.seller,
+                                    price: listing.price, 
+                                    currency: listing.currency, 
+                                    createRound: listing.createRound, 
+                                    createTimestamp: listing.createTimestamp,
+                                    endTimestamp: listing.endTimestamp,
+                                    royalty: listing.royalty,
+                                    sales_id: listing.sales_id,
+                                    delete_id: transactionId,
+                                });
+                            }
+                            else {
+                                console.log(`Listing ${contractId} ${listingId} not found in database`);
+                            }
                         }
-                    }
-
-                    const del_events = await ctc.DeleteListingEvent({ minRound: (lastSyncRound), maxRound: rnd });
-
-                    console.log(`Processing ${del_events.length} delete events for contract ${contractId} from round ${lastSyncRound} to ${rnd}`);
-
-                    // for each event, record a transaction in the database
-                    for await (const event of del_events) {
-                        const transactionId = event[0];
-                        const round = event[1];
-                        const timestamp = event[2];
-                        const listingId = event[3];
-
-                        // get market listing
-                        const listing = await db.getMarketListing(contractId, listingId);
-
-                        if (listing) {
-                            await db.insertOrUpdateMarketDelete({ transactionId: transactionId, 
-                                mpContractId: listing.mpContractId, 
-                                mpListingId: listing.mpListingId, 
-                                contractId: listing.contractId,
-                                tokenId: listing.tokenId, 
-                                owner: listing.seller,
-                                round, 
-                                timestamp 
-                            });
-
-                            await db.insertOrUpdateMarketListing({ transactionId: listing.transactionId, 
-                                mpContractId: listing.mpContractId, 
-                                mpListingId: listing.mpListingId, 
-                                tokenId: listing.tokenId, 
-                                contractId: listing.contractId,
-                                seller: listing.seller,
-                                price: listing.price, 
-                                currency: listing.currency, 
-                                createRound: listing.createRound, 
-                                createTimestamp: listing.createTimestamp,
-                                endTimestamp: listing.endTimestamp,
-                                royalty: listing.royalty,
-                                sales_id: listing.sales_id,
-                                delete_id: transactionId,
-                            });
-                        }
-                        else {
-                            console.log(`Listing ${contractId} ${listingId} not found in database`);
-                        }
-                    }
+                    });
 
                     // update lastSyncRound for market
                     await db.updateMarketLastSync(contractId, rnd);
